@@ -9,10 +9,13 @@ import com.badlogic.gdx.utils.ObjectMap;
 
 public class AudioManager implements Disposable {
 
+    private final GamePreferences preferences;
     private Music currentMusic;
-    private float musicVolume = 0.7f;
-    private float sfxVolume = 0.8f;
     private final ObjectMap<String, Sound> soundCache = new ObjectMap<>();
+
+    public AudioManager(GamePreferences preferences) {
+        this.preferences = preferences;
+    }
 
     public void playMusic(String path) {
         stopMusic();
@@ -23,7 +26,7 @@ public class AudioManager implements Disposable {
         }
         currentMusic = Gdx.audio.newMusic(file);
         currentMusic.setLooping(true);
-        currentMusic.setVolume(musicVolume);
+        currentMusic.setVolume(preferences.getEffectiveMusicVolume());
         currentMusic.play();
     }
 
@@ -45,26 +48,39 @@ public class AudioManager implements Disposable {
             sound = Gdx.audio.newSound(file);
             soundCache.put(path, sound);
         }
-        sound.play(sfxVolume);
+        sound.play(preferences.getEffectiveSfxVolume());
+    }
+
+    public void setMasterVolume(float volume) {
+        preferences.setMasterVolume(volume);
+        applyMusicVolume();
     }
 
     public void setMusicVolume(float volume) {
-        musicVolume = Math.max(0f, Math.min(1f, volume));
-        if (currentMusic != null) {
-            currentMusic.setVolume(musicVolume);
-        }
+        preferences.setMusicVolume(volume);
+        applyMusicVolume();
     }
 
     public void setSfxVolume(float volume) {
-        sfxVolume = Math.max(0f, Math.min(1f, volume));
+        preferences.setSfxVolume(volume);
+    }
+
+    public float getMasterVolume() {
+        return preferences.getMasterVolume();
     }
 
     public float getMusicVolume() {
-        return musicVolume;
+        return preferences.getMusicVolume();
     }
 
     public float getSfxVolume() {
-        return sfxVolume;
+        return preferences.getSfxVolume();
+    }
+
+    private void applyMusicVolume() {
+        if (currentMusic != null) {
+            currentMusic.setVolume(preferences.getEffectiveMusicVolume());
+        }
     }
 
     @Override
