@@ -9,10 +9,17 @@ import com.badlogic.gdx.graphics.g2d.NinePatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.FreeTypeFontParameter;
+import com.badlogic.gdx.scenes.scene2d.ui.CheckBox;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.List;
+import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
+import com.badlogic.gdx.scenes.scene2d.ui.SelectBox;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.ui.Slider;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 
 public class UiFactory {
 
@@ -49,6 +56,18 @@ public class UiFactory {
         BitmapFont versionFont = generator.generateFont(versionParam);
         skin.add("version", versionFont);
 
+        FreeTypeFontParameter headerParam = new FreeTypeFontParameter();
+        headerParam.size = 26;
+        headerParam.color = CYAN;
+        BitmapFont headerFont = generator.generateFont(headerParam);
+        skin.add("header", headerFont);
+
+        FreeTypeFontParameter settingParam = new FreeTypeFontParameter();
+        settingParam.size = 18;
+        settingParam.color = Color.WHITE;
+        BitmapFont settingFont = generator.generateFont(settingParam);
+        skin.add("setting", settingFont);
+
         generator.dispose();
 
         NinePatchDrawable buttonDefault = createButtonDrawable(BG_DEFAULT, BORDER_DEFAULT);
@@ -77,6 +96,53 @@ public class UiFactory {
         versionStyle.fontColor = new Color(1f, 1f, 1f, 0.5f);
         skin.add("version", versionStyle);
 
+        Label.LabelStyle headerStyle = new Label.LabelStyle();
+        headerStyle.font = headerFont;
+        headerStyle.fontColor = CYAN.cpy();
+        skin.add("header", headerStyle);
+
+        Label.LabelStyle settingStyle = new Label.LabelStyle();
+        settingStyle.font = settingFont;
+        settingStyle.fontColor = Color.WHITE;
+        skin.add("setting", settingStyle);
+
+        Slider.SliderStyle sliderStyle = new Slider.SliderStyle();
+        sliderStyle.background = createSliderBackground();
+        sliderStyle.knob = createSliderKnob();
+        skin.add("default", sliderStyle);
+
+        CheckBox.CheckBoxStyle checkBoxStyle = new CheckBox.CheckBoxStyle();
+        checkBoxStyle.checkboxOff = createCheckboxDrawable(false);
+        checkBoxStyle.checkboxOn = createCheckboxDrawable(true);
+        checkBoxStyle.font = settingFont;
+        checkBoxStyle.fontColor = Color.WHITE;
+        skin.add("default", checkBoxStyle);
+
+        NinePatchDrawable selectBg = createButtonDrawable(BG_DEFAULT, BORDER_DEFAULT);
+        NinePatchDrawable selectBgOver = createButtonDrawable(BG_HOVER, CYAN);
+
+        List.ListStyle listStyle = new List.ListStyle();
+        listStyle.font = settingFont;
+        listStyle.fontColorSelected = CYAN.cpy();
+        listStyle.fontColorUnselected = Color.WHITE;
+        listStyle.selection = createButtonDrawable(new Color(0f, 0.3f, 0.4f, 0.8f), CYAN);
+        listStyle.over = createButtonDrawable(BG_HOVER, BORDER_DEFAULT);
+        listStyle.background = createButtonDrawable(BG_PRESS, BORDER_DEFAULT);
+        skin.add("default", listStyle);
+
+        ScrollPane.ScrollPaneStyle scrollPaneStyle = new ScrollPane.ScrollPaneStyle();
+        skin.add("default", scrollPaneStyle);
+
+        SelectBox.SelectBoxStyle selectBoxStyle = new SelectBox.SelectBoxStyle();
+        selectBoxStyle.font = settingFont;
+        selectBoxStyle.fontColor = Color.WHITE;
+        selectBoxStyle.overFontColor = CYAN.cpy();
+        selectBoxStyle.background = selectBg;
+        selectBoxStyle.backgroundOver = selectBgOver;
+        selectBoxStyle.listStyle = listStyle;
+        selectBoxStyle.scrollStyle = scrollPaneStyle;
+        skin.add("default", selectBoxStyle);
+
         return skin;
     }
 
@@ -92,5 +158,48 @@ public class UiFactory {
         pixmap.dispose();
         NinePatch ninePatch = new NinePatch(new TextureRegion(texture), 3, 3, 3, 3);
         return new NinePatchDrawable(ninePatch);
+    }
+
+    private static Drawable createSliderBackground() {
+        Pixmap pixmap = new Pixmap(20, 4, Pixmap.Format.RGBA8888);
+        pixmap.setColor(BG_DEFAULT);
+        pixmap.fill();
+        pixmap.setColor(BORDER_DEFAULT);
+        pixmap.drawRectangle(0, 0, 20, 4);
+        Texture texture = new Texture(pixmap);
+        pixmap.dispose();
+        NinePatch ninePatch = new NinePatch(new TextureRegion(texture), 2, 2, 0, 0);
+        NinePatchDrawable drawable = new NinePatchDrawable(ninePatch);
+        drawable.setMinHeight(4);
+        return drawable;
+    }
+
+    private static Drawable createSliderKnob() {
+        int knobSize = 16;
+        Pixmap pixmap = new Pixmap(knobSize, knobSize, Pixmap.Format.RGBA8888);
+        pixmap.setColor(BORDER_DEFAULT);
+        pixmap.fill();
+        pixmap.setColor(BG_DEFAULT);
+        pixmap.fillRectangle(2, 2, knobSize - 4, knobSize - 4);
+        Texture texture = new Texture(pixmap);
+        pixmap.dispose();
+        return new TextureRegionDrawable(new TextureRegion(texture));
+    }
+
+    private static Drawable createCheckboxDrawable(boolean checked) {
+        int size = 20;
+        Pixmap pixmap = new Pixmap(size, size, Pixmap.Format.RGBA8888);
+        pixmap.setColor(BORDER_DEFAULT);
+        pixmap.fill();
+        if (checked) {
+            pixmap.setColor(new Color(0f, 0.6f, 0.8f, 0.8f));
+            pixmap.fillRectangle(2, 2, size - 4, size - 4);
+        } else {
+            pixmap.setColor(BG_DEFAULT);
+            pixmap.fillRectangle(2, 2, size - 4, size - 4);
+        }
+        Texture texture = new Texture(pixmap);
+        pixmap.dispose();
+        return new TextureRegionDrawable(new TextureRegion(texture));
     }
 }
