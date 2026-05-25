@@ -60,6 +60,12 @@ public class SettingsScreen implements Screen {
     private Label musicValueLabel;
     private Label sfxValueLabel;
 
+    private float revertTimer;
+    private Table revertDialogTable;
+    private Label revertCountdownLabel;
+    private boolean revertPending;
+    private Texture dialogBackgroundTexture;
+
     private GamePreferences.DisplayMode savedDisplayMode;
     private int savedResolutionWidth;
     private int savedResolutionHeight;
@@ -349,11 +355,6 @@ public class SettingsScreen implements Screen {
         }
     }
 
-    private float revertTimer;
-    private Table revertDialogTable;
-    private Label revertCountdownLabel;
-    private boolean revertPending;
-
     private void showRevertDialog() {
         revertPending = true;
         revertTimer = 10f;
@@ -364,11 +365,15 @@ public class SettingsScreen implements Screen {
         revertDialogTable.center();
 
         Table dialogContent = new Table();
+        if (dialogBackgroundTexture != null) {
+            dialogBackgroundTexture.dispose();
+        }
         Pixmap bgPixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
         bgPixmap.setColor(new Color(0f, 0f, 0f, 0.85f));
         bgPixmap.fill();
+        dialogBackgroundTexture = new Texture(bgPixmap);
         dialogContent.setBackground(new TextureRegionDrawable(
-            new TextureRegion(new Texture(bgPixmap))));
+            new TextureRegion(dialogBackgroundTexture)));
         bgPixmap.dispose();
         dialogContent.pad(30);
 
@@ -423,9 +428,12 @@ public class SettingsScreen implements Screen {
         preferences.setDisplayMode(savedDisplayMode);
         preferences.setResolutionWidth(savedResolutionWidth);
         preferences.setResolutionHeight(savedResolutionHeight);
+        preferences.setVsync(savedVsync);
         applyDisplayMode(savedDisplayMode, savedResolutionWidth, savedResolutionHeight);
+        Gdx.graphics.setVSync(savedVsync);
 
         displayModeBox.setSelectedIndex(savedDisplayMode.ordinal());
+        vsyncCheckBox.setChecked(savedVsync);
         String savedRes = savedResolutionWidth + " x " + savedResolutionHeight;
         Array<String> items = new Array<>();
         for (int[] r : resolutions) items.add(r[0] + " x " + r[1]);
@@ -490,11 +498,17 @@ public class SettingsScreen implements Screen {
     public void resume() {}
 
     @Override
-    public void hide() {}
+    public void hide() {
+        dispose();
+    }
 
     @Override
     public void dispose() {
         stage.dispose();
         starfield.dispose();
+        if (dialogBackgroundTexture != null) {
+            dialogBackgroundTexture.dispose();
+            dialogBackgroundTexture = null;
+        }
     }
 }

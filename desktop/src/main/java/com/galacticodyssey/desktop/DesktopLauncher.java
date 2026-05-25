@@ -61,7 +61,7 @@ public class DesktopLauncher {
         }
         try (FileInputStream fis = new FileInputStream(prefsFile)) {
             Properties props = new Properties();
-            props.loadFromXML(fis);
+            props.load(fis);
             return props;
         } catch (Exception e) {
             return null;

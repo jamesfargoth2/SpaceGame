@@ -20,8 +20,6 @@ import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.galacticodyssey.core.AudioManager;
 import com.galacticodyssey.core.GalacticOdyssey;
-import com.galacticodyssey.ui.SettingsScreen;
-
 public class MainMenuScreen implements Screen {
 
     private static final float WORLD_WIDTH = 1280f;
@@ -160,6 +158,7 @@ public class MainMenuScreen implements Screen {
     @Override
     public void hide() {
         audioManager.stopMusic();
+        dispose();
     }
 
     @Override
