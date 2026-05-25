@@ -19,20 +19,21 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.galacticodyssey.core.AudioManager;
-import com.galacticodyssey.core.GalacticOdyssey;
 
 public class MainMenuScreen implements Screen {
 
     private static final float WORLD_WIDTH = 1280f;
     private static final float WORLD_HEIGHT = 720f;
 
-    private final GalacticOdyssey game;
+    private final Skin skin;
+    private final AudioManager audioManager;
     private final Stage stage;
     private final StarfieldBackground starfield;
     private final OrthographicCamera backgroundCamera;
 
-    public MainMenuScreen(GalacticOdyssey game) {
-        this.game = game;
+    public MainMenuScreen(Skin skin, AudioManager audioManager) {
+        this.skin = skin;
+        this.audioManager = audioManager;
         this.stage = new Stage(new FitViewport(WORLD_WIDTH, WORLD_HEIGHT));
         this.backgroundCamera = new OrthographicCamera();
 
@@ -44,7 +45,6 @@ public class MainMenuScreen implements Screen {
     }
 
     private void buildUi() {
-        Skin skin = game.getSkin();
 
         Table root = new Table();
         root.setFillParent(true);
@@ -82,7 +82,7 @@ public class MainMenuScreen implements Screen {
         button.setDisabled(disabled);
         button.setTransform(true);
 
-        AudioManager audio = game.getAudioManager();
+        AudioManager audio = audioManager;
 
         button.addListener(new ClickListener() {
             @Override
@@ -117,7 +117,7 @@ public class MainMenuScreen implements Screen {
     @Override
     public void show() {
         Gdx.input.setInputProcessor(stage);
-        game.getAudioManager().playMusic("audio/music/menu_ambient.ogg");
+        audioManager.playMusic("audio/music/MainMenuBackgroundMusic.wav");
     }
 
     @Override
@@ -155,7 +155,7 @@ public class MainMenuScreen implements Screen {
 
     @Override
     public void hide() {
-        game.getAudioManager().stopMusic();
+        audioManager.stopMusic();
     }
 
     @Override
