@@ -51,9 +51,9 @@ public class UiFactory {
 
         generator.dispose();
 
-        skin.add("button-default", createButtonDrawable(BG_DEFAULT, BORDER_DEFAULT));
-        skin.add("button-hover", createButtonDrawable(BG_HOVER, CYAN));
-        skin.add("button-press", createButtonDrawable(BG_PRESS, CYAN));
+        NinePatchDrawable buttonDefault = createButtonDrawable(BG_DEFAULT, BORDER_DEFAULT);
+        NinePatchDrawable buttonHover = createButtonDrawable(BG_HOVER, CYAN);
+        NinePatchDrawable buttonPress = createButtonDrawable(BG_PRESS, CYAN);
 
         TextButton.TextButtonStyle buttonStyle = new TextButton.TextButtonStyle();
         buttonStyle.font = buttonFont;
@@ -61,10 +61,10 @@ public class UiFactory {
         buttonStyle.overFontColor = CYAN.cpy();
         buttonStyle.downFontColor = CYAN.cpy();
         buttonStyle.disabledFontColor = new Color(1f, 1f, 1f, 0.3f);
-        buttonStyle.up = skin.getDrawable("button-default");
-        buttonStyle.over = skin.getDrawable("button-hover");
-        buttonStyle.down = skin.getDrawable("button-press");
-        buttonStyle.disabled = skin.getDrawable("button-default");
+        buttonStyle.up = buttonDefault;
+        buttonStyle.over = buttonHover;
+        buttonStyle.down = buttonPress;
+        buttonStyle.disabled = buttonDefault;
         skin.add("default", buttonStyle);
 
         Label.LabelStyle titleStyle = new Label.LabelStyle();
