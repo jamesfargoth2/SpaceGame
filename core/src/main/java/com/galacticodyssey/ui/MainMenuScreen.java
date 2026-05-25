@@ -19,21 +19,25 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.galacticodyssey.core.AudioManager;
+import com.galacticodyssey.core.GalacticOdyssey;
+import com.galacticodyssey.ui.SettingsScreen;
 
 public class MainMenuScreen implements Screen {
 
     private static final float WORLD_WIDTH = 1280f;
     private static final float WORLD_HEIGHT = 720f;
 
+    private final GalacticOdyssey game;
     private final Skin skin;
     private final AudioManager audioManager;
     private final Stage stage;
     private final StarfieldBackground starfield;
     private final OrthographicCamera backgroundCamera;
 
-    public MainMenuScreen(Skin skin, AudioManager audioManager) {
-        this.skin = skin;
-        this.audioManager = audioManager;
+    public MainMenuScreen(GalacticOdyssey game) {
+        this.game = game;
+        this.skin = game.getSkin();
+        this.audioManager = game.getAudioManager();
         this.stage = new Stage(new FitViewport(WORLD_WIDTH, WORLD_HEIGHT));
         this.backgroundCamera = new OrthographicCamera();
 
@@ -60,7 +64,7 @@ public class MainMenuScreen implements Screen {
         addMenuButton(root, "Multiplayer", skin, false,
             () -> Gdx.app.log("Menu", "Multiplayer pressed"));
         addMenuButton(root, "Settings", skin, false,
-            () -> Gdx.app.log("Menu", "Settings pressed"));
+            () -> game.setScreen(new SettingsScreen(game)));
         addMenuButton(root, "Encyclopedia", skin, false,
             () -> Gdx.app.log("Menu", "Encyclopedia pressed"));
         addMenuButton(root, "Credits", skin, false,
