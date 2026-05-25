@@ -124,7 +124,7 @@ Implements `Screen`, same pattern as `MainMenuScreen`. Reuses `StarfieldBackgrou
 
 Display changes at runtime use LWJGL3-specific APIs via `Gdx.graphics`:
 
-- **Windowed:** `Gdx.graphics.setWindowedMode(width, height)`
+- **Windowed:** `Gdx.graphics.setUndecorated(false)` (if coming from borderless) + `Gdx.graphics.setWindowedMode(width, height)`
 - **Fullscreen:** `Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode())`
 - **Borderless:** `Gdx.graphics.setUndecorated(true)` + `Gdx.graphics.setWindowedMode(displayWidth, displayHeight)`
 
@@ -149,7 +149,7 @@ Reads `GamePreferences` at boot to configure `Lwjgl3ApplicationConfiguration`:
 - Sets initial resolution from saved preference
 - Sets vsync from saved preference
 
-This requires creating a temporary `Lwjgl3Application`-compatible preferences reader or using Java's `Preferences` API directly at the launcher level (since `Gdx.app` isn't available yet). libGDX stores preferences in platform-specific locations — on Windows, the LWJGL3 backend stores them as files in `.prefs/` in the user's home directory. The launcher can read this file directly to get saved display settings before creating the application.
+Since `Gdx.app` is not available before the application is created, the launcher reads the preferences file directly. The LWJGL3 backend stores preferences as XML files at `<user-home>/.prefs/GalacticOdyssey`. The launcher parses this file using `javax.xml.parsers` to extract display mode, resolution, and vsync values. If the file doesn't exist (first launch), the launcher uses the hardcoded defaults (1280x720 windowed, vsync on).
 
 ### MainMenuScreen Integration
 
