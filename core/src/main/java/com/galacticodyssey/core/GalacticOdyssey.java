@@ -4,6 +4,7 @@ import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.galacticodyssey.ui.MainMenuScreen;
 import com.galacticodyssey.ui.UiFactory;
 
 public class GalacticOdyssey extends Game {
@@ -16,6 +17,7 @@ public class GalacticOdyssey extends Game {
         Gdx.app.log("GalacticOdyssey", "Galactic Odyssey starting...");
         skin = UiFactory.createSkin();
         audioManager = new AudioManager();
+        setScreen(new MainMenuScreen(this));
     }
 
     public Skin getSkin() {
