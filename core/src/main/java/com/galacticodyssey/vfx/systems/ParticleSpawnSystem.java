@@ -19,6 +19,7 @@ import java.util.List;
 
 public class ParticleSpawnSystem extends EntitySystem {
     private static final int PRIORITY = 12;
+    private static final Vector3 ZERO = new Vector3();
     private final VFXRegistry registry;
     private final VFXEventBindings bindings;
     private final ParticlePoolComponent pool;
@@ -39,9 +40,9 @@ public class ParticleSpawnSystem extends EntitySystem {
         eventBus.subscribe(WeaponFiredEvent.class, e ->
             queueSpawn("WeaponFiredEvent", null, e.aimDirection));
         eventBus.subscribe(ShieldAbsorbEvent.class, e ->
-            queueSpawn("ShieldAbsorbEvent", null, new Vector3()));
+            queueSpawn("ShieldAbsorbEvent", null, ZERO));
         eventBus.subscribe(EntityKilledEvent.class, e ->
-            queueSpawn("EntityKilledEvent", null, new Vector3()));
+            queueSpawn("EntityKilledEvent", null, ZERO));
         eventBus.subscribe(ShipWeaponFiredEvent.class, e ->
             queueSpawn("ShipWeaponFiredEvent", null, e.origin));
     }

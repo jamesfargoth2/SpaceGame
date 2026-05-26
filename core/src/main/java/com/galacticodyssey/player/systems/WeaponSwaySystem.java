@@ -32,7 +32,7 @@ public class WeaponSwaySystem extends EntitySystem {
 
             if (move.isGrounded && move.currentSpeed > 0.1f) {
                 float speedFactor = Math.min(move.currentSpeed / 6f, 1f);
-                cam.headBobPhase += deltaTime * cam.headBobFrequency * speedFactor;
+                cam.headBobPhase += deltaTime * cam.headBobFrequency * speedFactor * adsSuppress;
             }
         }
     }

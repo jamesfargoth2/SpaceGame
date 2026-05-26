@@ -14,6 +14,7 @@ public class ShipHeatSystem extends EntitySystem {
     private static final int PRIORITY = 9;
     private final EventBus eventBus;
     private ImmutableArray<Entity> entities;
+    private final List<String> toRemoveOverheat = new ArrayList<>();
 
     public ShipHeatSystem(EventBus eventBus) {
         super(PRIORITY);
@@ -31,7 +32,7 @@ public class ShipHeatSystem extends EntitySystem {
             Entity entity = entities.get(i);
             ShipWeaponHeatComponent heat = entity.getComponent(ShipWeaponHeatComponent.class);
 
-            List<String> toRemoveOverheat = new ArrayList<>();
+            toRemoveOverheat.clear();
 
             for (Map.Entry<String, Float> entry : heat.heatPerHardpoint.entrySet()) {
                 String hpId = entry.getKey();

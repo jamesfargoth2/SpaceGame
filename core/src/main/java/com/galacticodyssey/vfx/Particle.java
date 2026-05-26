@@ -16,6 +16,7 @@ public class Particle implements Poolable {
     public float rotation, angularVelocity;
     public TextureRegion textureRegion;
     public int flags;
+    private final Color scratchColor = new Color();
 
     @Override
     public void reset() {
@@ -45,11 +46,12 @@ public class Particle implements Poolable {
 
     public Color getCurrentColor() {
         float t = getLifeRatio();
-        return new Color(
+        scratchColor.set(
             color.r + (colorEnd.r - color.r) * t,
             color.g + (colorEnd.g - color.g) * t,
             color.b + (colorEnd.b - color.b) * t,
             color.a + (colorEnd.a - color.a) * t
         );
+        return scratchColor;
     }
 }

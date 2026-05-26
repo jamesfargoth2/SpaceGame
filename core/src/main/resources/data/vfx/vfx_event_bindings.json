@@ -1,4 +1,5 @@
 {
+  "WeaponFiredEvent": "muzzle_flash_ballistic",
   "WeaponFiredEvent:BALLISTIC": "muzzle_flash_ballistic",
   "WeaponFiredEvent:ENERGY": "muzzle_flash_energy",
   "WeaponFiredEvent:PLASMA": "muzzle_flash_plasma",

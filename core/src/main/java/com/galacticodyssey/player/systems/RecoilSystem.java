@@ -14,13 +14,11 @@ import java.util.List;
 
 public class RecoilSystem extends EntitySystem {
     private static final int PRIORITY = 10;
-    private final EventBus eventBus;
     private final List<RecoilEvent> pendingRecoils = new ArrayList<>();
     private ImmutableArray<Entity> entities;
 
     public RecoilSystem(EventBus eventBus) {
         super(PRIORITY);
-        this.eventBus = eventBus;
         eventBus.subscribe(RecoilEvent.class, pendingRecoils::add);
     }
 

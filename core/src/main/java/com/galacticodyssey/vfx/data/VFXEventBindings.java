@@ -18,4 +18,26 @@ public class VFXEventBindings {
         }
         return bindings.get(eventType);
     }
+
+    /**
+     * Populates bindings from a pre-parsed map. Keys may be either:
+     * <ul>
+     *   <li>{@code "EventType:Variant"} — specific variant binding</li>
+     *   <li>{@code "EventType"} — plain fallback binding</li>
+     * </ul>
+     */
+    public void loadFromMap(Map<String, String> map) {
+        for (Map.Entry<String, String> entry : map.entrySet()) {
+            String key = entry.getKey();
+            String effectId = entry.getValue();
+            int colon = key.indexOf(':');
+            if (colon >= 0) {
+                String eventType = key.substring(0, colon);
+                String variant = key.substring(colon + 1);
+                bind(eventType, variant, effectId);
+            } else {
+                bind(key, null, effectId);
+            }
+        }
+    }
 }

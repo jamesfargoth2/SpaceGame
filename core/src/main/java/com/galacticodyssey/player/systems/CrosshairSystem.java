@@ -5,6 +5,7 @@ import com.badlogic.ashley.utils.ImmutableArray;
 import com.galacticodyssey.combat.components.RangedWeaponComponent;
 import com.galacticodyssey.combat.events.DamageDealtEvent;
 import com.galacticodyssey.combat.events.EntityKilledEvent;
+import com.galacticodyssey.combat.events.WeaponFiredEvent;
 import com.galacticodyssey.core.EventBus;
 import com.galacticodyssey.player.components.CrosshairComponent;
 
@@ -15,12 +16,14 @@ public class CrosshairSystem extends EntitySystem {
     private static final int PRIORITY = 15;
     private final List<DamageDealtEvent> pendingHits = new ArrayList<>();
     private final List<EntityKilledEvent> pendingKills = new ArrayList<>();
+    private final List<WeaponFiredEvent> pendingFired = new ArrayList<>();
     private ImmutableArray<Entity> entities;
 
     public CrosshairSystem(EventBus eventBus) {
         super(PRIORITY);
         eventBus.subscribe(DamageDealtEvent.class, pendingHits::add);
         eventBus.subscribe(EntityKilledEvent.class, pendingKills::add);
+        eventBus.subscribe(WeaponFiredEvent.class, pendingFired::add);
     }
 
     @Override
@@ -49,9 +52,15 @@ public class CrosshairSystem extends EntitySystem {
                     ch.killConfirmTimer = ch.killConfirmDuration;
                 }
             }
+            for (WeaponFiredEvent fired : pendingFired) {
+                if (fired.shooter == entity) {
+                    addBloom(entity, ch.bloomPerShot);
+                }
+            }
         }
         pendingHits.clear();
         pendingKills.clear();
+        pendingFired.clear();
     }
 
     public void addBloom(Entity entity, float amount) {

@@ -188,6 +188,14 @@ public class GameWorld implements Disposable {
 
         // Ship weapons
         shipWeaponRegistry = new ShipWeaponRegistry();
+        // NOTE: loadWeapons/loadHardpointTemplates use Gdx.files.internal() and therefore
+        // require the libGDX asset pipeline to be initialized (i.e. after Gdx.app is set up).
+        // Calling them here stubs the wiring; they will succeed at runtime but throw in
+        // headless unit tests. The actual asset loading is guarded by a null Gdx.files check.
+        if (com.badlogic.gdx.Gdx.files != null) {
+            shipWeaponRegistry.loadWeapons("data/weapons/ship_weapons.json");
+            shipWeaponRegistry.loadHardpointTemplates("data/weapons/hardpoint_templates.json");
+        }
         turretTrackingSystem = new TurretTrackingSystem();
         shipWeaponSystem = new ShipWeaponSystem(eventBus);
         shipProjectileSystem = new ShipProjectileSystem(eventBus);
@@ -200,6 +208,10 @@ public class GameWorld implements Disposable {
         engine.addSystem(shipHeatSystem);
 
         // VFX
+        // NOTE: VFX effect definitions are loaded from JSON via the asset pipeline
+        // (requires Gdx.files / AssetManager). Until that is wired up, effects are
+        // registered programmatically in tests or skipped gracefully at runtime when
+        // the effectId returned by VFXEventBindings.resolve() is not found in the registry.
         vfxRegistry = new VFXRegistry();
         VFXEventBindings vfxBindings = new VFXEventBindings();
         Entity poolEntity = new Entity();
@@ -215,7 +227,7 @@ public class GameWorld implements Disposable {
         recoilSystem = new RecoilSystem(eventBus);
         adsSystem = new ADSSystem();
         crosshairSystem = new CrosshairSystem(eventBus);
-        screenShakeSystem = new ScreenShakeSystem();
+        screenShakeSystem = new ScreenShakeSystem(eventBus);
         weaponSwaySystem = new WeaponSwaySystem();
         engine.addSystem(recoilSystem);
         engine.addSystem(adsSystem);
