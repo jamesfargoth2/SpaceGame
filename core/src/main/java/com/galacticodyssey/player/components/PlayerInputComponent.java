@@ -10,4 +10,10 @@ public class PlayerInputComponent implements Component {
     public boolean crouch;
     public float mouseDeltaX;
     public float mouseDeltaY;
+    public boolean interactPressed;
+    public boolean cameraTogglePressed;
+    public boolean rollLeft;
+    public boolean rollRight;
+    public boolean thrustUp;
+    public boolean thrustDown;
 }

@@ -18,11 +18,14 @@ public class PlayerInputSystem extends IteratingSystem {
     private float accumulatedMouseDeltaX;
     private float accumulatedMouseDeltaY;
     private boolean jumpPressed;
-    private boolean cursorCatched = true;
+    private boolean interactPressed;
+    private boolean cameraTogglePressed;
+    private boolean enabled = true;
 
     private final InputAdapter inputAdapter = new InputAdapter() {
         @Override
         public boolean mouseMoved(int screenX, int screenY) {
+            if (!enabled) return false;
             accumulatedMouseDeltaX += -Gdx.input.getDeltaX();
             accumulatedMouseDeltaY += -Gdx.input.getDeltaY();
             return true;
@@ -30,6 +33,7 @@ public class PlayerInputSystem extends IteratingSystem {
 
         @Override
         public boolean touchDragged(int screenX, int screenY, int pointer) {
+            if (!enabled) return false;
             accumulatedMouseDeltaX += -Gdx.input.getDeltaX();
             accumulatedMouseDeltaY += -Gdx.input.getDeltaY();
             return true;
@@ -37,13 +41,17 @@ public class PlayerInputSystem extends IteratingSystem {
 
         @Override
         public boolean keyDown(int keycode) {
+            if (!enabled) return false;
             if (keycode == Input.Keys.SPACE) {
                 jumpPressed = true;
                 return true;
             }
-            if (keycode == Input.Keys.ESCAPE) {
-                cursorCatched = !cursorCatched;
-                Gdx.input.setCursorCatched(cursorCatched);
+            if (keycode == Input.Keys.E) {
+                interactPressed = true;
+                return true;
+            }
+            if (keycode == Input.Keys.V) {
+                cameraTogglePressed = true;
                 return true;
             }
             return false;
@@ -55,8 +63,22 @@ public class PlayerInputSystem extends IteratingSystem {
     }
 
     public void initialize() {
-        Gdx.input.setInputProcessor(inputAdapter);
         Gdx.input.setCursorCatched(true);
+    }
+
+    public InputAdapter getInputAdapter() {
+        return inputAdapter;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+        if (!enabled) {
+            accumulatedMouseDeltaX = 0;
+            accumulatedMouseDeltaY = 0;
+            jumpPressed = false;
+            interactPressed = false;
+            cameraTogglePressed = false;
+        }
     }
 
     @Override
@@ -83,5 +105,13 @@ public class PlayerInputSystem extends IteratingSystem {
         input.mouseDeltaY = accumulatedMouseDeltaY;
         accumulatedMouseDeltaX = 0;
         accumulatedMouseDeltaY = 0;
+
+        input.rollLeft = Gdx.input.isKeyPressed(Input.Keys.Q);
+        input.rollRight = Gdx.input.isKeyPressed(Input.Keys.E);
+        input.thrustUp = Gdx.input.isKeyPressed(Input.Keys.SPACE);
+        input.thrustDown = Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT);
+
+        if (interactPressed) { input.interactPressed = true; interactPressed = false; }
+        if (cameraTogglePressed) { input.cameraTogglePressed = true; cameraTogglePressed = false; }
     }
 }
