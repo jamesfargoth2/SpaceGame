@@ -109,7 +109,7 @@ public class UiFactory {
         Slider.SliderStyle sliderStyle = new Slider.SliderStyle();
         sliderStyle.background = createSliderBackground();
         sliderStyle.knob = createSliderKnob();
-        skin.add("default", sliderStyle);
+        skin.add("default-horizontal", sliderStyle);
 
         CheckBox.CheckBoxStyle checkBoxStyle = new CheckBox.CheckBoxStyle();
         checkBoxStyle.checkboxOff = createCheckboxDrawable(false);
