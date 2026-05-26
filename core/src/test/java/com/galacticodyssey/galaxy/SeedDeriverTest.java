@@ -60,10 +60,18 @@ class SeedDeriverTest {
     @Test
     void allDomainConstantsAreUnique() {
         long seed = 1L;
+        long[] domains = {
+            SeedDeriver.STAR_DOMAIN, SeedDeriver.PLANET_DOMAIN, SeedDeriver.MOON_DOMAIN,
+            SeedDeriver.TERRAIN_DOMAIN, SeedDeriver.ATMOSPHERE_DOMAIN, SeedDeriver.BIOME_DOMAIN,
+            SeedDeriver.STATION_DOMAIN, SeedDeriver.INTERIOR_DOMAIN, SeedDeriver.FACTION_DOMAIN,
+            SeedDeriver.NAME_DOMAIN, SeedDeriver.NEBULA_DOMAIN
+        };
         Set<Long> derived = new HashSet<>();
-        derived.add(SeedDeriver.starDomain(seed));
-        derived.add(SeedDeriver.nebulaDomain(seed));
-        assertEquals(2, derived.size(), "Domain constants must produce unique seeds");
+        for (long domain : domains) {
+            derived.add(SeedDeriver.domain(seed, domain));
+        }
+        assertEquals(domains.length, derived.size(),
+            "All " + domains.length + " domain constants must produce unique seeds");
     }
 
     @Test
