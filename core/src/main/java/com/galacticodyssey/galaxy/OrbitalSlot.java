@@ -1,6 +1,18 @@
 package com.galacticodyssey.galaxy;
 
-/** Placeholder — full implementation in Task 3 (planet orbital slots). */
 public final class OrbitalSlot {
-    // Task 3 will add orbitRadiusAU, planetType, moons, etc.
+    public final int index;
+    public final float orbitalRadius;
+    public final float eccentricity;
+    public final float orbitalPeriod;
+    public final OrbitalZone zone;
+    public Object planet;
+
+    public OrbitalSlot(int index, float orbitalRadius, float eccentricity, OrbitalZone zone) {
+        this.index = index;
+        this.orbitalRadius = orbitalRadius;
+        this.eccentricity = eccentricity;
+        this.orbitalPeriod = (float) Math.pow(orbitalRadius, 1.5);
+        this.zone = zone;
+    }
 }
