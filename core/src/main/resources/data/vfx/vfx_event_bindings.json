@@ -1,0 +1,13 @@
+{
+  "WeaponFiredEvent": "muzzle_flash_ballistic",
+  "WeaponFiredEvent:BALLISTIC": "muzzle_flash_ballistic",
+  "WeaponFiredEvent:ENERGY": "muzzle_flash_energy",
+  "WeaponFiredEvent:PLASMA": "muzzle_flash_plasma",
+  "HitscanHitEvent": "impact_sparks",
+  "ProjectileHitEvent:EXPLOSIVE": "impact_explosion",
+  "ProjectileHitEvent": "impact_sparks",
+  "ShipWeaponFiredEvent": "muzzle_flash_ballistic",
+  "MeleeHitEvent": "impact_sparks",
+  "ShieldAbsorbEvent": "shield_ripple",
+  "EntityKilledEvent": "impact_explosion"
+}

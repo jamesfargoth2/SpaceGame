@@ -1,0 +1,44 @@
+[
+  {
+    "id": "ballistic_autocannon_sm", "name": "Light Autocannon",
+    "category": "BALLISTIC_CANNON", "damage": 15.0, "damageType": "BALLISTIC",
+    "fireRate": 8.0, "projectileSpeed": 200.0, "range": 800.0,
+    "energyCost": 1.0, "heatPerShot": 0.03, "ammoCapacity": 500,
+    "trackingSpeed": 120.0, "burstCount": 1, "burstDelay": 0.0
+  },
+  {
+    "id": "laser_array_sm", "name": "Light Laser Array",
+    "category": "LASER_ARRAY", "damage": 10.0, "damageType": "ENERGY",
+    "fireRate": 12.0, "projectileSpeed": 1000.0, "range": 1200.0,
+    "energyCost": 3.0, "heatPerShot": 0.05,
+    "trackingSpeed": 180.0, "burstCount": 1, "burstDelay": 0.0
+  },
+  {
+    "id": "plasma_turret_md", "name": "Medium Plasma Turret",
+    "category": "PLASMA_TURRET", "damage": 45.0, "damageType": "PLASMA",
+    "fireRate": 3.0, "projectileSpeed": 120.0, "range": 600.0,
+    "energyCost": 8.0, "heatPerShot": 0.08,
+    "trackingSpeed": 60.0, "burstCount": 1, "burstDelay": 0.0
+  },
+  {
+    "id": "missile_launcher_md", "name": "Medium Missile Pod",
+    "category": "MISSILE_LAUNCHER", "damage": 120.0, "damageType": "EXPLOSIVE",
+    "fireRate": 0.5, "projectileSpeed": 80.0, "range": 2000.0,
+    "energyCost": 5.0, "heatPerShot": 0.02, "ammoCapacity": 24,
+    "trackingSpeed": 45.0, "burstCount": 4, "burstDelay": 0.2
+  },
+  {
+    "id": "point_defense_sm", "name": "Point Defense Turret",
+    "category": "POINT_DEFENSE", "damage": 8.0, "damageType": "BALLISTIC",
+    "fireRate": 20.0, "projectileSpeed": 500.0, "range": 400.0,
+    "energyCost": 0.5, "heatPerShot": 0.02, "ammoCapacity": 1000,
+    "trackingSpeed": 360.0, "burstCount": 1, "burstDelay": 0.0
+  },
+  {
+    "id": "railgun_lg", "name": "Heavy Railgun",
+    "category": "RAILGUN", "damage": 300.0, "damageType": "BALLISTIC",
+    "fireRate": 0.2, "projectileSpeed": 800.0, "range": 3000.0,
+    "energyCost": 25.0, "heatPerShot": 0.20,
+    "trackingSpeed": 15.0, "burstCount": 1, "burstDelay": 0.0
+  }
+]

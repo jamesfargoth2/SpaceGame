@@ -1,0 +1,22 @@
+[
+  {
+    "id": "medkit_small", "name": "Small Medkit", "description": "Restores 25 HP",
+    "icon": "consumable/medkit_small", "weight": 0.3,
+    "healAmount": 25.0, "buffEffect": null, "useTime": 2.0, "maxStack": 5
+  },
+  {
+    "id": "medkit_large", "name": "Large Medkit", "description": "Restores 60 HP",
+    "icon": "consumable/medkit_large", "weight": 0.5,
+    "healAmount": 60.0, "buffEffect": null, "useTime": 3.5, "maxStack": 3
+  },
+  {
+    "id": "stim_speed", "name": "Speed Stim", "description": "Increases movement speed for 15 seconds",
+    "icon": "consumable/stim_speed", "weight": 0.2,
+    "healAmount": 0.0, "buffEffect": "speed_boost", "useTime": 1.0, "maxStack": 3
+  },
+  {
+    "id": "stim_damage", "name": "Combat Stim", "description": "Increases damage by 20% for 10 seconds",
+    "icon": "consumable/stim_damage", "weight": 0.2,
+    "healAmount": 0.0, "buffEffect": "damage_boost", "useTime": 1.0, "maxStack": 3
+  }
+]

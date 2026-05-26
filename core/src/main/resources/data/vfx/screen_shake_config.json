@@ -1,0 +1,7 @@
+{
+  "WeaponFiredEvent": 0.08,
+  "ProjectileHitEvent_near": 0.25,
+  "ShipWeaponFiredEvent_own": 0.2,
+  "explosion_near": 0.5,
+  "MeleeHitEvent": 0.15
+}

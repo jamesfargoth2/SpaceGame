@@ -43,18 +43,44 @@ import com.galacticodyssey.core.components.PlayerTagComponent;
 import com.galacticodyssey.core.components.TransformComponent;
 import com.galacticodyssey.core.systems.BulletPhysicsSystem;
 import com.galacticodyssey.core.systems.PhysicsBodySystem;
+import com.galacticodyssey.equipment.components.EquipmentSlotsComponent;
+import com.galacticodyssey.equipment.components.InventoryComponent;
+import com.galacticodyssey.equipment.data.LootTableRegistry;
+import com.galacticodyssey.equipment.systems.EquipmentSystem;
+import com.galacticodyssey.equipment.systems.LootGenerationSystem;
+import com.galacticodyssey.player.components.ADSComponent;
+import com.galacticodyssey.player.components.CrosshairComponent;
 import com.galacticodyssey.player.components.FPSCameraComponent;
 import com.galacticodyssey.player.components.MovementStateComponent;
 import com.galacticodyssey.player.components.PlayerInputComponent;
 import com.galacticodyssey.player.components.PlayerStateComponent;
+import com.galacticodyssey.player.components.RecoilComponent;
+import com.galacticodyssey.player.components.ScreenShakeComponent;
+import com.galacticodyssey.player.systems.ADSSystem;
 import com.galacticodyssey.player.systems.CameraSystem;
+import com.galacticodyssey.player.systems.CrosshairSystem;
 import com.galacticodyssey.player.systems.InteractionSystem;
 import com.galacticodyssey.player.systems.PlayerInputSystem;
 import com.galacticodyssey.player.systems.PlayerMovementSystem;
+import com.galacticodyssey.player.systems.RecoilSystem;
+import com.galacticodyssey.player.systems.ScreenShakeSystem;
+import com.galacticodyssey.player.systems.WeaponSwaySystem;
 import com.galacticodyssey.ship.systems.ShipCameraSystem;
 import com.galacticodyssey.ship.systems.ShipFlightSystem;
 import com.galacticodyssey.ship.systems.ShipInteriorPhysicsSystem;
+import com.galacticodyssey.ship.weapons.data.ShipWeaponRegistry;
+import com.galacticodyssey.ship.weapons.systems.PointDefenseSystem;
+import com.galacticodyssey.ship.weapons.systems.ShipHeatSystem;
+import com.galacticodyssey.ship.weapons.systems.ShipProjectileSystem;
+import com.galacticodyssey.ship.weapons.systems.ShipWeaponSystem;
+import com.galacticodyssey.ship.weapons.systems.TurretTrackingSystem;
 import com.galacticodyssey.ui.systems.DebugHudSystem;
+import com.galacticodyssey.vfx.components.ParticlePoolComponent;
+import com.galacticodyssey.vfx.data.VFXEventBindings;
+import com.galacticodyssey.vfx.data.VFXRegistry;
+import com.galacticodyssey.vfx.systems.ParticleRenderSystem;
+import com.galacticodyssey.vfx.systems.ParticleSpawnSystem;
+import com.galacticodyssey.vfx.systems.ParticleUpdateSystem;
 
 public class GameWorld implements Disposable {
 
@@ -70,6 +96,25 @@ public class GameWorld implements Disposable {
     private final ShipCameraSystem shipCameraSystem;
     private WeaponDataRegistry weaponDataRegistry;
     private CombatDataRegistry combatDataRegistry;
+    private EquipmentSystem equipmentSystem;
+    private LootGenerationSystem lootGenerationSystem;
+    private ShipWeaponSystem shipWeaponSystem;
+    private TurretTrackingSystem turretTrackingSystem;
+    private ShipProjectileSystem shipProjectileSystem;
+    private PointDefenseSystem pointDefenseSystem;
+    private ShipHeatSystem shipHeatSystem;
+    private ParticleSpawnSystem particleSpawnSystem;
+    private ParticleUpdateSystem particleUpdateSystem;
+    private ParticleRenderSystem particleRenderSystem;
+    private RecoilSystem recoilSystem;
+    private ADSSystem adsSystem;
+    private CrosshairSystem crosshairSystem;
+    private ScreenShakeSystem screenShakeSystem;
+    private WeaponSwaySystem weaponSwaySystem;
+    private LootTableRegistry lootTableRegistry;
+    private ShipWeaponRegistry shipWeaponRegistry;
+    private VFXRegistry vfxRegistry;
+    private ParticlePoolComponent particlePool;
 
     private final Array<Disposable> disposables = new Array<>();
 
@@ -134,6 +179,62 @@ public class GameWorld implements Disposable {
         engine.addSystem(combatAISystem);
         engine.addSystem(squadTacticsSystem);
 
+        // Equipment
+        lootTableRegistry = new LootTableRegistry();
+        equipmentSystem = new EquipmentSystem(eventBus);
+        lootGenerationSystem = new LootGenerationSystem(eventBus, lootTableRegistry);
+        engine.addSystem(equipmentSystem);
+        engine.addSystem(lootGenerationSystem);
+
+        // Ship weapons
+        shipWeaponRegistry = new ShipWeaponRegistry();
+        // NOTE: loadWeapons/loadHardpointTemplates use Gdx.files.internal() and therefore
+        // require the libGDX asset pipeline to be initialized (i.e. after Gdx.app is set up).
+        // Calling them here stubs the wiring; they will succeed at runtime but throw in
+        // headless unit tests. The actual asset loading is guarded by a null Gdx.files check.
+        if (com.badlogic.gdx.Gdx.files != null) {
+            shipWeaponRegistry.loadWeapons("data/weapons/ship_weapons.json");
+            shipWeaponRegistry.loadHardpointTemplates("data/weapons/hardpoint_templates.json");
+        }
+        turretTrackingSystem = new TurretTrackingSystem();
+        shipWeaponSystem = new ShipWeaponSystem(eventBus);
+        shipProjectileSystem = new ShipProjectileSystem(eventBus);
+        pointDefenseSystem = new PointDefenseSystem(eventBus);
+        shipHeatSystem = new ShipHeatSystem(eventBus);
+        engine.addSystem(turretTrackingSystem);
+        engine.addSystem(shipWeaponSystem);
+        engine.addSystem(shipProjectileSystem);
+        engine.addSystem(pointDefenseSystem);
+        engine.addSystem(shipHeatSystem);
+
+        // VFX
+        // NOTE: VFX effect definitions are loaded from JSON via the asset pipeline
+        // (requires Gdx.files / AssetManager). Until that is wired up, effects are
+        // registered programmatically in tests or skipped gracefully at runtime when
+        // the effectId returned by VFXEventBindings.resolve() is not found in the registry.
+        vfxRegistry = new VFXRegistry();
+        VFXEventBindings vfxBindings = new VFXEventBindings();
+        Entity poolEntity = new Entity();
+        particlePool = new ParticlePoolComponent();
+        poolEntity.add(particlePool);
+        engine.addEntity(poolEntity);
+        particleSpawnSystem = new ParticleSpawnSystem(eventBus, vfxRegistry, vfxBindings, particlePool);
+        particleUpdateSystem = new ParticleUpdateSystem(particlePool);
+        engine.addSystem(particleSpawnSystem);
+        engine.addSystem(particleUpdateSystem);
+
+        // Shooting feedback
+        recoilSystem = new RecoilSystem(eventBus);
+        adsSystem = new ADSSystem();
+        crosshairSystem = new CrosshairSystem(eventBus);
+        screenShakeSystem = new ScreenShakeSystem(eventBus);
+        weaponSwaySystem = new WeaponSwaySystem();
+        engine.addSystem(recoilSystem);
+        engine.addSystem(adsSystem);
+        engine.addSystem(crosshairSystem);
+        engine.addSystem(screenShakeSystem);
+        engine.addSystem(weaponSwaySystem);
+
         playerInputSystem.setCombatInputSystem(combatInputSystem);
     }
 
@@ -142,6 +243,9 @@ public class GameWorld implements Disposable {
         cameraSystem.setCamera(camera);
         debugHudSystem.initialize();
         shipCameraSystem.setCamera(camera);
+
+        particleRenderSystem = new ParticleRenderSystem(particlePool, camera);
+        engine.addSystem(particleRenderSystem);
     }
 
     public Entity createPlayerEntity(float spawnX, float spawnY, float spawnZ) {
@@ -187,6 +291,14 @@ public class GameWorld implements Disposable {
         player.add(new ArmorComponent());
         player.add(new StatusEffectsComponent());
         player.add(new HitboxComponent());
+
+        // Shooting feedback and equipment components.
+        player.add(new RecoilComponent());
+        player.add(new ADSComponent());
+        player.add(new CrosshairComponent());
+        player.add(new ScreenShakeComponent());
+        player.add(new InventoryComponent(8, 6, 50f));
+        player.add(new EquipmentSlotsComponent());
 
         bulletPhysicsSystem.getDynamicsWorld().addRigidBody(physics.body);
         bulletPhysicsSystem.addManagedBody(physics.body);
@@ -329,6 +441,12 @@ public class GameWorld implements Disposable {
             disposables.get(i).dispose();
         }
         disposables.clear();
+        if (particleRenderSystem != null) {
+            particleRenderSystem.dispose();
+        }
+        if (particlePool != null) {
+            particlePool.freeAll();
+        }
         debugHudSystem.dispose();
         bulletPhysicsSystem.dispose();
     }

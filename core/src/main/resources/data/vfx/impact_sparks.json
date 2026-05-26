@@ -1,0 +1,7 @@
+{
+  "id": "impact_sparks", "maxParticles": 8, "emitRate": 0, "burstCount": 8,
+  "lifetimeMin": 0.1, "lifetimeMax": 0.3, "speedMin": 3.0, "speedMax": 12.0,
+  "spread": 60.0, "sizeMin": 0.05, "sizeMax": 0.15, "sizeEnd": 0.0,
+  "color": "#FFD700", "colorEnd": "#8B4513",
+  "texture": "particles/spark.png", "blendMode": "ADDITIVE", "gravity": -9.8
+}

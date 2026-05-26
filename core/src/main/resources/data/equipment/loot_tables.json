@@ -1,0 +1,29 @@
+[
+  {
+    "archetypeId": "grunt",
+    "entries": [
+      { "itemId": "ammo_standard", "itemType": "ammo", "dropChance": 0.8, "minQuantity": 10, "maxQuantity": 30 },
+      { "itemId": "ammo_incendiary", "itemType": "ammo", "dropChance": 0.2, "minQuantity": 5, "maxQuantity": 15 },
+      { "itemId": "medkit_small", "itemType": "consumable", "dropChance": 0.3, "minQuantity": 1, "maxQuantity": 1 }
+    ],
+    "qualityWeights": [0.05, 0.60, 0.20, 0.10, 0.04, 0.01, 0.00]
+  },
+  {
+    "archetypeId": "heavy",
+    "entries": [
+      { "itemId": "ammo_standard", "itemType": "ammo", "dropChance": 1.0, "minQuantity": 20, "maxQuantity": 60 },
+      { "itemId": "armor_plate_salvage", "itemType": "junk", "dropChance": 0.4, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "medkit_small", "itemType": "consumable", "dropChance": 0.5, "minQuantity": 1, "maxQuantity": 2 }
+    ],
+    "qualityWeights": [0.02, 0.40, 0.30, 0.18, 0.07, 0.02, 0.01]
+  },
+  {
+    "archetypeId": "officer",
+    "entries": [
+      { "itemId": "ammo_standard", "itemType": "ammo", "dropChance": 1.0, "minQuantity": 15, "maxQuantity": 40 },
+      { "itemId": "mod_random", "itemType": "mod", "dropChance": 0.3, "minQuantity": 1, "maxQuantity": 1 },
+      { "itemId": "medkit_large", "itemType": "consumable", "dropChance": 0.4, "minQuantity": 1, "maxQuantity": 1 }
+    ],
+    "qualityWeights": [0.00, 0.20, 0.30, 0.30, 0.12, 0.06, 0.02]
+  }
+]
