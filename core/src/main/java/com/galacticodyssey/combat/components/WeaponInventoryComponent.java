@@ -7,6 +7,7 @@ import com.galacticodyssey.combat.data.WeaponAssembly;
 public class WeaponInventoryComponent implements Component {
     public final WeaponAssembly[] slots = new WeaponAssembly[3];
     public int activeSlotIndex = 0;
+    public int pendingSlotIndex = 0;
     public float switchTimer = 0f;
     public boolean switching = false;
     public boolean lowering = true;
