@@ -1,0 +1,7 @@
+[
+  {"type":"BLEEDING","duration":5.0,"tickRate":1.0,"magnitude":3.0,"maxStacks":3,"disablesShields":false,"armorReduction":0.0,"moveSpeedMultiplier":1.0,"preventsActions":false},
+  {"type":"BURNING","duration":4.0,"tickRate":0.5,"magnitude":5.0,"maxStacks":1,"disablesShields":false,"armorReduction":0.2,"moveSpeedMultiplier":1.0,"preventsActions":false},
+  {"type":"EMP_DISABLED","duration":6.0,"tickRate":0.0,"magnitude":0.0,"maxStacks":1,"disablesShields":true,"armorReduction":0.0,"moveSpeedMultiplier":1.0,"preventsActions":false},
+  {"type":"STUNNED","duration":0.8,"tickRate":0.0,"magnitude":0.0,"maxStacks":1,"disablesShields":false,"armorReduction":0.0,"moveSpeedMultiplier":0.0,"preventsActions":true},
+  {"type":"SLOWED","duration":4.0,"tickRate":0.0,"magnitude":0.0,"maxStacks":1,"disablesShields":false,"armorReduction":0.0,"moveSpeedMultiplier":0.6,"preventsActions":false}
+]

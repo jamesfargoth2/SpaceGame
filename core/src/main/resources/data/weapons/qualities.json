@@ -1,0 +1,9 @@
+[
+  {"tier":"SALVAGED","globalMultiplier":0.7,"durabilityMultiplier":0.5},
+  {"tier":"COMMON","globalMultiplier":1.0,"durabilityMultiplier":1.0},
+  {"tier":"REFINED","globalMultiplier":1.1,"durabilityMultiplier":1.2},
+  {"tier":"MILITARY","globalMultiplier":1.2,"durabilityMultiplier":1.5},
+  {"tier":"EXPERIMENTAL","globalMultiplier":1.35,"durabilityMultiplier":1.3},
+  {"tier":"ALIEN","globalMultiplier":1.5,"durabilityMultiplier":1.8},
+  {"tier":"PRECURSOR","globalMultiplier":1.75,"durabilityMultiplier":2.0}
+]

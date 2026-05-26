@@ -1,0 +1,6 @@
+[
+  {"id":"basic_scope","slot":"scope","statModifiers":{"spread":-0.3}},
+  {"id":"stabilizer_mk2","slot":"stabilizer","statModifiers":{"spread":-0.5,"recoil":-0.8}},
+  {"id":"extended_mag","slot":"magazine","statModifiers":{"magSize":10}},
+  {"id":"suppressor","slot":"muzzle","statModifiers":{"damage":-3.0,"recoil":-0.5}}
+]

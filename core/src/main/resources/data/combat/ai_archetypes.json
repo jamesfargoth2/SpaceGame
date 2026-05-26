@@ -1,0 +1,7 @@
+[
+  {"id":"grunt","aggroRange":25.0,"engageRange":20.0,"preferredRangeMin":10.0,"preferredRangeMax":20.0,"aggression":0.5,"maxHP":80.0,"armorRating":0.15,"preferredWeaponFrame":"rifle_standard"},
+  {"id":"rusher","aggroRange":15.0,"engageRange":15.0,"preferredRangeMin":0.0,"preferredRangeMax":3.0,"aggression":0.9,"maxHP":60.0,"armorRating":0.05,"preferredWeaponFrame":"combat_blade"},
+  {"id":"sniper","aggroRange":50.0,"engageRange":50.0,"preferredRangeMin":30.0,"preferredRangeMax":50.0,"aggression":0.2,"maxHP":50.0,"armorRating":0.1,"preferredWeaponFrame":"rifle_standard"},
+  {"id":"heavy","aggroRange":20.0,"engageRange":15.0,"preferredRangeMin":8.0,"preferredRangeMax":15.0,"aggression":0.5,"maxHP":150.0,"armorRating":0.4,"preferredWeaponFrame":"shotgun_standard"},
+  {"id":"officer","aggroRange":25.0,"engageRange":25.0,"preferredRangeMin":15.0,"preferredRangeMax":25.0,"aggression":0.3,"maxHP":70.0,"armorRating":0.2,"preferredWeaponFrame":"pistol_standard"}
+]

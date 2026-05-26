@@ -1,0 +1,6 @@
+[
+  {"id":"standard_round","damageType":"BALLISTIC","damageMultiplier":1.0,"statusEffect":null,"statusEffectChance":0.0,"projectileSpeed":null},
+  {"id":"incendiary_round","damageType":"INCENDIARY","damageMultiplier":0.9,"statusEffect":"BURNING","statusEffectChance":0.3,"projectileSpeed":null},
+  {"id":"plasma_cell","damageType":"PLASMA","damageMultiplier":1.1,"statusEffect":null,"statusEffectChance":0.0,"projectileSpeed":40.0},
+  {"id":"emp_round","damageType":"EMP","damageMultiplier":0.7,"statusEffect":"EMP_DISABLED","statusEffectChance":0.5,"projectileSpeed":null}
+]

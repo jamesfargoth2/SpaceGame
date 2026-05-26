@@ -1,0 +1,6 @@
+[
+  {"id":"pistol_standard","category":"PISTOL","baseDamage":18.0,"baseFireRate":5.0,"baseSpread":1.5,"baseRecoil":2.0,"magSize":12,"modSlotCount":1,"weight":1.2,"firingMode":"SEMI","hitscan":true,"range":50.0,"reloadTime":1.5},
+  {"id":"rifle_standard","category":"RIFLE","baseDamage":25.0,"baseFireRate":8.0,"baseSpread":2.0,"baseRecoil":3.5,"magSize":30,"modSlotCount":2,"weight":3.5,"firingMode":"AUTO","hitscan":true,"range":100.0,"reloadTime":2.0},
+  {"id":"shotgun_standard","category":"SHOTGUN","baseDamage":12.0,"baseFireRate":1.5,"baseSpread":8.0,"baseRecoil":6.0,"magSize":8,"modSlotCount":1,"weight":4.0,"firingMode":"SEMI","hitscan":true,"range":25.0,"reloadTime":3.0},
+  {"id":"plasma_rifle","category":"RIFLE","baseDamage":35.0,"baseFireRate":3.0,"baseSpread":1.0,"baseRecoil":2.0,"magSize":20,"modSlotCount":2,"weight":3.0,"firingMode":"SEMI","hitscan":false,"range":80.0,"reloadTime":2.5}
+]

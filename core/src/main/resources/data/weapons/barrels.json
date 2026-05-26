@@ -1,0 +1,5 @@
+[
+  {"id":"standard_barrel","damageMultiplier":1.0,"rangeMultiplier":1.0,"spreadMultiplier":1.0,"recoilMultiplier":1.0,"weightAdd":0.0},
+  {"id":"long_barrel","damageMultiplier":1.15,"rangeMultiplier":1.4,"spreadMultiplier":0.7,"recoilMultiplier":1.1,"weightAdd":0.8},
+  {"id":"short_barrel","damageMultiplier":0.9,"rangeMultiplier":0.7,"spreadMultiplier":1.3,"recoilMultiplier":0.8,"weightAdd":-0.3}
+]
