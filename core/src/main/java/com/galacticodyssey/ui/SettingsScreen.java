@@ -37,6 +37,7 @@ public class SettingsScreen implements Screen {
     private static final float WORLD_HEIGHT = 720f;
 
     private final GalacticOdyssey game;
+    private final Screen returnTo;
     private final Stage stage;
     private final StarfieldBackground starfield;
     private final OrthographicCamera backgroundCamera;
@@ -75,7 +76,13 @@ public class SettingsScreen implements Screen {
     private float savedSfxVolume;
 
     public SettingsScreen(GalacticOdyssey game) {
+        this(game, null);
+    }
+
+    public SettingsScreen(GalacticOdyssey game, Screen returnTo) {
+        Gdx.app.log("SettingsScreen", "Constructor called");
         this.game = game;
+        this.returnTo = returnTo;
         this.preferences = game.getPreferences();
         this.audio = game.getAudioManager();
         this.stage = new Stage(new FitViewport(WORLD_WIDTH, WORLD_HEIGHT));
@@ -87,6 +94,7 @@ public class SettingsScreen implements Screen {
 
         snapshotSavedState();
         buildUi();
+        Gdx.app.log("SettingsScreen", "Constructor complete");
     }
 
     private void snapshotSavedState() {
@@ -135,7 +143,11 @@ public class SettingsScreen implements Screen {
             public void clicked(InputEvent event, float x, float y) {
                 audio.playSound("audio/sfx/ui_click.ogg");
                 revertUnsavedChanges();
-                game.setScreen(new MainMenuScreen(game));
+                if (returnTo != null) {
+                    game.setScreen(returnTo);
+                } else {
+                    game.setScreen(new MainMenuScreen(game));
+                }
             }
         });
 
@@ -452,6 +464,7 @@ public class SettingsScreen implements Screen {
 
     @Override
     public void show() {
+        Gdx.app.log("SettingsScreen", "show() called");
         Gdx.input.setInputProcessor(stage);
     }
 

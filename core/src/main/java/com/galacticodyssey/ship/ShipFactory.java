@@ -347,12 +347,15 @@ public class ShipFactory implements Disposable {
     @Override
     public void dispose() {
         // Remove managed bodies from the exterior world before destroying them
+        btDiscreteDynamicsWorld world = physics.getDynamicsWorld();
         for (int i = 0; i < disposables.size; i++) {
             Disposable d = disposables.get(i);
             if (d instanceof btRigidBody) {
                 btRigidBody body = (btRigidBody) d;
                 physics.removeManagedBody(body);
-                physics.getDynamicsWorld().removeRigidBody(body);
+                if (world != null) {
+                    world.removeRigidBody(body);
+                }
             }
         }
         for (int i = 0; i < disposables.size; i++) {
