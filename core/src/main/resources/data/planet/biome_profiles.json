@@ -1,0 +1,22 @@
+{
+    "profiles": [
+        { "id": "OCEAN",            "amplitude": 0.05, "ridgeMix": 0.1  },
+        { "id": "LAKE",             "amplitude": 0.05, "ridgeMix": 0.05 },
+        { "id": "ICE_SHEET",        "amplitude": 0.1,  "ridgeMix": 0.15 },
+        { "id": "ICE_FIELD",        "amplitude": 0.15, "ridgeMix": 0.2  },
+        { "id": "POLAR_DESERT",     "amplitude": 0.2,  "ridgeMix": 0.15 },
+        { "id": "TUNDRA",           "amplitude": 0.25, "ridgeMix": 0.2  },
+        { "id": "DESERT",           "amplitude": 0.15, "ridgeMix": 0.05 },
+        { "id": "ARID_SHRUB",       "amplitude": 0.2,  "ridgeMix": 0.15 },
+        { "id": "STEPPE",           "amplitude": 0.2,  "ridgeMix": 0.1  },
+        { "id": "GRASSLAND",        "amplitude": 0.2,  "ridgeMix": 0.1  },
+        { "id": "SAVANNA",          "amplitude": 0.2,  "ridgeMix": 0.15 },
+        { "id": "SWAMP",            "amplitude": 0.1,  "ridgeMix": 0.05 },
+        { "id": "TEMPERATE_FOREST", "amplitude": 0.3,  "ridgeMix": 0.35 },
+        { "id": "BOREAL_FOREST",    "amplitude": 0.35, "ridgeMix": 0.4  },
+        { "id": "TROPICAL_FOREST",  "amplitude": 0.3,  "ridgeMix": 0.3  },
+        { "id": "ROCKY_WASTE",      "amplitude": 0.5,  "ridgeMix": 0.8  },
+        { "id": "BADLANDS",         "amplitude": 0.45, "ridgeMix": 0.7  },
+        { "id": "VOLCANIC",         "amplitude": 0.6,  "ridgeMix": 0.9  }
+    ]
+}

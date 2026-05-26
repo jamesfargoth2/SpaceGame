@@ -1,0 +1,14 @@
+{
+    "types": [
+        { "id": "MOLTEN",     "radiusMin": 0.3, "radiusMax": 0.8,  "gravityMin": 0.2,  "gravityMax": 0.6,  "moonMin": 0, "moonMax": 0, "hasAtmosphere": false, "zones": ["INNER"] },
+        { "id": "BARREN",     "radiusMin": 0.4, "radiusMax": 1.2,  "gravityMin": 0.3,  "gravityMax": 0.9,  "moonMin": 0, "moonMax": 1, "hasAtmosphere": false, "zones": ["INNER", "HABITABLE"] },
+        { "id": "ARID",       "radiusMin": 0.7, "radiusMax": 1.5,  "gravityMin": 0.5,  "gravityMax": 1.2,  "moonMin": 0, "moonMax": 2, "hasAtmosphere": true,  "zones": ["HABITABLE"] },
+        { "id": "TERRAN",     "radiusMin": 0.8, "radiusMax": 1.8,  "gravityMin": 0.7,  "gravityMax": 1.4,  "moonMin": 0, "moonMax": 3, "hasAtmosphere": true,  "zones": ["HABITABLE"] },
+        { "id": "OCEAN",      "radiusMin": 1.0, "radiusMax": 2.0,  "gravityMin": 0.8,  "gravityMax": 1.5,  "moonMin": 0, "moonMax": 2, "hasAtmosphere": true,  "zones": ["HABITABLE"] },
+        { "id": "TOXIC",      "radiusMin": 0.8, "radiusMax": 1.6,  "gravityMin": 0.6,  "gravityMax": 1.3,  "moonMin": 0, "moonMax": 1, "hasAtmosphere": true,  "zones": ["INNER", "HABITABLE"] },
+        { "id": "GAS_GIANT",  "radiusMin": 6.0, "radiusMax": 15.0, "gravityMin": 1.5,  "gravityMax": 3.0,  "moonMin": 2, "moonMax": 8, "hasAtmosphere": false, "zones": ["OUTER", "DEEP"] },
+        { "id": "ICE_GIANT",  "radiusMin": 3.0, "radiusMax": 6.0,  "gravityMin": 1.0,  "gravityMax": 1.8,  "moonMin": 1, "moonMax": 5, "hasAtmosphere": false, "zones": ["OUTER", "DEEP"] },
+        { "id": "ICE_WORLD",  "radiusMin": 0.3, "radiusMax": 1.0,  "gravityMin": 0.2,  "gravityMax": 0.7,  "moonMin": 0, "moonMax": 1, "hasAtmosphere": false, "zones": ["OUTER", "DEEP"] },
+        { "id": "DWARF",      "radiusMin": 0.1, "radiusMax": 0.4,  "gravityMin": 0.03, "gravityMax": 0.15, "moonMin": 0, "moonMax": 0, "hasAtmosphere": false, "zones": ["DEEP"] }
+    ]
+}
