@@ -10,7 +10,7 @@ import java.util.Random;
 
 public class GalaxyChunkManager {
 
-    private final Map<ChunkKey, GalaxyChunk> loaded = new LinkedHashMap<>();
+    private final Map<ChunkKey, GalaxyChunk> loaded = new LinkedHashMap<>(16, 0.75f, true);
     private final GalaxyConfig config;
     private final GalaxyDensityField densityField;
     private final long starDomainSeed;
@@ -37,11 +37,11 @@ public class GalaxyChunkManager {
         Random rng = new Random(chunkSeed);
         GalaxyNoise noise = new GalaxyNoise(chunkSeed);
 
-        float chunkWorldX = cx * config.chunkSizeLY;
-        float chunkWorldY = cy * config.chunkSizeLY;
+        double chunkWorldX = (double) cx * config.chunkSizeLY;
+        double chunkWorldY = (double) cy * config.chunkSizeLY;
 
-        float centreNX = (chunkWorldX + config.chunkSizeLY * 0.5f) / config.radiusLY;
-        float centreNY = (chunkWorldY + config.chunkSizeLY * 0.5f) / config.radiusLY;
+        float centreNX = (float) ((chunkWorldX + config.chunkSizeLY * 0.5) / config.radiusLY);
+        float centreNY = (float) ((chunkWorldY + config.chunkSizeLY * 0.5) / config.radiusLY);
 
         if (centreNX * centreNX + centreNY * centreNY > 1.5f * 1.5f) {
             return new GalaxyChunk(new ChunkKey(cx, cy), new Array<>(0),
@@ -61,13 +61,13 @@ public class GalaxyChunkManager {
 
         while (stars.size < expectedStars && attempts < maxAttempts) {
             attempts++;
-            float localX = rng.nextFloat() * config.chunkSizeLY;
-            float localY = rng.nextFloat() * config.chunkSizeLY;
+            double localX = rng.nextFloat() * config.chunkSizeLY;
+            double localY = rng.nextFloat() * config.chunkSizeLY;
 
-            float worldX = chunkWorldX + localX;
-            float worldY = chunkWorldY + localY;
-            float nx = worldX / config.radiusLY;
-            float ny = worldY / config.radiusLY;
+            double worldX = chunkWorldX + localX;
+            double worldY = chunkWorldY + localY;
+            float nx = (float) (worldX / config.radiusLY);
+            float ny = (float) (worldY / config.radiusLY);
 
             if (nx * nx + ny * ny > 1f) continue;
 
