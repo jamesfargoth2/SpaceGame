@@ -11,6 +11,7 @@ import com.galacticodyssey.combat.components.ShieldComponent;
 import com.galacticodyssey.combat.components.StatusEffectsComponent;
 import com.galacticodyssey.combat.data.CombatDataRegistry;
 import com.galacticodyssey.combat.data.DamageConfigData;
+import com.galacticodyssey.combat.events.EntityKilledEvent;
 import com.galacticodyssey.combat.events.StatusEffectExpiredEvent;
 import com.galacticodyssey.core.EventBus;
 
@@ -97,10 +98,7 @@ public class StatusEffectSystem extends IteratingSystem {
                     if (health.currentHP <= 0f) {
                         health.currentHP = 0f;
                         health.alive = false;
-                        // Note: EntityKilledEvent from DoT is intentionally not published here;
-                        // a separate kill-check system or DamageSystem handles that to avoid
-                        // duplicate events. If standalone kill events from DoT are required,
-                        // add an EventBus.publish(new EntityKilledEvent(...)) here.
+                        eventBus.publish(new EntityKilledEvent(entity, effect.source));
                         break;
                     }
                 }

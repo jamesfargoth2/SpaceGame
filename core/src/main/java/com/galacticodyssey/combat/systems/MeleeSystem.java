@@ -294,6 +294,7 @@ public class MeleeSystem extends IteratingSystem {
         meleeState.comboCounter = newComboCounter;
         meleeState.canCombo = false;
         meleeState.queuedDirection = null;
+        meleeState.hitThisSwing.clear();
     }
 
     // -------------------------------------------------------------------------
@@ -319,6 +320,7 @@ public class MeleeSystem extends IteratingSystem {
         ImmutableArray<Entity> targets = engine.getEntitiesFor(TARGET_FAMILY);
         for (Entity target : targets) {
             if (target == attacker) continue;
+            if (meleeState.hitThisSwing.contains(target)) continue;
 
             HealthComponent hp = HEALTH_M.get(target);
             if (hp == null || !hp.alive) continue;
@@ -354,6 +356,7 @@ public class MeleeSystem extends IteratingSystem {
                     weapon.damageType
                 ));
             }
+            meleeState.hitThisSwing.add(target);
         }
     }
 
