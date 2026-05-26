@@ -13,6 +13,7 @@ import com.badlogic.gdx.physics.bullet.dynamics.btDiscreteDynamicsWorld;
 import com.badlogic.gdx.physics.bullet.dynamics.btRigidBody;
 import com.badlogic.gdx.physics.bullet.dynamics.btSequentialImpulseConstraintSolver;
 import com.galacticodyssey.core.components.PhysicsBodyComponent;
+import com.galacticodyssey.core.components.PlayerTagComponent;
 import com.galacticodyssey.player.components.PlayerInputComponent;
 import com.galacticodyssey.player.components.PlayerStateComponent;
 import com.galacticodyssey.player.components.PlayerStateComponent.PlayerMode;
@@ -29,18 +30,18 @@ class ShipFlightSystemTest {
 
     @Test
     void forwardThrustIncreasesVelocity() {
-        // Build a minimal dynamics world so stepSimulation can integrate forces into velocity
         btDefaultCollisionConfiguration config = new btDefaultCollisionConfiguration();
         btCollisionDispatcher dispatcher = new btCollisionDispatcher(config);
         btDbvtBroadphase broadphase = new btDbvtBroadphase();
         btSequentialImpulseConstraintSolver solver = new btSequentialImpulseConstraintSolver();
         btDiscreteDynamicsWorld world = new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, config);
-        world.setGravity(new Vector3(0, 0, 0)); // No gravity in space
+        world.setGravity(new Vector3(0, 0, 0));
 
         Engine engine = new Engine();
         ShipFlightSystem system = new ShipFlightSystem();
         engine.addSystem(system);
 
+        // Ship entity: physics + flight
         Entity ship = new Entity();
         PhysicsBodyComponent physics = new PhysicsBodyComponent();
         physics.shape = new btBoxShape(new Vector3(1, 1, 1));
@@ -65,25 +66,27 @@ class ShipFlightSystemTest {
         flight.angularDrag = 2.0f;
         ship.add(flight);
 
+        // Player entity: tag + input + state, references the ship
+        Entity player = new Entity();
+        player.add(new PlayerTagComponent());
+
         PlayerInputComponent input = new PlayerInputComponent();
         input.moveForward = 1f;
-        ship.add(input);
+        player.add(input);
 
         PlayerStateComponent state = new PlayerStateComponent();
         state.currentMode = PlayerMode.PILOTING;
         state.currentShip = ship;
-        ship.add(state);
+        player.add(state);
 
         engine.addEntity(ship);
+        engine.addEntity(player);
 
-        // Add body to dynamics world so forces can be integrated into velocity
         world.addRigidBody(physics.body);
 
-        // Apply thrust forces via the system
         float dt = 1f / 60f;
         system.update(dt);
 
-        // Step the physics world to integrate forces into velocity
         world.stepSimulation(dt, 1, dt);
 
         Vector3 vel = physics.body.getLinearVelocity();

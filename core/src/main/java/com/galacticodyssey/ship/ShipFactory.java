@@ -163,8 +163,8 @@ public class ShipFactory implements Disposable {
         entryPoint.interiorPosition.set(layout.airlockPosition);
         entity.add(entryPoint);
 
-        // Exterior convex-hull physics body (static, mass=0)
-        PhysicsBodyComponent physicsBody = buildExteriorPhysicsBody(hull, x, y, z);
+        // Exterior physics body (dynamic, zero-gravity so it hovers in place until piloted)
+        PhysicsBodyComponent physicsBody = buildExteriorPhysicsBody(hull, mass, x, y, z);
         entity.add(physicsBody);
 
         // ----- 4. Register with engine -----
@@ -296,17 +296,22 @@ public class ShipFactory implements Disposable {
     // Exterior convex-hull physics body
     // -------------------------------------------------------------------------
 
-    private PhysicsBodyComponent buildExteriorPhysicsBody(HullGeometry hull, float x, float y, float z) {
+    private PhysicsBodyComponent buildExteriorPhysicsBody(HullGeometry hull, float mass, float x, float y, float z) {
         btCollisionShape convexShape = buildConvexHull(hull);
 
+        Vector3 inertia = new Vector3();
+        convexShape.calculateLocalInertia(mass, inertia);
+
         btRigidBody.btRigidBodyConstructionInfo ci =
-            new btRigidBody.btRigidBodyConstructionInfo(0f, null, convexShape);
+            new btRigidBody.btRigidBodyConstructionInfo(mass, null, convexShape, inertia);
         btRigidBody body = new btRigidBody(ci);
         ci.dispose();
 
         Matrix4 worldTransform = new Matrix4();
         worldTransform.setToTranslation(x, y, z);
         body.setWorldTransform(worldTransform);
+        body.setGravity(new Vector3(0, 0, 0));
+        body.setDamping(0.8f, 0.9f);
 
         physics.getDynamicsWorld().addRigidBody(body);
         physics.addManagedBody(body);
@@ -314,7 +319,7 @@ public class ShipFactory implements Disposable {
         PhysicsBodyComponent comp = new PhysicsBodyComponent();
         comp.body   = body;
         comp.shape  = convexShape;
-        comp.mass   = 0f;
+        comp.mass   = mass;
 
         disposables.add(body);
         disposables.add(convexShape);

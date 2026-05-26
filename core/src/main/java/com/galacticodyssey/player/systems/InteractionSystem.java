@@ -2,8 +2,10 @@ package com.galacticodyssey.player.systems;
 
 import com.badlogic.ashley.core.*;
 import com.badlogic.ashley.utils.ImmutableArray;
+import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 import com.galacticodyssey.core.EventBus;
+import com.galacticodyssey.core.components.PhysicsBodyComponent;
 import com.galacticodyssey.core.components.PlayerTagComponent;
 import com.galacticodyssey.core.components.TransformComponent;
 import com.galacticodyssey.core.events.*;
@@ -18,6 +20,7 @@ public class InteractionSystem extends EntitySystem {
     private final ComponentMapper<TransformComponent> transformMapper = ComponentMapper.getFor(TransformComponent.class);
     private final ComponentMapper<PlayerStateComponent> stateMapper = ComponentMapper.getFor(PlayerStateComponent.class);
     private final ComponentMapper<PlayerInputComponent> inputMapper = ComponentMapper.getFor(PlayerInputComponent.class);
+    private final ComponentMapper<PhysicsBodyComponent> physicsMapper = ComponentMapper.getFor(PhysicsBodyComponent.class);
     private final ComponentMapper<ShipEntryPointComponent> entryMapper = ComponentMapper.getFor(ShipEntryPointComponent.class);
     private final ComponentMapper<PilotSeatComponent> seatMapper = ComponentMapper.getFor(PilotSeatComponent.class);
     private final ComponentMapper<ShipInteriorComponent> interiorMapper = ComponentMapper.getFor(ShipInteriorComponent.class);
@@ -25,6 +28,8 @@ public class InteractionSystem extends EntitySystem {
     private ImmutableArray<Entity> playerEntities;
     private ImmutableArray<Entity> shipEntities;
     private final Vector3 tempVec = new Vector3();
+    private final Vector3 worldPos = new Vector3();
+    private final Matrix4 shipWorldMat = new Matrix4();
 
     public InteractionSystem(EventBus eventBus) {
         super(0);
@@ -84,6 +89,11 @@ public class InteractionSystem extends EntitySystem {
                 state.currentShip = nearestShip;
                 ShipInteriorComponent interior = interiorMapper.get(nearestShip);
                 interior.active = true;
+
+                TransformComponent shipTransform = transformMapper.get(nearestShip);
+                ShipEntryPointComponent entry = entryMapper.get(nearestShip);
+                toWorldSpace(shipTransform, entry.interiorPosition, worldPos);
+                teleportPlayer(player, worldPos);
             }
         } else {
             if (state.interactionTarget != null) {
@@ -97,8 +107,12 @@ public class InteractionSystem extends EntitySystem {
         if (state.currentShip == null) return;
         PilotSeatComponent seat = seatMapper.get(state.currentShip);
         TransformComponent playerTransform = transformMapper.get(player);
+        TransformComponent shipTransform = transformMapper.get(state.currentShip);
         if (seat == null) return;
-        float dist = tempVec.set(playerTransform.position).dst(seat.interiorPosition);
+
+        toWorldSpace(shipTransform, seat.interiorPosition, worldPos);
+        float dist = tempVec.set(playerTransform.position).dst(worldPos);
+
         if (dist < seat.triggerRadius) {
             eventBus.publish(new InteractionPromptEvent("Press E to pilot", true));
             if (input.interactPressed) {
@@ -114,8 +128,12 @@ public class InteractionSystem extends EntitySystem {
         if (state.currentShip == null) return;
         ShipEntryPointComponent entry = entryMapper.get(state.currentShip);
         TransformComponent playerTransform = transformMapper.get(player);
+        TransformComponent shipTransform = transformMapper.get(state.currentShip);
         if (entry == null) return;
-        float dist = tempVec.set(playerTransform.position).dst(entry.interiorPosition);
+
+        toWorldSpace(shipTransform, entry.interiorPosition, worldPos);
+        float dist = tempVec.set(playerTransform.position).dst(worldPos);
+
         if (dist < entry.triggerRadius) {
             eventBus.publish(new InteractionPromptEvent("Press E to exit ship", true));
             if (input.interactPressed) {
@@ -125,6 +143,8 @@ public class InteractionSystem extends EntitySystem {
                 state.currentMode = PlayerMode.ON_FOOT_EXTERIOR;
                 state.currentShip = null;
                 eventBus.publish(new PlayerExitShipEvent(player, ship));
+
+                teleportPlayer(player, entry.worldPosition);
             }
         }
     }
@@ -135,6 +155,34 @@ public class InteractionSystem extends EntitySystem {
             if (seat != null) { seat.occupied = false; seat.occupant = null; }
             state.currentMode = PlayerMode.ON_FOOT_INTERIOR;
             eventBus.publish(new PlayerStopPilotingEvent(player, state.currentShip));
+
+            TransformComponent shipTransform = transformMapper.get(state.currentShip);
+            ShipEntryPointComponent entry = entryMapper.get(state.currentShip);
+            if (entry != null) {
+                toWorldSpace(shipTransform, entry.interiorPosition, worldPos);
+                teleportPlayer(player, worldPos);
+            }
+        }
+    }
+
+    private void toWorldSpace(TransformComponent shipTransform, Vector3 localPos, Vector3 out) {
+        shipWorldMat.set(shipTransform.position, shipTransform.rotation);
+        out.set(localPos).mul(shipWorldMat);
+    }
+
+    private void teleportPlayer(Entity player, Vector3 position) {
+        PhysicsBodyComponent physics = physicsMapper.get(player);
+        if (physics != null && physics.body != null) {
+            Matrix4 bodyTransform = physics.body.getWorldTransform();
+            bodyTransform.setTranslation(position);
+            physics.body.setWorldTransform(bodyTransform);
+            physics.body.setLinearVelocity(new Vector3(0, 0, 0));
+            physics.body.setAngularVelocity(new Vector3(0, 0, 0));
+            physics.body.activate();
+        }
+        TransformComponent transform = transformMapper.get(player);
+        if (transform != null) {
+            transform.position.set(position);
         }
     }
 }

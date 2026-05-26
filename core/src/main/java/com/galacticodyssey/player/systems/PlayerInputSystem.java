@@ -106,8 +106,8 @@ public class PlayerInputSystem extends IteratingSystem {
         accumulatedMouseDeltaX = 0;
         accumulatedMouseDeltaY = 0;
 
-        input.rollLeft = Gdx.input.isKeyPressed(Input.Keys.Q);
-        input.rollRight = Gdx.input.isKeyPressed(Input.Keys.E);
+        input.rollLeft = Gdx.input.isKeyPressed(Input.Keys.Z);
+        input.rollRight = Gdx.input.isKeyPressed(Input.Keys.C);
         input.thrustUp = Gdx.input.isKeyPressed(Input.Keys.SPACE);
         input.thrustDown = Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT);
 
