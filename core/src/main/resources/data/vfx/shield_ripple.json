@@ -1,0 +1,7 @@
+{
+  "id": "shield_ripple", "maxParticles": 20, "emitRate": 0, "burstCount": 20,
+  "lifetimeMin": 0.2, "lifetimeMax": 0.5, "speedMin": 0.5, "speedMax": 2.0,
+  "spread": 180.0, "sizeMin": 0.2, "sizeMax": 0.6, "sizeEnd": 0.8,
+  "color": "#00BFFF", "colorEnd": "#00BFFF00",
+  "texture": "particles/hex.png", "blendMode": "ADDITIVE", "gravity": 0.0
+}

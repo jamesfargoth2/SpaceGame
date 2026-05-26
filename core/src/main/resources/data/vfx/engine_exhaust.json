@@ -1,0 +1,8 @@
+{
+  "id": "engine_exhaust", "maxParticles": 30, "emitRate": 60, "burstCount": 0,
+  "lifetimeMin": 0.3, "lifetimeMax": 0.8, "speedMin": 5.0, "speedMax": 15.0,
+  "spread": 8.0, "sizeMin": 0.3, "sizeMax": 0.5, "sizeEnd": 1.0,
+  "color": "#4FC3F7", "colorEnd": "#4FC3F700",
+  "texture": "particles/smoke.png", "blendMode": "ADDITIVE", "gravity": 0.0,
+  "duration": -1
+}
