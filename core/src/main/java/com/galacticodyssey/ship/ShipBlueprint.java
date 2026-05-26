@@ -1,11 +1,15 @@
 package com.galacticodyssey.ship;
 
+import com.galacticodyssey.ship.weapons.data.HardpointTemplate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 public class ShipBlueprint {
 
     public final long seed;
     public final ShipSizeClass sizeClass;
+    public final List<HardpointTemplate> hardpoints = new ArrayList<>();
     public final float spineLength;
     public final int crossSectionCount;
     public final float maxWidth;
