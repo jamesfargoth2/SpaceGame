@@ -280,6 +280,14 @@ public class GameWorld implements Disposable {
         player.add(new StatusEffectsComponent());
         player.add(new HitboxComponent());
 
+        // Shooting feedback and equipment components.
+        player.add(new RecoilComponent());
+        player.add(new ADSComponent());
+        player.add(new CrosshairComponent());
+        player.add(new ScreenShakeComponent());
+        player.add(new InventoryComponent(8, 6, 50f));
+        player.add(new EquipmentSlotsComponent());
+
         bulletPhysicsSystem.getDynamicsWorld().addRigidBody(physics.body);
         bulletPhysicsSystem.addManagedBody(physics.body);
 
