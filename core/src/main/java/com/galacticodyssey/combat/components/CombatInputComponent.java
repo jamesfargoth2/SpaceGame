@@ -12,6 +12,7 @@ public class CombatInputComponent implements Component {
     public boolean meleeAttackRequested;
     public boolean blockRequested;
     public boolean blockHeld;
+    public boolean aimHeld;
     public AttackDirection blockDirection;
     public boolean reloadRequested;
     public int switchSlotRequested = -1;
