@@ -1,0 +1,30 @@
+[
+  {"id": "iron_ore", "name": "Iron Ore", "category": "RAW_MATERIAL", "tier": "COMMON", "basePrice": 15, "mass": 2.0, "volume": 1.5, "tags": []},
+  {"id": "copper", "name": "Copper", "category": "RAW_MATERIAL", "tier": "COMMON", "basePrice": 12, "mass": 2.5, "volume": 1.5, "tags": []},
+  {"id": "silicon", "name": "Silicon", "category": "RAW_MATERIAL", "tier": "COMMON", "basePrice": 18, "mass": 1.8, "volume": 1.0, "tags": []},
+  {"id": "carbon", "name": "Carbon", "category": "RAW_MATERIAL", "tier": "COMMON", "basePrice": 8, "mass": 1.2, "volume": 1.0, "tags": []},
+  {"id": "water", "name": "Water", "category": "CONSUMABLE", "tier": "COMMON", "basePrice": 10, "mass": 1.0, "volume": 1.0, "tags": []},
+  {"id": "food_rations", "name": "Food Rations", "category": "CONSUMABLE", "tier": "COMMON", "basePrice": 25, "mass": 0.8, "volume": 0.8, "tags": []},
+
+  {"id": "titanium", "name": "Titanium", "category": "RAW_MATERIAL", "tier": "UNCOMMON", "basePrice": 85, "mass": 2.2, "volume": 1.2, "tags": []},
+  {"id": "lithium_cells", "name": "Lithium Cells", "category": "REFINED_GOOD", "tier": "UNCOMMON", "basePrice": 120, "mass": 1.5, "volume": 0.8, "tags": []},
+  {"id": "tungsten_alloy", "name": "Tungsten Alloy", "category": "REFINED_GOOD", "tier": "UNCOMMON", "basePrice": 150, "mass": 3.0, "volume": 1.0, "tags": []},
+  {"id": "medical_supplies", "name": "Medical Supplies", "category": "CONSUMABLE", "tier": "UNCOMMON", "basePrice": 95, "mass": 0.5, "volume": 0.6, "tags": []},
+  {"id": "synthetic_textiles", "name": "Synthetic Textiles", "category": "MANUFACTURED", "tier": "UNCOMMON", "basePrice": 75, "mass": 0.3, "volume": 1.2, "tags": []},
+  {"id": "manufactured_parts", "name": "Manufactured Parts", "category": "MANUFACTURED", "tier": "UNCOMMON", "basePrice": 110, "mass": 1.8, "volume": 1.0, "tags": []},
+
+  {"id": "iridium_ingots", "name": "Iridium Ingots", "category": "REFINED_GOOD", "tier": "RARE", "basePrice": 750, "mass": 3.5, "volume": 0.5, "tags": []},
+  {"id": "neutronium", "name": "Neutronium", "category": "RAW_MATERIAL", "tier": "RARE", "basePrice": 1200, "mass": 8.0, "volume": 0.3, "tags": []},
+  {"id": "dark_crystals", "name": "Dark Crystals", "category": "RAW_MATERIAL", "tier": "RARE", "basePrice": 900, "mass": 0.5, "volume": 0.4, "tags": []},
+  {"id": "military_electronics", "name": "Military-Grade Electronics", "category": "TECHNOLOGY", "tier": "RARE", "basePrice": 1500, "mass": 0.8, "volume": 0.6, "tags": []},
+  {"id": "luxury_goods", "name": "Luxury Goods", "category": "LUXURY", "tier": "RARE", "basePrice": 600, "mass": 0.4, "volume": 0.8, "tags": []},
+
+  {"id": "zero_point_cells", "name": "Zero-Point Cells", "category": "TECHNOLOGY", "tier": "EXOTIC", "basePrice": 8000, "mass": 0.2, "volume": 0.2, "tags": []},
+  {"id": "quantum_foam", "name": "Quantum Foam", "category": "TECHNOLOGY", "tier": "EXOTIC", "basePrice": 12000, "mass": 0.1, "volume": 0.1, "tags": []},
+  {"id": "void_essence", "name": "Void Essence", "category": "RAW_MATERIAL", "tier": "EXOTIC", "basePrice": 6000, "mass": 0.05, "volume": 0.3, "tags": []},
+  {"id": "salvaged_components", "name": "Salvaged Components", "category": "MANUFACTURED", "tier": "EXOTIC", "basePrice": 5000, "mass": 1.5, "volume": 1.0, "tags": []},
+
+  {"id": "bio_polymers", "name": "Bio-Polymers", "category": "RAW_MATERIAL", "tier": "ALIEN", "basePrice": 3500, "mass": 0.6, "volume": 0.5, "tags": []},
+  {"id": "xeno_tech_fragments", "name": "Xeno-Tech Fragments", "category": "TECHNOLOGY", "tier": "ALIEN", "basePrice": 7500, "mass": 0.3, "volume": 0.2, "tags": []},
+  {"id": "psionic_resonators", "name": "Psionic Resonators", "category": "TECHNOLOGY", "tier": "ALIEN", "basePrice": 10000, "mass": 0.2, "volume": 0.15, "tags": []}
+]
