@@ -611,6 +611,9 @@ public class GameScreen implements Screen {
 
     @Override
     public void dispose() {
+        // ShipFactory must dispose before gameWorld, because it removes rigid bodies
+        // from the dynamics world that gameWorld owns.
+        if (shipFactory != null) { shipFactory.dispose(); shipFactory = null; }
         if (gameWorld != null) {
             gameWorld.dispose();
             gameWorld = null;
@@ -635,7 +638,6 @@ public class GameScreen implements Screen {
             overlayTexture.dispose();
             overlayTexture = null;
         }
-        if (shipFactory != null) { shipFactory.dispose(); shipFactory = null; }
         for (int i = 0; i < shipEntities.size; i++) {
             ShipMeshComponent meshComp = shipEntities.get(i).getComponent(ShipMeshComponent.class);
             if (meshComp != null) meshComp.dispose();

@@ -2,6 +2,7 @@ package com.galacticodyssey.core;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.physics.bullet.Bullet;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.galacticodyssey.ui.MainMenuScreen;
 import com.galacticodyssey.ui.UiFactory;
@@ -15,6 +16,7 @@ public class GalacticOdyssey extends Game {
     @Override
     public void create() {
         Gdx.app.log("GalacticOdyssey", "Galactic Odyssey starting...");
+        Bullet.init();
         skin = UiFactory.createSkin();
         preferences = new GamePreferences();
         preferences.load();

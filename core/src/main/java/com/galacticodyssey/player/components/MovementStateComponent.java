@@ -13,5 +13,7 @@ public class MovementStateComponent implements Component {
     public float staminaDrainRate = 20f;
     public float staminaRegenRate = 10f;
     public final Vector3 groundNormal = new Vector3(0, 1, 0);
+    public float slopeAngle;
+    public boolean isExhausted;
     public float fallVelocity;
 }

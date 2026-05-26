@@ -56,7 +56,7 @@ public class MainMenuScreen implements Screen {
         root.add(title).padBottom(50).row();
 
         addMenuButton(root, "New Game", skin, false,
-            () -> Gdx.app.log("Menu", "New Game pressed"));
+            () -> game.setScreen(new GameScreen(game)));
         addMenuButton(root, "Continue", skin, true,
             () -> Gdx.app.log("Menu", "Continue pressed"));
         addMenuButton(root, "Multiplayer", skin, false,
