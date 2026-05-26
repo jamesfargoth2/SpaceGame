@@ -1,0 +1,108 @@
+[
+  {
+    "planetId": "kepler_prime",
+    "population": 500000,
+    "industryType": "MINING",
+    "productions": [
+      {"commodityId": "iron_ore", "outputPerTick": 25},
+      {"commodityId": "copper", "outputPerTick": 20},
+      {"commodityId": "titanium", "outputPerTick": 8}
+    ],
+    "consumptions": [
+      {"commodityId": "food_rations", "demandPerTick": 15},
+      {"commodityId": "water", "demandPerTick": 12},
+      {"commodityId": "medical_supplies", "demandPerTick": 5}
+    ],
+    "childStationIds": ["kepler_station_alpha", "kepler_station_beta"]
+  },
+  {
+    "planetId": "eden_verde",
+    "population": 300000,
+    "industryType": "AGRICULTURAL",
+    "productions": [
+      {"commodityId": "food_rations", "outputPerTick": 30},
+      {"commodityId": "water", "outputPerTick": 25},
+      {"commodityId": "bio_polymers", "outputPerTick": 5}
+    ],
+    "consumptions": [
+      {"commodityId": "silicon", "demandPerTick": 8},
+      {"commodityId": "manufactured_parts", "demandPerTick": 6}
+    ],
+    "childStationIds": ["eden_orbital"]
+  },
+  {
+    "planetId": "nova_foundry",
+    "population": 800000,
+    "industryType": "INDUSTRIAL",
+    "productions": [
+      {"commodityId": "tungsten_alloy", "outputPerTick": 15},
+      {"commodityId": "synthetic_textiles", "outputPerTick": 12},
+      {"commodityId": "military_electronics", "outputPerTick": 6},
+      {"commodityId": "manufactured_parts", "outputPerTick": 20}
+    ],
+    "consumptions": [
+      {"commodityId": "iron_ore", "demandPerTick": 20},
+      {"commodityId": "copper", "demandPerTick": 15},
+      {"commodityId": "titanium", "demandPerTick": 10},
+      {"commodityId": "lithium_cells", "demandPerTick": 8}
+    ],
+    "childStationIds": ["nova_station_1", "nova_station_2", "nova_station_3"]
+  },
+  {
+    "planetId": "zenith_labs",
+    "population": 150000,
+    "industryType": "HIGH_TECH",
+    "productions": [
+      {"commodityId": "zero_point_cells", "outputPerTick": 2},
+      {"commodityId": "quantum_foam", "outputPerTick": 1},
+      {"commodityId": "psionic_resonators", "outputPerTick": 1}
+    ],
+    "consumptions": [
+      {"commodityId": "iridium_ingots", "demandPerTick": 4},
+      {"commodityId": "manufactured_parts", "demandPerTick": 10},
+      {"commodityId": "dark_crystals", "demandPerTick": 3}
+    ],
+    "childStationIds": ["zenith_orbital"]
+  },
+  {
+    "planetId": "fort_bastion",
+    "population": 200000,
+    "industryType": "MILITARY",
+    "productions": [],
+    "consumptions": [
+      {"commodityId": "military_electronics", "demandPerTick": 12},
+      {"commodityId": "tungsten_alloy", "demandPerTick": 8},
+      {"commodityId": "food_rations", "demandPerTick": 20},
+      {"commodityId": "medical_supplies", "demandPerTick": 10}
+    ],
+    "childStationIds": ["bastion_dockyard"]
+  },
+  {
+    "planetId": "azure_shores",
+    "population": 100000,
+    "industryType": "RESORT",
+    "productions": [],
+    "consumptions": [
+      {"commodityId": "food_rations", "demandPerTick": 18},
+      {"commodityId": "water", "demandPerTick": 15},
+      {"commodityId": "luxury_goods", "demandPerTick": 10},
+      {"commodityId": "medical_supplies", "demandPerTick": 3}
+    ],
+    "childStationIds": ["azure_station"]
+  },
+  {
+    "planetId": "outpost_sigma",
+    "population": 5000,
+    "industryType": "OUTPOST",
+    "productions": [
+      {"commodityId": "salvaged_components", "outputPerTick": 3}
+    ],
+    "consumptions": [
+      {"commodityId": "food_rations", "demandPerTick": 3},
+      {"commodityId": "water", "demandPerTick": 2},
+      {"commodityId": "medical_supplies", "demandPerTick": 1},
+      {"commodityId": "iron_ore", "demandPerTick": 2}
+    ],
+    "childStationIds": ["sigma_depot"]
+  }
+]
