@@ -31,10 +31,9 @@ Melee attack sequencing uses a lightweight FSM stored in an ECS component. AI de
 
 ### Weapons
 
-- **WeaponInventoryComponent** — `slots: WeaponAssembly[3]` (primary, secondary, melee), `activeSlotIndex: int`, `switchCooldown: float`
-- **RangedWeaponComponent** — resolved stats: `damage: float`, `fireRate: float`, `spread: float`, `range: float`, `recoilPattern: Vector2[]`, `currentAmmo: int`, `magSize: int`, `reloadTime: float`, `firingMode: enum (auto/semi/burst)`, `hitscan: boolean`
-- **MeleeWeaponComponent** — `baseDamage: float`, `reach: float`, `swingSpeed: float`, `blockEfficiency: float[]` per direction, `staminaCosts: Map<AttackType, Float>`, `weightClass: enum (light/medium/heavy)`
-- **WeaponAssemblyComponent** — `frameId: String`, `barrelId: String`, `ammoTypeId: String`, `modSlotIds: String[]`, `materialQuality: QualityTier` — references into the data registry, resolved into stats at equip time
+- **WeaponInventoryComponent** — `slots: WeaponAssembly[3]` (primary, secondary, melee), `activeSlotIndex: int`, `switchCooldown: float`. Each `WeaponAssembly` is a plain data object holding `frameId`, `barrelId`, `ammoTypeId`, `modSlotIds[]`, `materialQuality` — the parts that define a weapon. The inventory holds assemblies; the active slot's assembly is resolved into live stats below.
+- **RangedWeaponComponent** — resolved stats for the currently active ranged weapon: `damage: float`, `fireRate: float`, `spread: float`, `range: float`, `recoilPattern: Vector2[]`, `currentAmmo: int`, `magSize: int`, `reloadTime: float`, `firingMode: enum (auto/semi/burst)`, `hitscan: boolean`. Rewritten by `WeaponSwitchSystem` when switching slots.
+- **MeleeWeaponComponent** — resolved stats for the currently active melee weapon: `baseDamage: float`, `reach: float`, `swingSpeed: float`, `blockEfficiency: float[]` per direction, `staminaCosts: Map<AttackType, Float>`, `weightClass: enum (light/medium/heavy)`. Rewritten by `WeaponSwitchSystem` when switching to melee slot.
 
 ### Melee State
 
