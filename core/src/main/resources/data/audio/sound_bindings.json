@@ -1,0 +1,18 @@
+{
+  "WeaponFiredEvent:PISTOL:BALLISTIC": "audio/sfx/weapon_pistol_fire.ogg",
+  "WeaponFiredEvent:RIFLE:BALLISTIC": "audio/sfx/weapon_rifle_fire.ogg",
+  "WeaponFiredEvent:SHOTGUN:BALLISTIC": "audio/sfx/weapon_shotgun_fire.ogg",
+  "WeaponFiredEvent:SMG:BALLISTIC": "audio/sfx/weapon_smg_fire.ogg",
+  "WeaponFiredEvent:SNIPER:BALLISTIC": "audio/sfx/weapon_sniper_fire.ogg",
+  "WeaponFiredEvent:PISTOL:ENERGY": "audio/sfx/weapon_energy_fire.ogg",
+  "ReloadStartedEvent": "audio/sfx/weapon_reload.ogg",
+  "HitscanHitEvent:metal": "audio/sfx/impact_metal.ogg",
+  "HitscanHitEvent:flesh": "audio/sfx/impact_flesh.ogg",
+  "ProjectileHitEvent:EXPLOSIVE": "audio/sfx/explosion.ogg",
+  "ShieldAbsorbEvent": "audio/sfx/shield_hit.ogg",
+  "EntityKilledEvent": "audio/sfx/death.ogg",
+  "ShipWeaponFiredEvent:BALLISTIC_CANNON": "audio/sfx/ship_cannon.ogg",
+  "ShipWeaponFiredEvent:LASER_ARRAY": "audio/sfx/ship_laser.ogg",
+  "ShipWeaponFiredEvent:MISSILE_LAUNCHER": "audio/sfx/ship_missile.ogg",
+  "ShipOverheatEvent": "audio/sfx/overheat_alarm.ogg"
+}
