@@ -7,6 +7,8 @@ import com.badlogic.ashley.systems.IteratingSystem;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector3;
+import com.galacticodyssey.combat.events.RecoilEvent;
+import com.galacticodyssey.core.EventBus;
 import com.galacticodyssey.core.components.TransformComponent;
 import com.galacticodyssey.player.components.FPSCameraComponent;
 import com.galacticodyssey.player.components.MovementStateComponent;
@@ -20,6 +22,7 @@ public class CameraSystem extends IteratingSystem {
     private static final float HEAD_BOB_MIN_SPEED = 0.5f;
     private static final float MAX_LANDING_DIP = 0.15f;
     private static final float LANDING_DIP_FACTOR = 0.02f;
+    private static final float RECOIL_RECOVERY_SPEED = 8f;
 
     private final ComponentMapper<TransformComponent> transformMapper =
         ComponentMapper.getFor(TransformComponent.class);
@@ -31,8 +34,21 @@ public class CameraSystem extends IteratingSystem {
     private PerspectiveCamera camera;
     private boolean wasGrounded;
 
+    private float recoilPitch;
+    private float recoilYaw;
+
     public CameraSystem() {
         super(Family.all(TransformComponent.class, FPSCameraComponent.class, MovementStateComponent.class).get(), 4);
+    }
+
+    public CameraSystem(EventBus eventBus) {
+        this();
+        eventBus.subscribe(RecoilEvent.class, this::onRecoil);
+    }
+
+    private void onRecoil(RecoilEvent event) {
+        recoilYaw += event.recoilOffset.x;
+        recoilPitch += event.recoilOffset.y;
     }
 
     public void setCamera(PerspectiveCamera camera) {
@@ -84,8 +100,12 @@ public class CameraSystem extends IteratingSystem {
 
         camera.position.set(camX, camY, camZ);
 
-        float pitchRad = cam.pitchAngle * MathUtils.degreesToRadians;
-        float yawRad = cam.yawAngle * MathUtils.degreesToRadians;
+        // Apply recoil offsets on top of the base camera angles.
+        float effectivePitch = cam.pitchAngle + recoilPitch;
+        float effectiveYaw = cam.yawAngle + recoilYaw;
+
+        float pitchRad = effectivePitch * MathUtils.degreesToRadians;
+        float yawRad = effectiveYaw * MathUtils.degreesToRadians;
 
         camera.direction.set(
             -MathUtils.sin(yawRad) * MathUtils.cos(pitchRad),
@@ -95,6 +115,15 @@ public class CameraSystem extends IteratingSystem {
 
         camera.up.set(Vector3.Y);
         camera.update();
+
+        // Decay recoil back toward zero.
+        float decay = RECOIL_RECOVERY_SPEED * deltaTime;
+        recoilPitch = recoilPitch > 0
+            ? Math.max(0f, recoilPitch - decay)
+            : Math.min(0f, recoilPitch + decay);
+        recoilYaw = recoilYaw > 0
+            ? Math.max(0f, recoilYaw - decay)
+            : Math.min(0f, recoilYaw + decay);
 
         wasGrounded = state.isGrounded;
     }

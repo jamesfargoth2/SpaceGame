@@ -7,6 +7,7 @@ import com.badlogic.ashley.systems.IteratingSystem;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputAdapter;
+import com.galacticodyssey.combat.systems.CombatInputSystem;
 import com.galacticodyssey.core.components.PlayerTagComponent;
 import com.galacticodyssey.player.components.PlayerInputComponent;
 
@@ -21,6 +22,8 @@ public class PlayerInputSystem extends IteratingSystem {
     private boolean interactPressed;
     private boolean cameraTogglePressed;
     private boolean enabled = true;
+
+    private CombatInputSystem combatInputSystem;
 
     private final InputAdapter inputAdapter = new InputAdapter() {
         @Override
@@ -40,6 +43,44 @@ public class PlayerInputSystem extends IteratingSystem {
         }
 
         @Override
+        public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+            if (!enabled) return false;
+            if (button == Input.Buttons.LEFT) {
+                if (combatInputSystem != null) {
+                    combatInputSystem.setFireInput(true);
+                    combatInputSystem.setFireHeldInput(true);
+                }
+                return true;
+            }
+            if (button == Input.Buttons.RIGHT) {
+                if (combatInputSystem != null) {
+                    combatInputSystem.setBlockInput(true);
+                    combatInputSystem.setBlockHeldInput(true);
+                }
+                return true;
+            }
+            return false;
+        }
+
+        @Override
+        public boolean touchUp(int screenX, int screenY, int pointer, int button) {
+            if (!enabled) return false;
+            if (button == Input.Buttons.LEFT) {
+                if (combatInputSystem != null) {
+                    combatInputSystem.setFireHeldInput(false);
+                }
+                return true;
+            }
+            if (button == Input.Buttons.RIGHT) {
+                if (combatInputSystem != null) {
+                    combatInputSystem.setBlockHeldInput(false);
+                }
+                return true;
+            }
+            return false;
+        }
+
+        @Override
         public boolean keyDown(int keycode) {
             if (!enabled) return false;
             if (keycode == Input.Keys.SPACE) {
@@ -52,11 +93,42 @@ public class PlayerInputSystem extends IteratingSystem {
             }
             if (keycode == Input.Keys.V) {
                 cameraTogglePressed = true;
+                if (combatInputSystem != null) {
+                    combatInputSystem.setQuickMeleeInput();
+                }
+                return true;
+            }
+            if (keycode == Input.Keys.R) {
+                if (combatInputSystem != null) {
+                    combatInputSystem.setReloadInput();
+                }
+                return true;
+            }
+            if (keycode == Input.Keys.NUM_1) {
+                if (combatInputSystem != null) {
+                    combatInputSystem.setSwitchSlotInput(0);
+                }
+                return true;
+            }
+            if (keycode == Input.Keys.NUM_2) {
+                if (combatInputSystem != null) {
+                    combatInputSystem.setSwitchSlotInput(1);
+                }
+                return true;
+            }
+            if (keycode == Input.Keys.NUM_3) {
+                if (combatInputSystem != null) {
+                    combatInputSystem.setSwitchSlotInput(2);
+                }
                 return true;
             }
             return false;
         }
     };
+
+    public void setCombatInputSystem(CombatInputSystem system) {
+        this.combatInputSystem = system;
+    }
 
     public PlayerInputSystem() {
         super(Family.all(PlayerInputComponent.class, PlayerTagComponent.class).get(), 0);
@@ -103,6 +175,9 @@ public class PlayerInputSystem extends IteratingSystem {
 
         input.mouseDeltaX = accumulatedMouseDeltaX;
         input.mouseDeltaY = accumulatedMouseDeltaY;
+        if (combatInputSystem != null) {
+            combatInputSystem.setMouseDeltaForMelee(accumulatedMouseDeltaX, accumulatedMouseDeltaY);
+        }
         accumulatedMouseDeltaX = 0;
         accumulatedMouseDeltaY = 0;
 
