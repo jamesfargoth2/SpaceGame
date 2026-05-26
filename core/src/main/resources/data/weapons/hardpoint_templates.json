@@ -1,0 +1,22 @@
+[
+  {
+    "shipClass": "FIGHTER",
+    "hardpoints": [
+      { "id": "nose_gun_1", "posX": 0.0, "posY": 0.2, "posZ": 3.0, "type": "FIXED", "sizeClass": "SMALL", "arcMin": 0, "arcMax": 15, "defaultWeaponId": "ballistic_autocannon_sm" },
+      { "id": "nose_gun_2", "posX": 0.0, "posY": -0.2, "posZ": 3.0, "type": "FIXED", "sizeClass": "SMALL", "arcMin": 0, "arcMax": 15, "defaultWeaponId": "laser_array_sm" },
+      { "id": "wing_missile_l", "posX": -2.5, "posY": 0.0, "posZ": 0.0, "type": "MISSILE_BAY", "sizeClass": "SMALL", "arcMin": 0, "arcMax": 90, "defaultWeaponId": null },
+      { "id": "wing_missile_r", "posX": 2.5, "posY": 0.0, "posZ": 0.0, "type": "MISSILE_BAY", "sizeClass": "SMALL", "arcMin": 0, "arcMax": 90, "defaultWeaponId": null }
+    ]
+  },
+  {
+    "shipClass": "CORVETTE",
+    "hardpoints": [
+      { "id": "dorsal_turret", "posX": 0.0, "posY": 2.0, "posZ": 1.0, "type": "TURRET", "sizeClass": "MEDIUM", "arcMin": 0, "arcMax": 360, "defaultWeaponId": "plasma_turret_md" },
+      { "id": "ventral_turret", "posX": 0.0, "posY": -2.0, "posZ": -1.0, "type": "TURRET", "sizeClass": "MEDIUM", "arcMin": 0, "arcMax": 360, "defaultWeaponId": "plasma_turret_md" },
+      { "id": "bow_fixed", "posX": 0.0, "posY": 0.0, "posZ": 8.0, "type": "FIXED", "sizeClass": "LARGE", "arcMin": 0, "arcMax": 10, "defaultWeaponId": "railgun_lg" },
+      { "id": "pd_turret_1", "posX": 3.0, "posY": 1.0, "posZ": 0.0, "type": "POINT_DEFENSE", "sizeClass": "SMALL", "arcMin": 0, "arcMax": 360, "defaultWeaponId": "point_defense_sm" },
+      { "id": "pd_turret_2", "posX": -3.0, "posY": 1.0, "posZ": 0.0, "type": "POINT_DEFENSE", "sizeClass": "SMALL", "arcMin": 0, "arcMax": 360, "defaultWeaponId": "point_defense_sm" },
+      { "id": "missile_bay", "posX": 0.0, "posY": 0.0, "posZ": 3.0, "type": "MISSILE_BAY", "sizeClass": "MEDIUM", "arcMin": 0, "arcMax": 120, "defaultWeaponId": "missile_launcher_md" }
+    ]
+  }
+]
