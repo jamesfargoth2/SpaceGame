@@ -125,26 +125,41 @@ public final class TerrainQuadtree implements Disposable {
             triMesh.addTriangle(v0, v1, v2);
         }
 
-        btBvhTriangleMeshShape shape = new btBvhTriangleMeshShape(triMesh, true);
-        btRigidBody.btRigidBodyConstructionInfo info =
-            new btRigidBody.btRigidBodyConstructionInfo(0f, null, shape);
-        btRigidBody body = new btRigidBody(info);
-        body.setFriction(0.9f);
-        info.dispose();
+        btBvhTriangleMeshShape shape = null;
+        btRigidBody body = null;
+        try {
+            // Shape does not take ownership of triMesh — both must be disposed separately
+            shape = new btBvhTriangleMeshShape(triMesh, true);
+            btRigidBody.btRigidBodyConstructionInfo info =
+                new btRigidBody.btRigidBodyConstructionInfo(0f, null, shape);
+            try {
+                body = new btRigidBody(info);
+            } finally {
+                info.dispose();
+            }
+            body.setFriction(0.9f);
 
-        if (dynamicsWorld != null) {
-            dynamicsWorld.addRigidBody(body);
+            if (dynamicsWorld != null) {
+                dynamicsWorld.addRigidBody(body);
+            }
+
+            chunk.triangleMesh = triMesh;
+            chunk.collisionShape = shape;
+            chunk.collisionBody = body;
+        } catch (Exception e) {
+            if (body != null) body.dispose();
+            if (shape != null) shape.dispose();
+            triMesh.dispose();
+            throw e;
         }
-
-        chunk.triangleMesh = triMesh;
-        chunk.collisionShape = shape;
-        chunk.collisionBody = body;
     }
 
+    private final List<TerrainChunk> leafCache = new ArrayList<>();
+
     public List<TerrainChunk> getVisibleLeaves() {
-        List<TerrainChunk> leaves = new ArrayList<>();
-        for (TerrainChunk root : roots) collectLeaves(root, leaves);
-        return leaves;
+        leafCache.clear();
+        for (TerrainChunk root : roots) collectLeaves(root, leafCache);
+        return leafCache;
     }
 
     private void collectLeaves(TerrainChunk chunk, List<TerrainChunk> out) {
