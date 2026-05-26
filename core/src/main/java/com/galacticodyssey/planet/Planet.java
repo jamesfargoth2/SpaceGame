@@ -12,7 +12,7 @@ public final class Planet {
     public final float dayLength;
     public final float axialTilt;
     public final boolean tidallyLocked;
-    public Object atmosphere;
+    public Atmosphere atmosphere;
     public final List<Moon> moons;
 
     public Planet(long seed, PlanetType type, float radius, float mass,
