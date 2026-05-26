@@ -10,6 +10,7 @@ import com.badlogic.gdx.math.Vector3;
 import com.galacticodyssey.core.components.TransformComponent;
 import com.galacticodyssey.player.components.FPSCameraComponent;
 import com.galacticodyssey.player.components.MovementStateComponent;
+import com.galacticodyssey.player.components.PlayerStateComponent;
 
 public class CameraSystem extends IteratingSystem {
 
@@ -41,6 +42,11 @@ public class CameraSystem extends IteratingSystem {
     @Override
     protected void processEntity(Entity entity, float deltaTime) {
         if (camera == null) return;
+
+        PlayerStateComponent playerState = entity.getComponent(PlayerStateComponent.class);
+        if (playerState != null && playerState.currentMode == PlayerStateComponent.PlayerMode.PILOTING) {
+            return;
+        }
 
         TransformComponent transform = transformMapper.get(entity);
         FPSCameraComponent cam = cameraMapper.get(entity);
