@@ -63,11 +63,14 @@ public class SpineCurve {
         float u2 = u * u;
         float t2 = t * t;
 
-        return new Vector3(
+        Vector3 raw = new Vector3(
             3f * u2 * (p1.x - p0.x) + 6f * u * t * (p2.x - p1.x) + 3f * t2 * (p3.x - p2.x),
             3f * u2 * (p1.y - p0.y) + 6f * u * t * (p2.y - p1.y) + 3f * t2 * (p3.y - p2.y),
             3f * u2 * (p1.z - p0.z) + 6f * u * t * (p2.z - p1.z) + 3f * t2 * (p3.z - p2.z)
-        ).nor();
+        );
+        float len = raw.len();
+        if (len < 1e-6f) return new Vector3(0, 0, -1);
+        return raw.scl(1f / len);
     }
 
     /**
@@ -80,12 +83,27 @@ public class SpineCurve {
     public float approximateLength(int segments) {
         float length = 0f;
         Vector3 prev = evaluate(0f);
+        Vector3 curr = new Vector3();
         for (int i = 1; i <= segments; i++) {
-            Vector3 curr = evaluate((float) i / segments);
+            evaluate((float) i / segments, curr);
             length += prev.dst(curr);
-            prev = curr;
+            prev.set(curr);
         }
         return length;
+    }
+
+    public Vector3 evaluate(float t, Vector3 out) {
+        float u  = 1f - t;
+        float u2 = u * u;
+        float u3 = u2 * u;
+        float t2 = t * t;
+        float t3 = t2 * t;
+
+        return out.set(
+            u3 * p0.x + 3f * u2 * t * p1.x + 3f * u * t2 * p2.x + t3 * p3.x,
+            u3 * p0.y + 3f * u2 * t * p1.y + 3f * u * t2 * p2.y + t3 * p3.y,
+            u3 * p0.z + 3f * u2 * t * p1.z + 3f * u * t2 * p2.z + t3 * p3.z
+        );
     }
 
     /** @return the start (nose) control point; do not mutate. */
