@@ -16,7 +16,9 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.galacticodyssey.core.CoordinateManager;
 import com.galacticodyssey.core.components.PlayerTagComponent;
 import com.galacticodyssey.core.components.TransformComponent;
+import com.galacticodyssey.core.components.PhysicsBodyComponent;
 import com.galacticodyssey.player.components.MovementStateComponent;
+import com.galacticodyssey.player.components.PlayerStateComponent;
 
 public class DebugHudSystem extends EntitySystem implements Disposable {
 
@@ -32,6 +34,8 @@ public class DebugHudSystem extends EntitySystem implements Disposable {
     private Label stateLabel;
     private Label staminaLabel;
     private Label fpsLabel;
+    private Label modeLabel;
+    private Label shipSpeedLabel;
 
     private boolean visible = true;
 
@@ -68,8 +72,12 @@ public class DebugHudSystem extends EntitySystem implements Disposable {
         stateLabel = new Label("State: -", style);
         staminaLabel = new Label("Stamina: -", style);
         fpsLabel = new Label("FPS: -", style);
+        modeLabel = new Label("Mode: -", style);
+        shipSpeedLabel = new Label("Ship: -", style);
 
         table.add(fpsLabel).left().row();
+        table.add(modeLabel).left().row();
+        table.add(shipSpeedLabel).left().row();
         table.add(galaxyPosLabel).left().row();
         table.add(localPosLabel).left().row();
         table.add(velocityLabel).left().row();
@@ -101,12 +109,30 @@ public class DebugHudSystem extends EntitySystem implements Disposable {
 
             String stateStr;
             if (!state.isGrounded) stateStr = "airborne";
+            else if (state.isExhausted) stateStr = "exhausted";
             else if (state.isSprinting) stateStr = "sprinting";
             else if (state.isCrouching) stateStr = "crouching";
             else stateStr = "walking";
+            if (state.slopeAngle > 1f) stateStr += String.format(" (slope %.0f°)", state.slopeAngle);
             stateLabel.setText("State: " + stateStr);
 
-            staminaLabel.setText(String.format("Stamina: %.0f / %.0f", state.currentStamina, state.maxStamina));
+            staminaLabel.setText(String.format("Stamina: %.0f / %.0f%s",
+                state.currentStamina, state.maxStamina, state.isExhausted ? " [EXHAUSTED]" : ""));
+
+            PlayerStateComponent playerState = player.getComponent(PlayerStateComponent.class);
+            if (playerState != null) {
+                modeLabel.setText("Mode: " + playerState.currentMode);
+                if (playerState.currentMode == PlayerStateComponent.PlayerMode.PILOTING
+                    && playerState.currentShip != null) {
+                    PhysicsBodyComponent shipPhys = playerState.currentShip.getComponent(PhysicsBodyComponent.class);
+                    if (shipPhys != null && shipPhys.body != null) {
+                        float speed = shipPhys.body.getLinearVelocity().len();
+                        shipSpeedLabel.setText(String.format("Ship Speed: %.1f m/s", speed));
+                    }
+                } else {
+                    shipSpeedLabel.setText("Ship: -");
+                }
+            }
         }
 
         fpsLabel.setText("FPS: " + Gdx.graphics.getFramesPerSecond());
