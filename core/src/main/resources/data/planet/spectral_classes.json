@@ -1,0 +1,11 @@
+{
+    "classes": [
+        { "id": "O", "frequency": 0.01, "tempMin": 30000, "tempMax": 50000, "planetCountMin": 1, "planetCountMax": 3, "habitableOdds": 0.05 },
+        { "id": "B", "frequency": 0.02, "tempMin": 10000, "tempMax": 30000, "planetCountMin": 1, "planetCountMax": 4, "habitableOdds": 0.10 },
+        { "id": "A", "frequency": 0.05, "tempMin": 7500,  "tempMax": 10000, "planetCountMin": 2, "planetCountMax": 5, "habitableOdds": 0.20 },
+        { "id": "F", "frequency": 0.08, "tempMin": 6000,  "tempMax": 7500,  "planetCountMin": 2, "planetCountMax": 6, "habitableOdds": 0.40 },
+        { "id": "G", "frequency": 0.12, "tempMin": 5200,  "tempMax": 6000,  "planetCountMin": 3, "planetCountMax": 6, "habitableOdds": 0.60 },
+        { "id": "K", "frequency": 0.22, "tempMin": 3700,  "tempMax": 5200,  "planetCountMin": 2, "planetCountMax": 6, "habitableOdds": 0.45 },
+        { "id": "M", "frequency": 0.50, "tempMin": 2400,  "tempMax": 3700,  "planetCountMin": 2, "planetCountMax": 4, "habitableOdds": 0.25 }
+    ]
+}
