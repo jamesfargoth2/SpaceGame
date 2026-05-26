@@ -78,6 +78,12 @@ import com.galacticodyssey.ui.systems.DebugHudSystem;
 import com.galacticodyssey.vfx.components.ParticlePoolComponent;
 import com.galacticodyssey.vfx.data.VFXEventBindings;
 import com.galacticodyssey.vfx.data.VFXRegistry;
+import com.galacticodyssey.economy.data.CommodityRegistry;
+import com.galacticodyssey.economy.data.PlanetEconomyRegistry;
+import com.galacticodyssey.economy.service.TransactionService;
+import com.galacticodyssey.economy.simulation.PlanetaryEconomyManager;
+import com.galacticodyssey.economy.systems.PlanetaryStockSystem;
+import com.galacticodyssey.economy.systems.PricingSystem;
 import com.galacticodyssey.vfx.systems.ParticleRenderSystem;
 import com.galacticodyssey.vfx.systems.ParticleSpawnSystem;
 import com.galacticodyssey.vfx.systems.ParticleUpdateSystem;
@@ -115,6 +121,10 @@ public class GameWorld implements Disposable {
     private ShipWeaponRegistry shipWeaponRegistry;
     private VFXRegistry vfxRegistry;
     private ParticlePoolComponent particlePool;
+    private CommodityRegistry commodityRegistry;
+    private PlanetEconomyRegistry planetEconomyRegistry;
+    private TransactionService transactionService;
+    private PlanetaryEconomyManager planetaryEconomyManager;
 
     private final Array<Disposable> disposables = new Array<>();
 
@@ -234,6 +244,20 @@ public class GameWorld implements Disposable {
         engine.addSystem(crosshairSystem);
         engine.addSystem(screenShakeSystem);
         engine.addSystem(weaponSwaySystem);
+
+        // Economy
+        commodityRegistry = new CommodityRegistry();
+        planetEconomyRegistry = new PlanetEconomyRegistry();
+        if (com.badlogic.gdx.Gdx.files != null) {
+            commodityRegistry.loadFromFiles();
+            planetEconomyRegistry.loadFromFiles();
+        }
+        PricingSystem pricingSystem = new PricingSystem(commodityRegistry, 5.0f);
+        PlanetaryStockSystem planetaryStockSystem = new PlanetaryStockSystem(eventBus);
+        engine.addSystem(pricingSystem);
+        engine.addSystem(planetaryStockSystem);
+        transactionService = new TransactionService(commodityRegistry, eventBus);
+        planetaryEconomyManager = new PlanetaryEconomyManager(eventBus, planetEconomyRegistry);
 
         playerInputSystem.setCombatInputSystem(combatInputSystem);
     }
