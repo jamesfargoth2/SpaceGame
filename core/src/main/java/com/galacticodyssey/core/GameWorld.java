@@ -19,9 +19,14 @@ import com.galacticodyssey.core.systems.PhysicsBodySystem;
 import com.galacticodyssey.player.components.FPSCameraComponent;
 import com.galacticodyssey.player.components.MovementStateComponent;
 import com.galacticodyssey.player.components.PlayerInputComponent;
+import com.galacticodyssey.player.components.PlayerStateComponent;
 import com.galacticodyssey.player.systems.CameraSystem;
+import com.galacticodyssey.player.systems.InteractionSystem;
 import com.galacticodyssey.player.systems.PlayerInputSystem;
 import com.galacticodyssey.player.systems.PlayerMovementSystem;
+import com.galacticodyssey.ship.systems.ShipCameraSystem;
+import com.galacticodyssey.ship.systems.ShipFlightSystem;
+import com.galacticodyssey.ship.systems.ShipInteriorPhysicsSystem;
 import com.galacticodyssey.ui.systems.DebugHudSystem;
 
 public class GameWorld implements Disposable {
@@ -35,6 +40,7 @@ public class GameWorld implements Disposable {
     private final PlayerMovementSystem playerMovementSystem;
     private final CameraSystem cameraSystem;
     private final DebugHudSystem debugHudSystem;
+    private final ShipCameraSystem shipCameraSystem;
 
     private final Array<Disposable> disposables = new Array<>();
 
@@ -58,12 +64,25 @@ public class GameWorld implements Disposable {
         engine.addSystem(physicsBodySystem);
         engine.addSystem(cameraSystem);
         engine.addSystem(debugHudSystem);
+
+        InteractionSystem interactionSystem = new InteractionSystem(eventBus);
+        engine.addSystem(interactionSystem);
+
+        ShipFlightSystem shipFlightSystem = new ShipFlightSystem();
+        engine.addSystem(shipFlightSystem);
+
+        ShipInteriorPhysicsSystem interiorPhysicsSystem = new ShipInteriorPhysicsSystem();
+        engine.addSystem(interiorPhysicsSystem);
+
+        shipCameraSystem = new ShipCameraSystem();
+        engine.addSystem(shipCameraSystem);
     }
 
     public void initializeSystems(PerspectiveCamera camera) {
         playerInputSystem.initialize();
         cameraSystem.setCamera(camera);
         debugHudSystem.initialize();
+        shipCameraSystem.setCamera(camera);
     }
 
     public Entity createPlayerEntity(float spawnX, float spawnY, float spawnZ) {
@@ -77,6 +96,7 @@ public class GameWorld implements Disposable {
         player.add(new PlayerInputComponent());
         player.add(new MovementStateComponent());
         player.add(new FPSCameraComponent());
+        player.add(new PlayerStateComponent());
 
         PhysicsBodyComponent physics = new PhysicsBodyComponent();
         physics.shape = new btCapsuleShape(0.3f, 1.2f);
@@ -177,8 +197,15 @@ public class GameWorld implements Disposable {
         debugHudSystem.resize(width, height);
     }
 
+    public Engine getEngine() { return engine; }
+    public EventBus getEventBus() { return eventBus; }
+
     public BulletPhysicsSystem getBulletPhysicsSystem() {
         return bulletPhysicsSystem;
+    }
+
+    public PlayerInputSystem getPlayerInputSystem() {
+        return playerInputSystem;
     }
 
     @Override
