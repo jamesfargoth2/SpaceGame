@@ -30,7 +30,8 @@ public final class EventBus {
     public <T> void publish(T event) {
         var list = listeners.get(event.getClass());
         if (list != null) {
-            for (var listener : list) {
+            var snapshot = new ArrayList<>(list);
+            for (var listener : snapshot) {
                 ((EventListener<T>) listener).onEvent(event);
             }
         }

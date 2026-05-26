@@ -1,0 +1,13 @@
+{
+  "hitRegionMultipliers":{"HEAD":2.0,"TORSO":1.0,"ARMS":0.75,"LEGS":0.75},
+  "maxArmorResistance":0.85,
+  "defaultShieldRechargeDelay":4.0,
+  "wrongBlockMitigation":0.3,
+  "exhaustionAttackPenalty":0.4,
+  "comboDamageBonus":0.1,
+  "comboStaminaPenalty":0.2,
+  "maxComboHits":3,
+  "quickMeleeDamage":15.0,
+  "quickMeleeCooldown":0.8,
+  "quickMeleeStaggerDuration":0.3
+}

@@ -11,6 +11,33 @@ import com.badlogic.gdx.physics.bullet.collision.btCapsuleShape;
 import com.badlogic.gdx.physics.bullet.dynamics.btRigidBody;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Disposable;
+import com.galacticodyssey.combat.components.ArmorComponent;
+import com.galacticodyssey.combat.components.CombatAIComponent;
+import com.galacticodyssey.combat.components.CombatInputComponent;
+import com.galacticodyssey.combat.components.CoverComponent;
+import com.galacticodyssey.combat.components.HealthComponent;
+import com.galacticodyssey.combat.components.HitboxComponent;
+import com.galacticodyssey.combat.components.HostileTagComponent;
+import com.galacticodyssey.combat.components.MeleeStateComponent;
+import com.galacticodyssey.combat.components.MeleeWeaponComponent;
+import com.galacticodyssey.combat.components.RangedWeaponComponent;
+import com.galacticodyssey.combat.components.ShieldComponent;
+import com.galacticodyssey.combat.components.SquadComponent;
+import com.galacticodyssey.combat.components.StatusEffectsComponent;
+import com.galacticodyssey.combat.components.WeaponInventoryComponent;
+import com.galacticodyssey.combat.data.AIArchetypeData;
+import com.galacticodyssey.combat.data.CombatDataRegistry;
+import com.galacticodyssey.combat.data.WeaponDataRegistry;
+import com.galacticodyssey.combat.systems.CombatAISystem;
+import com.galacticodyssey.combat.systems.CombatInputSystem;
+import com.galacticodyssey.combat.systems.DamageSystem;
+import com.galacticodyssey.combat.systems.HitscanSystem;
+import com.galacticodyssey.combat.systems.MeleeSystem;
+import com.galacticodyssey.combat.systems.ProjectileSystem;
+import com.galacticodyssey.combat.systems.SquadTacticsSystem;
+import com.galacticodyssey.combat.systems.StatusEffectSystem;
+import com.galacticodyssey.combat.systems.WeaponSwitchSystem;
+import com.galacticodyssey.combat.systems.WeaponSystem;
 import com.galacticodyssey.core.components.PhysicsBodyComponent;
 import com.galacticodyssey.core.components.PlayerTagComponent;
 import com.galacticodyssey.core.components.TransformComponent;
@@ -19,9 +46,14 @@ import com.galacticodyssey.core.systems.PhysicsBodySystem;
 import com.galacticodyssey.player.components.FPSCameraComponent;
 import com.galacticodyssey.player.components.MovementStateComponent;
 import com.galacticodyssey.player.components.PlayerInputComponent;
+import com.galacticodyssey.player.components.PlayerStateComponent;
 import com.galacticodyssey.player.systems.CameraSystem;
+import com.galacticodyssey.player.systems.InteractionSystem;
 import com.galacticodyssey.player.systems.PlayerInputSystem;
 import com.galacticodyssey.player.systems.PlayerMovementSystem;
+import com.galacticodyssey.ship.systems.ShipCameraSystem;
+import com.galacticodyssey.ship.systems.ShipFlightSystem;
+import com.galacticodyssey.ship.systems.ShipInteriorPhysicsSystem;
 import com.galacticodyssey.ui.systems.DebugHudSystem;
 
 public class GameWorld implements Disposable {
@@ -35,6 +67,9 @@ public class GameWorld implements Disposable {
     private final PlayerMovementSystem playerMovementSystem;
     private final CameraSystem cameraSystem;
     private final DebugHudSystem debugHudSystem;
+    private final ShipCameraSystem shipCameraSystem;
+    private WeaponDataRegistry weaponDataRegistry;
+    private CombatDataRegistry combatDataRegistry;
 
     private final Array<Disposable> disposables = new Array<>();
 
@@ -49,7 +84,7 @@ public class GameWorld implements Disposable {
         physicsBodySystem = new PhysicsBodySystem();
         playerInputSystem = new PlayerInputSystem();
         playerMovementSystem = new PlayerMovementSystem(bulletPhysicsSystem.getDynamicsWorld());
-        cameraSystem = new CameraSystem();
+        cameraSystem = new CameraSystem(eventBus);
         debugHudSystem = new DebugHudSystem(coordinateManager);
 
         engine.addSystem(playerInputSystem);
@@ -58,12 +93,55 @@ public class GameWorld implements Disposable {
         engine.addSystem(physicsBodySystem);
         engine.addSystem(cameraSystem);
         engine.addSystem(debugHudSystem);
+
+        InteractionSystem interactionSystem = new InteractionSystem(eventBus);
+        engine.addSystem(interactionSystem);
+
+        ShipFlightSystem shipFlightSystem = new ShipFlightSystem();
+        engine.addSystem(shipFlightSystem);
+
+        ShipInteriorPhysicsSystem interiorPhysicsSystem = new ShipInteriorPhysicsSystem();
+        engine.addSystem(interiorPhysicsSystem);
+
+        shipCameraSystem = new ShipCameraSystem();
+        engine.addSystem(shipCameraSystem);
+
+        // Combat systems
+        WeaponDataRegistry weaponData = new WeaponDataRegistry();
+        CombatDataRegistry combatData = new CombatDataRegistry();
+        this.weaponDataRegistry = weaponData;
+        this.combatDataRegistry = combatData;
+
+        CombatInputSystem combatInputSystem = new CombatInputSystem();
+        WeaponSwitchSystem weaponSwitchSystem = new WeaponSwitchSystem(eventBus, weaponData);
+        WeaponSystem weaponSystem = new WeaponSystem(eventBus);
+        MeleeSystem meleeSystem = new MeleeSystem(eventBus, combatData);
+        HitscanSystem hitscanSystem = new HitscanSystem(eventBus);
+        ProjectileSystem projectileSystem = new ProjectileSystem(eventBus);
+        DamageSystem damageSystem = new DamageSystem(eventBus, combatData, weaponData);
+        StatusEffectSystem statusEffectSystem = new StatusEffectSystem(eventBus, combatData);
+        CombatAISystem combatAISystem = new CombatAISystem(eventBus);
+        SquadTacticsSystem squadTacticsSystem = new SquadTacticsSystem(eventBus);
+
+        engine.addSystem(combatInputSystem);
+        engine.addSystem(weaponSwitchSystem);
+        engine.addSystem(weaponSystem);
+        engine.addSystem(meleeSystem);
+        engine.addSystem(hitscanSystem);
+        engine.addSystem(projectileSystem);
+        engine.addSystem(damageSystem);
+        engine.addSystem(statusEffectSystem);
+        engine.addSystem(combatAISystem);
+        engine.addSystem(squadTacticsSystem);
+
+        playerInputSystem.setCombatInputSystem(combatInputSystem);
     }
 
     public void initializeSystems(PerspectiveCamera camera) {
         playerInputSystem.initialize();
         cameraSystem.setCamera(camera);
         debugHudSystem.initialize();
+        shipCameraSystem.setCamera(camera);
     }
 
     public Entity createPlayerEntity(float spawnX, float spawnY, float spawnZ) {
@@ -77,6 +155,7 @@ public class GameWorld implements Disposable {
         player.add(new PlayerInputComponent());
         player.add(new MovementStateComponent());
         player.add(new FPSCameraComponent());
+        player.add(new PlayerStateComponent());
 
         PhysicsBodyComponent physics = new PhysicsBodyComponent();
         physics.shape = new btCapsuleShape(0.3f, 1.2f);
@@ -97,6 +176,18 @@ public class GameWorld implements Disposable {
 
         player.add(physics);
 
+        // Combat components for the player.
+        player.add(new CombatInputComponent());
+        player.add(new WeaponInventoryComponent());
+        player.add(new RangedWeaponComponent());
+        player.add(new MeleeWeaponComponent());
+        player.add(new MeleeStateComponent());
+        player.add(new HealthComponent());
+        player.add(new ShieldComponent());
+        player.add(new ArmorComponent());
+        player.add(new StatusEffectsComponent());
+        player.add(new HitboxComponent());
+
         bulletPhysicsSystem.getDynamicsWorld().addRigidBody(physics.body);
         bulletPhysicsSystem.addManagedBody(physics.body);
 
@@ -108,6 +199,50 @@ public class GameWorld implements Disposable {
         });
 
         return player;
+    }
+
+    public Entity createHostileNPC(Vector3 position, String archetypeId, int squadId,
+                                    WeaponDataRegistry weaponData, CombatDataRegistry combatData) {
+        Entity entity = new Entity();
+        TransformComponent transform = new TransformComponent();
+        transform.position.set(position);
+        entity.add(transform);
+
+        AIArchetypeData archetype = combatData.getArchetype(archetypeId);
+        HealthComponent health = new HealthComponent();
+        health.maxHP = archetype != null ? archetype.maxHP : 80f;
+        health.currentHP = health.maxHP;
+        entity.add(health);
+
+        entity.add(new HitboxComponent());
+        entity.add(new StatusEffectsComponent());
+        entity.add(new HostileTagComponent());
+        entity.add(new CombatInputComponent());
+
+        CombatAIComponent ai = new CombatAIComponent();
+        if (archetype != null) {
+            ai.aggroRange = archetype.aggroRange;
+            ai.engageRange = archetype.engageRange;
+            ai.preferredRangeMin = archetype.preferredRangeMin;
+            ai.preferredRangeMax = archetype.preferredRangeMax;
+            ai.aggression = archetype.aggression;
+            ai.archetypeId = archetypeId;
+        }
+        entity.add(ai);
+
+        SquadComponent squad = new SquadComponent();
+        squad.squadId = squadId;
+        entity.add(squad);
+        entity.add(new CoverComponent());
+
+        WeaponInventoryComponent inv = new WeaponInventoryComponent();
+        entity.add(inv);
+        entity.add(new RangedWeaponComponent());
+        entity.add(new MeleeWeaponComponent());
+        entity.add(new MeleeStateComponent());
+
+        engine.addEntity(entity);
+        return entity;
     }
 
     public Entity createStaticBox(float x, float y, float z, float halfExtent) {
@@ -177,8 +312,15 @@ public class GameWorld implements Disposable {
         debugHudSystem.resize(width, height);
     }
 
+    public Engine getEngine() { return engine; }
+    public EventBus getEventBus() { return eventBus; }
+
     public BulletPhysicsSystem getBulletPhysicsSystem() {
         return bulletPhysicsSystem;
+    }
+
+    public PlayerInputSystem getPlayerInputSystem() {
+        return playerInputSystem;
     }
 
     @Override
