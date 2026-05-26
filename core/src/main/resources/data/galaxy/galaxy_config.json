@@ -1,0 +1,12 @@
+{
+    "type": "SPIRAL",
+    "targetStarCount": 1000000,
+    "radiusLY": 50000.0,
+    "armCount": 4,
+    "armWindingAngle": 4.0,
+    "armWidth": 0.15,
+    "coreDensityFactor": 3.0,
+    "nebulaCount": 200,
+    "chunkSizeLY": 100.0,
+    "maxLoadedChunks": 512
+}
