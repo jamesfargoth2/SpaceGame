@@ -27,7 +27,8 @@ import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.math.Interpolation;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
-import com.badlogic.gdx.physics.bullet.collision.btHeightfieldTerrainShape;
+import com.badlogic.gdx.physics.bullet.collision.btBvhTriangleMeshShape;
+import com.badlogic.gdx.physics.bullet.collision.btTriangleMesh;
 import com.badlogic.gdx.physics.bullet.dynamics.btRigidBody;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
@@ -41,7 +42,6 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.utils.BufferUtils;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
@@ -58,7 +58,6 @@ import com.galacticodyssey.ship.ShipSizeClass;
 import com.galacticodyssey.ship.components.ShipDataComponent;
 import com.galacticodyssey.ship.components.ShipMeshComponent;
 
-import java.nio.FloatBuffer;
 import java.util.Random;
 
 public class GameScreen implements Screen {
@@ -350,34 +349,45 @@ public class GameScreen implements Screen {
     }
 
     private void createTerrainPhysics() {
-        FloatBuffer heightmapBuffer = BufferUtils.newFloatBuffer(heightmap.length);
-        heightmapBuffer.put(heightmap);
-        heightmapBuffer.flip();
-        disposables.add(() -> {});
+        float cellW = TERRAIN_WIDTH / (TERRAIN_VERTS_X - 1);
+        float cellD = TERRAIN_DEPTH / (TERRAIN_VERTS_Z - 1);
+        float halfW = TERRAIN_WIDTH / 2f;
+        float halfD = TERRAIN_DEPTH / 2f;
 
-        float minH = Float.MAX_VALUE, maxH = -Float.MAX_VALUE;
-        for (float h : heightmap) {
-            minH = Math.min(minH, h);
-            maxH = Math.max(maxH, h);
+        btTriangleMesh triMesh = new btTriangleMesh();
+        disposables.add(triMesh);
+
+        Vector3 v0 = new Vector3(), v1 = new Vector3();
+        Vector3 v2 = new Vector3(), v3 = new Vector3();
+
+        for (int z = 0; z < TERRAIN_VERTS_Z - 1; z++) {
+            for (int x = 0; x < TERRAIN_VERTS_X - 1; x++) {
+                float x0 = x * cellW - halfW;
+                float x1 = (x + 1) * cellW - halfW;
+                float z0 = z * cellD - halfD;
+                float z1 = (z + 1) * cellD - halfD;
+
+                float h00 = heightmap[z * TERRAIN_VERTS_X + x];
+                float h10 = heightmap[z * TERRAIN_VERTS_X + x + 1];
+                float h01 = heightmap[(z + 1) * TERRAIN_VERTS_X + x];
+                float h11 = heightmap[(z + 1) * TERRAIN_VERTS_X + x + 1];
+
+                v0.set(x0, h00, z0);
+                v1.set(x0, h01, z1);
+                v2.set(x1, h10, z0);
+                v3.set(x1, h11, z1);
+
+                triMesh.addTriangle(v0, v1, v2);
+                triMesh.addTriangle(v2, v1, v3);
+            }
         }
 
-        btHeightfieldTerrainShape terrainShape = new btHeightfieldTerrainShape(
-            TERRAIN_VERTS_X, TERRAIN_VERTS_Z, heightmapBuffer,
-            1f, minH, maxH, 1, false);
+        btBvhTriangleMeshShape terrainShape = new btBvhTriangleMeshShape(triMesh, true);
         disposables.add(terrainShape);
-
-        Vector3 localScale = new Vector3(
-            TERRAIN_WIDTH / (TERRAIN_VERTS_X - 1),
-            1f,
-            TERRAIN_DEPTH / (TERRAIN_VERTS_Z - 1));
-        terrainShape.setLocalScaling(localScale);
 
         btRigidBody.btRigidBodyConstructionInfo info =
             new btRigidBody.btRigidBodyConstructionInfo(0f, null, terrainShape);
         btRigidBody terrainBody = new btRigidBody(info);
-
-        float midH = (minH + maxH) / 2f;
-        terrainBody.setWorldTransform(new Matrix4().setToTranslation(0, midH, 0));
         terrainBody.setFriction(0.9f);
         info.dispose();
 

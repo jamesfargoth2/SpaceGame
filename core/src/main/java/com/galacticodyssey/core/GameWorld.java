@@ -276,6 +276,8 @@ public class GameWorld implements Disposable {
         physics.body.setAngularFactor(new Vector3(0, 0, 0));
         physics.body.setFriction(physics.friction);
         physics.body.setRestitution(physics.restitution);
+        physics.body.setCcdMotionThreshold(0.1f);
+        physics.body.setCcdSweptSphereRadius(0.2f);
         info.dispose();
 
         player.add(physics);
