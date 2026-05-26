@@ -297,20 +297,17 @@ public class ShipFactory implements Disposable {
     // -------------------------------------------------------------------------
 
     private PhysicsBodyComponent buildExteriorPhysicsBody(HullGeometry hull, float x, float y, float z) {
-        btConvexHullShape convexShape = buildConvexHull(hull);
+        btCollisionShape convexShape = buildConvexHull(hull);
 
-        // Static body (mass = 0) — the ship is landed / uncontrolled until taken off
         btRigidBody.btRigidBodyConstructionInfo ci =
             new btRigidBody.btRigidBodyConstructionInfo(0f, null, convexShape);
         btRigidBody body = new btRigidBody(ci);
         ci.dispose();
 
-        // Position the body
         Matrix4 worldTransform = new Matrix4();
         worldTransform.setToTranslation(x, y, z);
         body.setWorldTransform(worldTransform);
 
-        // Register with the exterior physics world so it participates in collision
         physics.getDynamicsWorld().addRigidBody(body);
         physics.addManagedBody(body);
 
@@ -319,7 +316,6 @@ public class ShipFactory implements Disposable {
         comp.shape  = convexShape;
         comp.mass   = 0f;
 
-        // Track for disposal
         disposables.add(body);
         disposables.add(convexShape);
 
@@ -330,20 +326,13 @@ public class ShipFactory implements Disposable {
      * Builds a simplified {@link btConvexHullShape} from the hull geometry by sampling
      * approximately every Nth vertex until {@value #MAX_CONVEX_POINTS} points are selected.
      */
-    private btConvexHullShape buildConvexHull(HullGeometry hull) {
-        int stride     = hull.vertexStride;
-        int vertCount  = hull.vertexCount();
-        int step       = Math.max(1, vertCount / MAX_CONVEX_POINTS);
-
-        btConvexHullShape shape = new btConvexHullShape();
-        for (int i = 0; i < vertCount; i += step) {
-            int base = i * stride;
-            shape.addPoint(new Vector3(hull.vertices[base],
-                                       hull.vertices[base + 1],
-                                       hull.vertices[base + 2]));
-        }
-        shape.recalcLocalAabb();
-        return shape;
+    private btCollisionShape buildConvexHull(HullGeometry hull) {
+        Vector3 halfExtents = new Vector3();
+        hull.boundingBox.getDimensions(halfExtents).scl(0.5f);
+        if (halfExtents.x < 0.1f) halfExtents.x = 0.1f;
+        if (halfExtents.y < 0.1f) halfExtents.y = 0.1f;
+        if (halfExtents.z < 0.1f) halfExtents.z = 0.1f;
+        return new btBoxShape(halfExtents);
     }
 
     // -------------------------------------------------------------------------
