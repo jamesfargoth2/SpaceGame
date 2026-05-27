@@ -138,8 +138,7 @@ public class SwimmingSystem extends IteratingSystem {
                 } else if (!input.crouch && swim.currentDepth < 0.5f) {
                     swim.swimState = SwimState.SURFACE;
                     eventBus.publish(new PlayerSurfacedEvent(entity));
-                }
-                if (swim.breath <= 0f) {
+                } else if (swim.breath <= 0f) {
                     swim.breath = 0f;
                     swim.swimState = SwimState.DROWNING;
                     eventBus.publish(new BreathDepletedEvent(entity));
@@ -148,14 +147,12 @@ public class SwimmingSystem extends IteratingSystem {
                 break;
 
             case SUBMERGED:
-                if (swim.currentDepth < config.submergedToDiveDepth) {
-                    swim.swimState = SwimState.DIVING;
-                }
                 if (swim.currentDepth < 0.5f) {
                     swim.swimState = SwimState.SURFACE;
                     eventBus.publish(new PlayerSurfacedEvent(entity));
-                }
-                if (swim.breath <= 0f) {
+                } else if (swim.currentDepth < config.submergedToDiveDepth) {
+                    swim.swimState = SwimState.DIVING;
+                } else if (swim.breath <= 0f) {
                     swim.breath = 0f;
                     swim.swimState = SwimState.DROWNING;
                     eventBus.publish(new BreathDepletedEvent(entity));
@@ -175,7 +172,7 @@ public class SwimmingSystem extends IteratingSystem {
     private void updateBreath(SwimmingStateComponent swim, PlayerInputComponent input, float dt) {
         if (swim.swimState == SwimState.DIVING || swim.swimState == SwimState.SUBMERGED) {
             float drain = input.sprint ? config.sprintBreathDrainRate : config.breathDrainRate;
-            swim.breath -= drain * dt;
+            swim.breath = Math.max(0f, swim.breath - drain * dt);
         }
     }
 

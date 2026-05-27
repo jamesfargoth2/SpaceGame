@@ -161,7 +161,6 @@ class SwimmingSystemTest {
     void transitionsDivingToSurfaceWhenNoDiveInput() {
         swimState.swimState = SwimState.DIVING;
         swimState.breath = 30f;
-        swimState.currentDepth = 1.0f;
         transform.position.set(0, -0.3f, 0);
         swimmingSystem.setTestWaterSurfaceHeight(0.0f);
         input.crouch = false;

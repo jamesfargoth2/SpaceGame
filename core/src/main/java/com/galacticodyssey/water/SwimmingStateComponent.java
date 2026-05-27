@@ -6,7 +6,7 @@ public class SwimmingStateComponent implements Component {
     public SwimState swimState = SwimState.DRY;
     public SwimState previousState = SwimState.DRY;
 
-    public float breath;
+    public float breath = 30f;
     public float maxBreath = 30f;
 
     public float currentDepth;
