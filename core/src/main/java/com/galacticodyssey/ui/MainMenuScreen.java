@@ -79,7 +79,7 @@ public class MainMenuScreen implements Screen {
         addMenuButton(root, "Settings", skin, false,
             () -> game.setScreen(new SettingsScreen(game)));
         addMenuButton(root, "Encyclopedia", skin, false,
-            () -> game.setScreen(new EncyclopediaScreen(game, MainMenuScreen.this)));
+            () -> game.setScreen(new EncyclopediaScreen(game, null)));
         addMenuButton(root, "Credits", skin, false,
             () -> Gdx.app.log("Menu", "Credits pressed"));
         addMenuButton(root, "Exit", skin, false,
@@ -172,7 +172,6 @@ public class MainMenuScreen implements Screen {
 
     @Override
     public void hide() {
-        audioManager.stopMusic();
         dispose();
     }
 

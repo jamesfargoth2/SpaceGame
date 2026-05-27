@@ -22,6 +22,7 @@ public class AudioManager implements Disposable {
 
     /** Legacy single-track field retained for callers that use playMusic(String) directly. */
     private Music legacyMusic;
+    private String legacyMusicPath;
 
     public AudioManager(GamePreferences preferences) {
         this.preferences = preferences;
@@ -33,6 +34,9 @@ public class AudioManager implements Disposable {
 
     /** Simple looping music, no crossfade. Used by menus and simple screens. */
     public void playMusic(String path) {
+        if (legacyMusic != null && path.equals(legacyMusicPath) && legacyMusic.isPlaying()) {
+            return;
+        }
         stopMusic();
         FileHandle file = Gdx.files.internal(path);
         if (!file.exists()) {
@@ -43,6 +47,7 @@ public class AudioManager implements Disposable {
         legacyMusic.setLooping(true);
         legacyMusic.setVolume(preferences.getEffectiveMusicVolume());
         legacyMusic.play();
+        legacyMusicPath = path;
     }
 
     /**
@@ -60,6 +65,7 @@ public class AudioManager implements Disposable {
             legacyMusic.dispose();
             legacyMusic = null;
         }
+        legacyMusicPath = null;
     }
 
     // -------------------------------------------------------------------------
