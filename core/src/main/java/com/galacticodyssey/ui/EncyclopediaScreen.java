@@ -117,7 +117,7 @@ public class EncyclopediaScreen implements Screen {
 
     private void refreshDetail() {
         detailPanel.clear();
-        Label.LabelStyle bodyStyle = skin.get("default", Label.LabelStyle.class);
+        Label.LabelStyle bodyStyle = skin.get("body", Label.LabelStyle.class);
         detailPanel.add(new Label(selectedCategory, skin, "title")).left().padBottom(12).row();
         detailPanel.add(new Label("Content for " + selectedCategory + " coming soon.", bodyStyle))
             .left().padBottom(8).row();
