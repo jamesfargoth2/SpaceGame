@@ -3,9 +3,12 @@ package com.galacticodyssey.npc.data;
 import com.badlogic.ashley.core.Engine;
 import com.badlogic.ashley.core.Entity;
 import com.galacticodyssey.galaxy.SeedDeriver;
+import com.galacticodyssey.npc.BackstoryHook;
+import com.galacticodyssey.npc.HookType;
 import com.galacticodyssey.npc.NpcDisposition;
 import com.galacticodyssey.npc.NPCRole;
 import com.galacticodyssey.npc.PersonalityTrait;
+import com.galacticodyssey.npc.components.NpcBackstoryComponent;
 import com.galacticodyssey.npc.components.NpcIdentityComponent;
 import com.galacticodyssey.npc.components.NpcPersonalityComponent;
 import com.galacticodyssey.npc.components.NpcStatsComponent;
@@ -16,6 +19,15 @@ import java.util.Random;
 import java.util.Set;
 
 public class NpcGenerator {
+
+    private static final String[] HOOK_SUMMARIES = {
+        "Owes a substantial debt to a powerful creditor.",
+        "Searching for a family member lost during a colony evacuation.",
+        "Wanted by authorities for past crimes.",
+        "Served in a military campaign and carries the scars.",
+        "Possesses knowledge someone powerful wants kept secret.",
+        "Has an unresolved rivalry with another spacer."
+    };
 
     private static final String[][] CONTRADICTORY_PAIRS = {
         {"BRAVE", "COWARDLY"},
@@ -80,6 +92,9 @@ public class NpcGenerator {
         NpcPersonalityComponent personality = generatePersonality(npcSeed);
         entity.add(personality);
 
+        NpcBackstoryComponent backstory = generateBackstory(npcSeed, role);
+        entity.add(backstory);
+
         engine.addEntity(entity);
         return entity;
     }
@@ -106,6 +121,36 @@ public class NpcGenerator {
         personality.bravery = rng.nextFloat() * 0.7f + 0.2f;  // 0.2-0.9
 
         return personality;
+    }
+
+    private NpcBackstoryComponent generateBackstory(long npcSeed, NPCRole role) {
+        Random rng = new Random(SeedDeriver.forId(npcSeed, 40));
+        NpcBackstoryComponent backstory = new NpcBackstoryComponent();
+        HookType[] allHooks = HookType.values();
+
+        int hookCount = 1 + rng.nextInt(2); // 1-2
+        Set<HookType> usedTypes = new HashSet<>();
+
+        if (role == NPCRole.PIRATE_CAPTAIN) {
+            backstory.hooks.add(makeHook(HookType.WANTED_CRIMINAL, rng));
+            usedTypes.add(HookType.WANTED_CRIMINAL);
+        }
+
+        while (backstory.hooks.size() < hookCount) {
+            HookType type = allHooks[rng.nextInt(allHooks.length)];
+            if (usedTypes.contains(type)) continue;
+            backstory.hooks.add(makeHook(type, rng));
+            usedTypes.add(type);
+        }
+
+        return backstory;
+    }
+
+    private BackstoryHook makeHook(HookType type, Random rng) {
+        boolean revealed = rng.nextFloat() < 0.3f;
+        long questSeed = rng.nextLong();
+        String summary = HOOK_SUMMARIES[type.ordinal()];
+        return new BackstoryHook(type, revealed, questSeed, summary);
     }
 
     private boolean contradictsAny(PersonalityTrait candidate, Set<String> existing) {
