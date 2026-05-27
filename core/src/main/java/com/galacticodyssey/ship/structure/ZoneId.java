@@ -1,11 +1,13 @@
 package com.galacticodyssey.ship.structure;
 
-/** Identifies a structural zone of a ship hull. */
+/**
+ * Identifies structural zones within a ship hull.
+ */
 public enum ZoneId {
-    NOSE,
-    PORT_HULL,
-    STARBOARD_HULL,
-    ENGINEERING,
-    CARGO,
-    BRIDGE
+    BRIDGE,
+    ENGINE_ROOM,
+    CARGO_BAY,
+    CREW_QUARTERS,
+    WEAPONS_BAY,
+    HULL_EXTERIOR
 }
