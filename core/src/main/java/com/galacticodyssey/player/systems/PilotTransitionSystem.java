@@ -1,10 +1,12 @@
 package com.galacticodyssey.player.systems;
 
+import com.badlogic.ashley.core.ComponentMapper;
 import com.badlogic.ashley.core.EntitySystem;
 import com.badlogic.ashley.core.Entity;
 import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 import com.galacticodyssey.core.EventBus;
+import com.galacticodyssey.core.components.PhysicsBodyComponent;
 import com.galacticodyssey.core.events.PlayerStartPilotingEvent;
 import com.galacticodyssey.core.events.PlayerStopPilotingEvent;
 import com.galacticodyssey.ship.components.ShipFlightInputComponent;
@@ -25,8 +27,12 @@ import com.galacticodyssey.ui.events.CockpitHUDHideEvent;
 public class PilotTransitionSystem extends EntitySystem {
 
     private static final float TRANSITION_DURATION = 0.5f;
+    private static final Vector3 LANDING_GRAVITY = new Vector3(0, -4.0f, 0);
+    private static final Vector3 ZERO_GRAVITY = new Vector3(0, 0, 0);
 
     private final EventBus eventBus;
+    private final ComponentMapper<PhysicsBodyComponent> physicsMapper =
+        ComponentMapper.getFor(PhysicsBodyComponent.class);
     private boolean transitioning;
     private float transitionTimer;
 
@@ -56,12 +62,23 @@ public class PilotTransitionSystem extends EntitySystem {
         if (player.getComponent(ShipFlightInputComponent.class) == null) {
             player.add(new ShipFlightInputComponent());
         }
+        PhysicsBodyComponent shipPhysics = physicsMapper.get(event.ship);
+        if (shipPhysics != null && shipPhysics.body != null) {
+            shipPhysics.body.setGravity(ZERO_GRAVITY);
+        }
         eventBus.publish(new CockpitHUDShowEvent(event.ship));
         beginTransition();
     }
 
     private void onStopPiloting(PlayerStopPilotingEvent event) {
         event.player.remove(ShipFlightInputComponent.class);
+        if (event.ship != null) {
+            PhysicsBodyComponent shipPhysics = physicsMapper.get(event.ship);
+            if (shipPhysics != null && shipPhysics.body != null) {
+                shipPhysics.body.setGravity(LANDING_GRAVITY);
+                shipPhysics.body.setDamping(0.92f, 0.95f);
+            }
+        }
         eventBus.publish(new CockpitHUDHideEvent());
         beginTransition();
     }

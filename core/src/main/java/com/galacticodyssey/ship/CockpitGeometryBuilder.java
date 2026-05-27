@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.VertexAttributes.Usage;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
+import com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
@@ -166,6 +167,23 @@ public final class CockpitGeometryBuilder {
         fwdRight.rect(
             new Vector3(hw - borderH, borderV,          -hl), new Vector3(hw, borderV,          -hl),
             new Vector3(hw,           height - borderV, -hl), new Vector3(hw - borderH, height - borderV, -hl),
+            new Vector3(0, 0, 1)
+        );
+
+        // --- Transparent windshield glass over the viewport cutout ---
+        final Material glassMaterial = new Material(
+            ColorAttribute.createDiffuse(0.6f, 0.75f, 0.85f, 0.12f),
+            ColorAttribute.createSpecular(0.9f, 0.95f, 1f, 1f),
+            new BlendingAttribute(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA, 0.12f)
+        );
+
+        float glassInset = 0.01f;
+        MeshPartBuilder glass = builder.part("windshield", GL20.GL_TRIANGLES, attributes, glassMaterial);
+        glass.rect(
+            new Vector3(-hw + borderH, borderV,          -hl + glassInset),
+            new Vector3( hw - borderH, borderV,          -hl + glassInset),
+            new Vector3( hw - borderH, height - borderV, -hl + glassInset),
+            new Vector3(-hw + borderH, height - borderV, -hl + glassInset),
             new Vector3(0, 0, 1)
         );
 
