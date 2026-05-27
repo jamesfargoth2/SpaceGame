@@ -12,5 +12,7 @@ public class SpeciesDefinition {
     public float pilotingMod;
     public float scienceMod;
     public float combatMod;
+    public float persuasionMod;
+    public float stealthMod;
     public List<String> portraitIds = new ArrayList<>();
 }

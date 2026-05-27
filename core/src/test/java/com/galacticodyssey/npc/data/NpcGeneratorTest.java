@@ -90,6 +90,16 @@ class NpcGeneratorTest {
         assertStatInRange(stats.piloting);
         assertStatInRange(stats.science);
         assertStatInRange(stats.combat);
+        assertStatInRange(stats.persuasion);
+        assertStatInRange(stats.stealth);
+    }
+
+    @Test
+    void generatedNpcHasPersuasionAndStealthStats() {
+        Entity npc = generator.generate(engine, 12345L);
+        NpcStatsComponent stats = STATS_M.get(npc);
+        assertStatInRange(stats.persuasion);
+        assertStatInRange(stats.stealth);
     }
 
     @Test

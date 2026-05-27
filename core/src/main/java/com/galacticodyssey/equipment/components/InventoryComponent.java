@@ -11,11 +11,16 @@ import java.util.List;
 import java.util.Map;
 
 public class InventoryComponent implements Component, Snapshotable<InventorySnapshot> {
-    public final int gridWidth;
-    public final int gridHeight;
-    public final float maxWeight;
-    private final Item[][] grid;
+    public int gridWidth;
+    public int gridHeight;
+    public float maxWeight;
+    private Item[][] grid;
     private final List<Item> allItems = new ArrayList<>();
+
+    /** No-arg constructor for deserialization / registry restore. */
+    public InventoryComponent() {
+        this(0, 0, 0f);
+    }
 
     public InventoryComponent(int gridWidth, int gridHeight, float maxWeight) {
         this.gridWidth = gridWidth;
@@ -152,12 +157,11 @@ public class InventoryComponent implements Component, Snapshotable<InventorySnap
 
     @Override
     public void restoreFromSnapshot(InventorySnapshot snap) {
-        // Clear grid
-        for (int x = 0; x < gridWidth; x++) {
-            for (int y = 0; y < gridHeight; y++) {
-                grid[x][y] = null;
-            }
-        }
+        // Restore grid dimensions and weight limit from the snapshot.
+        this.gridWidth  = snap.gridWidth;
+        this.gridHeight = snap.gridHeight;
+        this.maxWeight  = snap.maxWeight;
+        this.grid = new Item[gridWidth][gridHeight];
         allItems.clear();
 
         for (ItemSnapshot s : snap.items) {

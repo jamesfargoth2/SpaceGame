@@ -10,4 +10,6 @@ public class BackgroundDefinition {
     public float pilotingMod;
     public float scienceMod;
     public float combatMod;
+    public float persuasionMod;
+    public float stealthMod;
 }

@@ -52,7 +52,9 @@ public class NpcGenerator {
         stats.medical  = clampStat(rollBase(npcSeed, 12) + species.medicalMod  + background.medicalMod);
         stats.piloting = clampStat(rollBase(npcSeed, 13) + species.pilotingMod + background.pilotingMod);
         stats.science  = clampStat(rollBase(npcSeed, 14) + species.scienceMod  + background.scienceMod);
-        stats.combat   = clampStat(rollBase(npcSeed, 15) + species.combatMod   + background.combatMod);
+        stats.combat      = clampStat(rollBase(npcSeed, 15) + species.combatMod      + background.combatMod);
+        stats.persuasion  = clampStat(rollBase(npcSeed, 16) + species.persuasionMod  + background.persuasionMod);
+        stats.stealth     = clampStat(rollBase(npcSeed, 17) + species.stealthMod     + background.stealthMod);
         entity.add(stats);
 
         engine.addEntity(entity);

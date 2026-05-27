@@ -9,4 +9,6 @@ public class NpcStatsComponent implements Component {
     public float piloting;
     public float science;
     public float combat;
+    public float persuasion;
+    public float stealth;
 }
