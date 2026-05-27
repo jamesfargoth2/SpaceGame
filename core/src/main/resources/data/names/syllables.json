@@ -1,0 +1,16 @@
+{
+  "starOnsets": ["Al", "Be", "Cen", "Del", "Ep", "Fo", "Gal", "Hy", "Ion", "Kep", "Lyr", "Mir", "Neb", "Or", "Pol", "Rig", "Sir", "Tau", "Vel", "Zet"],
+  "starCodas": ["pha", "ri", "tus", "nar", "ion", "ux", "ari", "eon", "is", "os", "um", "ax", "el", "on", "us"],
+  "greekLetters": ["Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta", "Eta", "Theta", "Iota", "Kappa", "Lambda", "Mu", "Nu", "Xi", "Omicron", "Pi", "Rho", "Sigma", "Tau", "Upsilon"],
+  "planetRoots": ["Tera", "Nova", "Kry", "Val", "Sol", "Zeph", "Ard", "Cael", "Dra", "Fen", "Gol", "Hex", "Ith", "Jor", "Lum", "Myr", "Nyx", "Obl", "Pyr", "Qua", "Rex", "Syl", "Tor", "Umb", "Vor", "Wyr", "Xan", "Yth", "Zel"],
+  "planetSuffixes": ["is", "us", "on", "ar", "ix", "a", "um", "os", "ium", "eas"],
+  "stationAdjectives": ["Outer", "Deep", "High", "Far", "New", "Old", "Prime", "Grand", "Iron", "Silver"],
+  "stationNouns": ["Haven", "Gate", "Reach", "Point", "Harbor", "Watch", "Forge", "Spire", "Ring", "Dock"],
+  "factionAdjectives": ["Iron", "Crimson", "Solar", "Void", "Crystal", "Shadow", "Golden", "Silver", "Obsidian", "Azure"],
+  "factionNouns": ["Collective", "Dominion", "Republic", "Alliance", "Syndicate", "Consortium", "Empire", "Federation", "Covenant", "Order"],
+  "factionPrefixes": ["The", "United", "Free", "Sovereign"],
+  "shipClasses": ["Vanguard", "Tempest", "Falcon", "Sentinel", "Wraith", "Corsair", "Nomad", "Harbinger", "Eclipse", "Zenith"],
+  "shipNames": ["Defiance", "Horizon", "Resolve", "Fortune", "Perseverance", "Wanderer", "Valiant", "Serenity", "Reckoning", "Providence"],
+  "personOnsets": ["Kal", "Zar", "Ven", "Tai", "Kor", "Mira", "Dex", "Syl", "Ren", "Nyx", "Ash", "Bri", "Cae", "Dri", "Eli", "Fen", "Gri", "Hel", "Isa", "Jax"],
+  "personCodas": ["en", "ax", "is", "or", "an", "el", "ia", "us", "ra", "on", "ik", "os", "ara", "ius", "ene"]
+}

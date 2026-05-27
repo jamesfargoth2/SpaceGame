@@ -1,0 +1,6 @@
+[
+  {"theme": "ALIEN_RUIN", "minRoomSize": 5, "maxRoomSize": 15, "bossChance": 0.15, "trapChance": 0.25, "lootChance": 0.3, "puzzleChance": 0.2},
+  {"theme": "MILITARY_BUNKER", "minRoomSize": 4, "maxRoomSize": 10, "bossChance": 0.1, "trapChance": 0.15, "lootChance": 0.25, "puzzleChance": 0.1},
+  {"theme": "PIRATE_HIDEOUT", "minRoomSize": 3, "maxRoomSize": 12, "bossChance": 0.2, "trapChance": 0.3, "lootChance": 0.35, "puzzleChance": 0.05},
+  {"theme": "ANCIENT_TEMPLE", "minRoomSize": 6, "maxRoomSize": 20, "bossChance": 0.2, "trapChance": 0.2, "lootChance": 0.2, "puzzleChance": 0.35}
+]

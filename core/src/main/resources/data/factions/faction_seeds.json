@@ -1,0 +1,8 @@
+[
+  {"factionId": "terran_federation", "startX": 0.0, "startY": 0.0, "strength": 1.0, "aggressiveness": 0.3},
+  {"factionId": "iron_collective", "startX": 150.0, "startY": 80.0, "strength": 0.8, "aggressiveness": 0.7},
+  {"factionId": "void_syndicate", "startX": -120.0, "startY": 60.0, "strength": 0.6, "aggressiveness": 0.9},
+  {"factionId": "solar_covenant", "startX": -50.0, "startY": -130.0, "strength": 0.7, "aggressiveness": 0.4},
+  {"factionId": "free_traders_guild", "startX": 80.0, "startY": -90.0, "strength": 0.5, "aggressiveness": 0.2},
+  {"factionId": "crystal_dominion", "startX": -180.0, "startY": -40.0, "strength": 0.9, "aggressiveness": 0.6}
+]

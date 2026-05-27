@@ -1,0 +1,12 @@
+[
+  {"type": "DOCK", "defenseBonus": 0.0, "populationBonus": 0},
+  {"type": "MARKET", "defenseBonus": 0.0, "populationBonus": 200},
+  {"type": "REFINERY", "defenseBonus": 0.0, "populationBonus": 100},
+  {"type": "HABITAT", "defenseBonus": 0.0, "populationBonus": 1000},
+  {"type": "COMMAND", "defenseBonus": 0.1, "populationBonus": 50},
+  {"type": "DEFENSE", "defenseBonus": 0.25, "populationBonus": 50},
+  {"type": "STORAGE", "defenseBonus": 0.0, "populationBonus": 0},
+  {"type": "MEDBAY", "defenseBonus": 0.0, "populationBonus": 100},
+  {"type": "ENGINEERING", "defenseBonus": 0.05, "populationBonus": 80},
+  {"type": "COMMUNICATIONS", "defenseBonus": 0.0, "populationBonus": 30}
+]
