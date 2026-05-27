@@ -91,6 +91,15 @@ public class GameScreen implements Screen {
 
     private WorldPopulator.PopulatedWorld populatedWorld;
 
+    private static final float FOG_DENSITY = 0.004f;
+    private float fogDensity = FOG_DENSITY;
+    private final Vector3 horizonColor = new Vector3(0.6f, 0.55f, 0.45f);
+    private final Vector3 sunDirection = new Vector3(-0.4f, -0.8f, -0.3f).nor();
+
+    private SkyRenderer skyRenderer;
+    private FogShaderProvider fogShaderProvider;
+    private ModelBatch fogModelBatch;
+
     private boolean paused;
     private Stage pauseStage;
     private Texture overlayTexture;
@@ -168,6 +177,10 @@ public class GameScreen implements Screen {
         environment.add(new DirectionalLight().set(0.8f, 0.8f, 0.75f, -0.4f, -0.8f, -0.3f));
 
         buildPauseMenu();
+
+        skyRenderer = new SkyRenderer();
+        fogShaderProvider = new FogShaderProvider();
+        fogModelBatch = new ModelBatch(fogShaderProvider);
     }
 
     private void setupInput() {

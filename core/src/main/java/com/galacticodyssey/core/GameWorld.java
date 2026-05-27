@@ -461,6 +461,10 @@ public class GameWorld implements Disposable {
         return playerInputSystem;
     }
 
+    public DebugHudSystem getDebugHudSystem() {
+        return debugHudSystem;
+    }
+
     @Override
     public void dispose() {
         for (int i = disposables.size - 1; i >= 0; i--) {
