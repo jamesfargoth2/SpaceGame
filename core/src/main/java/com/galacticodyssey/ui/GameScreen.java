@@ -51,6 +51,7 @@ import com.galacticodyssey.core.EventBus;
 import com.galacticodyssey.core.GalacticOdyssey;
 import com.galacticodyssey.core.GameWorld;
 import com.galacticodyssey.core.components.TransformComponent;
+import com.galacticodyssey.data.GameSession;
 import com.galacticodyssey.data.TerrainGenerator;
 import com.galacticodyssey.data.WorldPopulator;
 import com.galacticodyssey.planet.BiomeType;
@@ -73,6 +74,7 @@ public class GameScreen implements Screen {
     private static final float PAUSE_WORLD_HEIGHT = 720f;
 
     private final GalacticOdyssey game;
+    private final GameSession session; // null in load-game flow
     private GameWorld gameWorld;
     private PerspectiveCamera camera;
     private float[] heightmap;
@@ -106,8 +108,15 @@ public class GameScreen implements Screen {
     private InputMultiplexer inputMultiplexer;
     private boolean initialized;
 
+    // Preserve existing constructor for load-game flow
     public GameScreen(GalacticOdyssey game) {
+        this(game, null);
+    }
+
+    // New constructor for new-game flow
+    public GameScreen(GalacticOdyssey game, GameSession session) {
         this.game = game;
+        this.session = session;
     }
 
     @Override
@@ -133,41 +142,58 @@ public class GameScreen implements Screen {
         CoordinateManager coordinateManager = new CoordinateManager(eventBus);
         gameWorld = new GameWorld(eventBus, coordinateManager);
 
+        long terrainSeed = (session != null) ? session.terrainSeed : TERRAIN_SEED;
+
         heightmap = TerrainGenerator.generateHeightmap(
-            TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, TERRAIN_SEED);
+            TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, terrainSeed);
 
         gameWorld.initializeSystems(camera);
 
         populatedWorld = WorldPopulator.populate(
-            heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, TERRAIN_SEED);
+            heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, terrainSeed);
 
         createTerrainMesh();
         createTerrainPhysics();
         createScatterBoxes();
 
-        float spawnHeight = TerrainGenerator.getHeightAt(
-            heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, 0, 0) + 2f;
-        gameWorld.createPlayerEntity(0, spawnHeight, 0);
+        if (session != null && session.playerSpawnPos != null) {
+            gameWorld.createPlayerEntity(
+                session.playerSpawnPos.x, session.playerSpawnPos.y, session.playerSpawnPos.z);
+        } else {
+            float spawnHeight = TerrainGenerator.getHeightAt(
+                heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, 0, 0) + 2f;
+            gameWorld.createPlayerEntity(0, spawnHeight, 0);
+        }
 
         shipFactory = new ShipFactory(gameWorld.getEngine(), gameWorld.getBulletPhysicsSystem());
 
-        float smallX = 10f, smallZ = 10f;
-        float smallY = TerrainGenerator.getHeightAt(
-            heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, smallX, smallZ) + 2f;
-        Entity smallShip = shipFactory.createShip(42L, ShipSizeClass.SMALL, smallX, smallY, smallZ);
-        shipEntities.add(smallShip);
+        if (session != null && session.shipSpawnPos != null) {
+            float shipY = TerrainGenerator.getHeightAt(
+                heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH,
+                session.shipSpawnPos.x, session.shipSpawnPos.z) + 0.5f;
+            Entity starterShip = shipFactory.createShip(
+                session.seed, ShipSizeClass.SMALL,
+                session.shipSpawnPos.x, shipY, session.shipSpawnPos.z);
+            shipEntities.add(starterShip);
+        } else {
+            float smallX = 10f, smallZ = 10f;
+            float smallY = TerrainGenerator.getHeightAt(
+                heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, smallX, smallZ) + 2f;
+            Entity smallShip = shipFactory.createShip(42L, ShipSizeClass.SMALL, smallX, smallY, smallZ);
+            shipEntities.add(smallShip);
 
-        float medX = 40f, medZ = 40f;
-        float medY = TerrainGenerator.getHeightAt(
-            heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, medX, medZ) + 4f;
-        Entity medShip = shipFactory.createShip(123L, ShipSizeClass.MEDIUM, medX, medY, medZ);
-        shipEntities.add(medShip);
+            float medX = 40f, medZ = 40f;
+            float medY = TerrainGenerator.getHeightAt(
+                heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, medX, medZ) + 4f;
+            Entity medShip = shipFactory.createShip(123L, ShipSizeClass.MEDIUM, medX, medY, medZ);
+            shipEntities.add(medShip);
 
-        float lgX = -60f, lgZ = -60f;
-        float lgY = TerrainGenerator.getHeightAt(
-            heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, lgX, lgZ) + 6f;
-        Entity largeShip = shipFactory.createShip(999L, ShipSizeClass.LARGE, lgX, lgY, lgZ);
-        shipEntities.add(largeShip);
+            float lgX = -60f, lgZ = -60f;
+            float lgY = TerrainGenerator.getHeightAt(
+                heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, lgX, lgZ) + 6f;
+            Entity largeShip = shipFactory.createShip(999L, ShipSizeClass.LARGE, lgX, lgY, lgZ);
+            shipEntities.add(largeShip);
+        }
 
         buildShipMeshes();
 
@@ -782,6 +808,9 @@ public class GameScreen implements Screen {
         disposables.clear();
         boxInstances.clear();
         boxEntities.clear();
+        if (session != null && session.galaxy != null) {
+            session.galaxy.dispose();
+        }
         initialized = false;
     }
 }

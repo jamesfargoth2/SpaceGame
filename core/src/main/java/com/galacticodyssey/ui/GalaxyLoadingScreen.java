@@ -150,8 +150,7 @@ public class GalaxyLoadingScreen implements Screen {
         // Transition to GameScreen on success
         if (session.complete && !transitioned) {
             transitioned = true;
-            // TODO: Task 8 changes this to new GameScreen(game, session)
-            game.setScreen(new GameScreen(game));
+            game.setScreen(new GameScreen(game, session));
         }
 
         // Show error UI on failure
