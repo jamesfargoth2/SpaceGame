@@ -53,25 +53,19 @@ public class HydrodynamicDragSystem extends EntitySystem {
 
     private final WaveSystem waveSystem;
 
-    /** Active water body; set externally when the player enters a water planet. */
-    private WaterBodyComponent waterBody;
-
-    // Scratch objects reused across processEntity calls within the same update tick
     private final Matrix4 tempTransform = new Matrix4();
     private final Matrix4 tempInverse = new Matrix4();
 
-    /**
-     * @param priority   Ashley system priority (should run after BuoyancySystem)
-     * @param waveSystem the wave system (used for gravity constant)
-     */
     public HydrodynamicDragSystem(int priority, WaveSystem waveSystem) {
         super(priority);
         this.waveSystem = waveSystem;
     }
 
-    /** Sets the active water body. Pass {@code null} when leaving water. */
-    public void setWaterBody(WaterBodyComponent waterBody) {
-        this.waterBody = waterBody;
+    private WaterBodyComponent findWaterBody() {
+        ImmutableArray<Entity> waterBodies = getEngine()
+            .getEntitiesFor(Family.all(WaterBodyComponent.class).get());
+        if (waterBodies.size() == 0) return null;
+        return waterBodies.first().getComponent(WaterBodyComponent.class);
     }
 
     @Override
@@ -84,14 +78,15 @@ public class HydrodynamicDragSystem extends EntitySystem {
 
     @Override
     public void update(float deltaTime) {
+        WaterBodyComponent waterBody = findWaterBody();
         if (waterBody == null) return;
 
         for (int i = 0; i < vessels.size(); i++) {
-            processEntity(vessels.get(i), deltaTime);
+            processEntity(vessels.get(i), waterBody, deltaTime);
         }
     }
 
-    private void processEntity(Entity entity, float dt) {
+    private void processEntity(Entity entity, WaterBodyComponent waterBody, float dt) {
         final HullComponent hull = hullMapper.get(entity);
         final PhysicsBodyComponent physics = physicsMapper.get(entity);
         if (physics.body == null) return;

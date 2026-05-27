@@ -4,6 +4,7 @@ import com.badlogic.ashley.core.ComponentMapper;
 import com.badlogic.ashley.core.Entity;
 import com.badlogic.ashley.core.Family;
 import com.badlogic.ashley.systems.IteratingSystem;
+import com.badlogic.ashley.utils.ImmutableArray;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Pools;
@@ -59,14 +60,6 @@ public class FloodingSystem extends IteratingSystem {
     private final EventBus eventBus;
     private final WaveSystem waveSystem;
 
-    /** The active water body. Set externally. */
-    private WaterBodyComponent waterBody;
-
-    /**
-     * @param priority   Ashley system priority (should run after BallastSystem)
-     * @param waveSystem the wave system for gravity constant
-     * @param eventBus   event bus for flooding and stability events
-     */
     public FloodingSystem(int priority, WaveSystem waveSystem, EventBus eventBus) {
         super(Family.all(FloodingComponent.class, HullComponent.class,
                          PhysicsBodyComponent.class).get(), priority);
@@ -74,17 +67,16 @@ public class FloodingSystem extends IteratingSystem {
         this.eventBus = eventBus;
     }
 
-    /**
-     * Sets the active water body for density lookups.
-     *
-     * @param waterBody the water body component
-     */
-    public void setWaterBody(WaterBodyComponent waterBody) {
-        this.waterBody = waterBody;
+    private WaterBodyComponent findWaterBody() {
+        ImmutableArray<Entity> waterBodies = getEngine()
+            .getEntitiesFor(Family.all(WaterBodyComponent.class).get());
+        if (waterBodies.size() == 0) return null;
+        return waterBodies.first().getComponent(WaterBodyComponent.class);
     }
 
     @Override
     protected void processEntity(Entity entity, float dt) {
+        WaterBodyComponent waterBody = findWaterBody();
         if (waterBody == null) return;
 
         final FloodingComponent flooding = floodingMapper.get(entity);
