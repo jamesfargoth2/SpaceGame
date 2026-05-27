@@ -243,6 +243,9 @@ public class PlayerInputSystem extends IteratingSystem {
 
         if (interactPressed) { input.interactPressed = true; interactPressed = false; }
         if (cameraTogglePressed) { input.cameraTogglePressed = true; cameraTogglePressed = false; }
+
+        targetLockPressed = false;
+        nextTargetPressed = false;
     }
 
     private void processFlightInput(Entity entity) {
@@ -285,5 +288,7 @@ public class PlayerInputSystem extends IteratingSystem {
             if (input != null) input.interactPressed = true;
             interactPressed = false;
         }
+
+        jumpPressed = false;
     }
 }
