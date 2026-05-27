@@ -18,6 +18,7 @@ import com.galacticodyssey.player.components.PlayerInputComponent;
 import com.galacticodyssey.player.components.PlayerStateComponent;
 import com.galacticodyssey.player.components.PlayerStateComponent.PlayerMode;
 import com.galacticodyssey.ship.components.ShipFlightComponent;
+import com.galacticodyssey.ship.components.ShipFlightInputComponent;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -78,6 +79,10 @@ class ShipFlightSystemTest {
         state.currentMode = PlayerMode.PILOTING;
         state.currentShip = ship;
         player.add(state);
+
+        ShipFlightInputComponent flightInput = new ShipFlightInputComponent();
+        flightInput.throttle = 1f;
+        player.add(flightInput);
 
         engine.addEntity(ship);
         engine.addEntity(player);

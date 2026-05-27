@@ -13,6 +13,14 @@ public final class SeedDeriver {
     public static final long FACTION_DOMAIN    = 0x4F6CDD1CB33DA28DL;
     public static final long NAME_DOMAIN       = 0x8C4F9B29D25B9E63L;
     public static final long NEBULA_DOMAIN     = 0xA2F9836E4E441529L;
+    public static final long DERELICT_DOMAIN       = 0x2E8BA2E8BA2E8BA3L;
+    public static final long CAVE_DOMAIN           = 0x7A6D76E9E6237015L;
+    public static final long DUNGEON_DOMAIN        = 0x5D19E57F4F22A935L;
+    public static final long ASTEROID_SHAPE_DOMAIN = 0x1B4E81B4E81B4E82L;
+    public static final long ENCOUNTER_DOMAIN      = 0x9C49FBD688E6BF6DL;
+    public static final long ECONOMY_DOMAIN        = 0x3F56B0C4FCA1AF8BL;
+    public static final long CRATER_DOMAIN         = 0xAB54A98CEB1C3F47L;
+    public static final long NPC_DOMAIN            = 0xF2A84C39E71B5D06L;
 
     private SeedDeriver() {}
 
@@ -26,6 +34,10 @@ public final class SeedDeriver {
 
     public static long nebulaDomain(long galaxySeed) {
         return domain(galaxySeed, NEBULA_DOMAIN);
+    }
+
+    public static long npcDomain(long parentSeed) {
+        return domain(parentSeed, NPC_DOMAIN);
     }
 
     public static long forId(long domainSeed, long id) {

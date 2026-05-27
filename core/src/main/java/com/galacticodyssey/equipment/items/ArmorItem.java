@@ -5,6 +5,7 @@ import com.galacticodyssey.combat.CombatEnums.QualityTier;
 import com.galacticodyssey.equipment.EquipmentEnums.EquipmentSlot;
 import com.galacticodyssey.equipment.EquipmentEnums.ItemType;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.Map;
 
 public class ArmorItem extends Item {
@@ -30,5 +31,25 @@ public class ArmorItem extends Item {
     @Override
     public ItemType getType() {
         return ItemType.ARMOR;
+    }
+
+    @Override
+    protected void populateCustomData(Map<String, Object> customData) {
+        customData.put("armorRating", armorRating);
+        customData.put("slotType", slotType.name());
+        Map<String, Float> resMap = new HashMap<>();
+        for (Map.Entry<DamageType, Float> e : resistances.entrySet()) {
+            resMap.put(e.getKey().name(), e.getValue());
+        }
+        customData.put("resistances", resMap);
+        // durability and maxDurability are promoted to top-level ItemSnapshot fields
+    }
+
+    @Override
+    public com.galacticodyssey.persistence.snapshots.ItemSnapshot toItemSnapshot() {
+        com.galacticodyssey.persistence.snapshots.ItemSnapshot s = super.toItemSnapshot();
+        s.durability    = durability;
+        s.maxDurability = maxDurability;
+        return s;
     }
 }

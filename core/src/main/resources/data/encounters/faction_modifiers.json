@@ -1,0 +1,7 @@
+{
+  "pirate_heavy": {"PIRATE_AMBUSH": 2.0, "PATROL": 0.3, "TRADER_CONVOY": 0.5},
+  "military_presence": {"PATROL": 2.5, "PIRATE_AMBUSH": 0.4, "DISTRESS_SIGNAL": 0.7},
+  "trade_hub": {"TRADER_CONVOY": 2.0, "PIRATE_AMBUSH": 0.8, "NOTHING": 0.5},
+  "abandoned": {"DERELICT_DISCOVERY": 2.5, "PATROL": 0.1, "TRADER_CONVOY": 0.2, "ANOMALY": 1.5},
+  "contested": {"PIRATE_AMBUSH": 1.5, "PATROL": 1.5, "DISTRESS_SIGNAL": 1.8, "NOTHING": 0.3}
+}

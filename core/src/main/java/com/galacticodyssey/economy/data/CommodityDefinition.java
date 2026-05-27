@@ -1,7 +1,7 @@
 package com.galacticodyssey.economy.data;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 public class CommodityDefinition {
     public String id;
@@ -11,5 +11,5 @@ public class CommodityDefinition {
     public int basePrice;
     public float mass;
     public float volume;
-    public Set<String> tags = new HashSet<>();
+    public List<String> tags = new ArrayList<>();
 }

@@ -64,7 +64,7 @@ public class MainMenuScreen implements Screen {
         addMenuButton(root, "Settings", skin, false,
             () -> game.setScreen(new SettingsScreen(game)));
         addMenuButton(root, "Encyclopedia", skin, false,
-            () -> Gdx.app.log("Menu", "Encyclopedia pressed"));
+            () -> game.setScreen(new EncyclopediaScreen(game)));
         addMenuButton(root, "Credits", skin, false,
             () -> Gdx.app.log("Menu", "Credits pressed"));
         addMenuButton(root, "Exit", skin, false,

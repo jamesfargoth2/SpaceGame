@@ -1,0 +1,15 @@
+{
+  "eval_id": 2,
+  "eval_name": "submarine-ballast-depth",
+  "prompt": "We need a submarine for the deep ocean exploration gameplay. The player should be able to set a target depth and the sub automatically maintains it using ballast tanks. If the sub goes too deep past its crush depth, the hull should breach and start flooding. The flooding needs to spread between connected compartments and affect the sub's stability.",
+  "assertions": [
+    "BallastComponent has PID gains (Kp, Ki, Kd) and BallastTanks with capacity/fill/rates",
+    "BallastSystem implements PID controller: proportional + integral + derivative terms for depth error",
+    "Ballast mass changes update rigid body via setMassProps()",
+    "Hull crush depth triggers a HullBreachEvent via EventBus",
+    "FloodingSystem uses Torricelli's theorem (flow proportional to sqrt of head) for breach ingress",
+    "Cross-compartment flow equalizes based on water head difference between connected compartments",
+    "Free surface effect is computed for partially-flooded compartments",
+    "Flooding shifts the rigid body's centre of mass, not just its total mass"
+  ]
+}

@@ -2,8 +2,8 @@ package com.galacticodyssey.equipment.items;
 
 import com.galacticodyssey.combat.CombatEnums.QualityTier;
 import com.galacticodyssey.equipment.EquipmentEnums.ItemType;
-import java.util.Map;
 import java.util.HashMap;
+import java.util.Map;
 
 public class JunkItem extends Item {
     public final int sellValue;
@@ -20,5 +20,11 @@ public class JunkItem extends Item {
     @Override
     public ItemType getType() {
         return ItemType.JUNK;
+    }
+
+    @Override
+    protected void populateCustomData(Map<String, Object> customData) {
+        customData.put("sellValue",     sellValue);
+        customData.put("salvageYields", new HashMap<>(salvageYields));
     }
 }

@@ -1,0 +1,14 @@
+{
+  "human": {
+    "first": ["James", "Elena", "Marcus", "Priya", "Viktor", "Amara", "Chen", "Rosa", "Dex", "Yuki"],
+    "last": ["Voss", "Chen", "Okafor", "Petrov", "Reyes", "Nakamura", "Adeyemi", "Larsson", "Zhao", "Okoro"]
+  },
+  "veloxi": {
+    "first": ["Zek'thar", "Vix'nal", "Thri'kex", "Nex'ori", "Kel'vaan", "Syx'ura", "Dri'thal", "Qix'ren"],
+    "last": ["of Nexus", "of Veil", "of Spire", "of Drift", "of Shard", "of Bloom", "of Arc", "of Crest"]
+  },
+  "krethian": {
+    "first": ["Grun", "Bolk", "Tharn", "Krix", "Draven", "Mogg", "Jurk", "Skarl"],
+    "last": ["Ironhide", "Stonefist", "Hammerjaw", "Steelback", "Bonecrush", "Ashforge", "Warborn", "Deepcore"]
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "expectations": [
+    {
+      "text": "At least 3 compartments defined with connections between them (engine room -> cargo hold -> crew quarters)",
+      "passed": true,
+      "evidence": "FloodableShipFactory.java defines ENGINE_ROOM, CARGO_HOLD, CREW_QUARTERS as constants and creates all three Compartment objects (lines 91-106). Connections are set: engineRoom.connectedTo.add(CARGO_HOLD), cargoHold.connectedTo.add(ENGINE_ROOM) and cargoHold.connectedTo.add(CREW_QUARTERS), crewQuarters.connectedTo.add(CARGO_HOLD). Two DoorwayConnection objects link engine_room<->cargo_hold and cargo_hold<->crew_quarters (lines 115-124)."
+    },
+    {
+      "text": "Engine room compartment has nonzero breachArea and breachDepth",
+      "passed": true,
+      "evidence": "FloodableShipFactory.applyTorpedoBreach() (lines 143-157) locates the ENGINE_ROOM compartment and sets comp.breachArea and comp.breachDepth to the caller-provided values. The factory's usage example shows 'new HullBreachEvent(ship, \"engine_room\", 0.5f, 2.0f)' with nonzero values. Additionally, FloodingSystem.onHullBreach() (lines 417-434) sets breachArea and breachDepth from the event on the matching compartment. Both pathways set nonzero values."
+    },
+    {
+      "text": "Breach ingress uses discharge coefficient (Cd ~0.6) and Torricelli's theorem",
+      "passed": true,
+      "evidence": "FloodingSystem.java line 61: 'private static final float BREACH_CD = 0.6f;'. In simulateExternalIngress() (lines 158-175): 'float velocity = (float) Math.sqrt(2f * flood.gravity * comp.breachDepth); float flowRate = BREACH_CD * comp.breachArea * velocity;' — this is exactly Q = Cd * A * sqrt(2*g*h), Torricelli's theorem with Cd=0.6."
+    },
+    {
+      "text": "Cross-compartment flow uses head difference and orifice equation",
+      "passed": true,
+      "evidence": "FloodingSystem.simulateCrossFlow() (lines 181-228) computes head for each compartment via compA.waterHead() and compB.waterHead(), calculates deltaHead = headA - headB, then applies orifice flow: 'float velocity = (float) Math.sqrt(2f * flood.gravity * Math.abs(deltaHead)); float flowRate = door.dischargeCoefficient * door.passageArea * velocity;'. DoorwayConnection stores per-doorway dischargeCoefficient (default 0.4 for obstructed passages). Flow direction is from high head to low head with volume conservation clamping."
+    },
+    {
+      "text": "Flooded mass and centre-of-mass shift are computed and applied to the rigid body",
+      "passed": true,
+      "evidence": "FloodingSystem.updateFloodedMassAndCoM() (lines 234-263) sums mass = comp.waterVolume * flood.fluidDensity for each compartment, computes weighted centroid sum, and stores flood.totalFloodedMass and flood.floodedCoM. applyFloodingForces() (lines 274-311) transforms floodedCoM to world space, applies gravity force via physics.body.applyCentralForce(force), computes lever arm (comWorld - rbCom), applies torque = lever x force via physics.body.applyTorque(torque), and updates rigid body mass via physics.body.setMassProps(totalMass, inertia)."
+    },
+    {
+      "text": "Free surface effect (GZ loss) is calculated for partially-filled compartments",
+      "passed": true,
+      "evidence": "FloodingSystem.computeFreeSurfaceEffect() (lines 356-377) iterates compartments, skips those with fill <= 0.01 or >= 0.99 (only partially-filled compartments contribute), computes rectangular free surface area and second moment of area I = side^4/12, applies parabolic fill envelope 'fillEffect = 4f * fill * (1f - fill)' peaking at 50% fill, then returns 'flood.fluidDensity * iTotal / displacement' where displacement = (physics.mass + flood.totalFloodedMass) * flood.gravity. This matches the GZ_loss = rho * sum(I_free) / displacement formula."
+    },
+    {
+      "text": "StabilityWarningEvent published when GZ loss exceeds threshold",
+      "passed": true,
+      "evidence": "FloodingSystem.checkStabilityWarnings() (lines 379-393) checks if flood.freeSurfaceGzLoss >= GZ_CAUTION_THRESHOLD (0.1f), determines severity (0=caution at 0.1, 1=warning at 0.3, 2=critical at 0.6), and publishes: 'eventBus.publish(new StabilityWarningEvent(entity, flood.freeSurfaceGzLoss, flood.currentRollDeg, severity))'. StabilityWarningEvent.java contains the event class with gzLoss, rollDeg, and severity fields."
+    },
+    {
+      "text": "CapsizeEvent published when roll exceeds critical angle",
+      "passed": true,
+      "evidence": "FloodingSystem.checkCapsize() (lines 399-411): 'if (absRoll >= CAPSIZE_ANGLE_DEG)' (60 degrees) accumulates capsizeTimer, and when 'capsizeTimer >= CAPSIZE_HOLD_TIME' (2.0 seconds), sets flood.capsized = true and publishes 'eventBus.publish(new CapsizeEvent(entity, flood.currentRollDeg, flood.totalFloodedMass))'. CapsizeEvent.java contains the event class with rollDeg and totalFloodedMass fields."
+    },
+    {
+      "text": "Event-driven HUD integration — subscribes to stability/flooding events, does not poll",
+      "passed": true,
+      "evidence": "FloodingHudSystem.java subscribes to events in initialize() (lines 144-145): 'eventBus.subscribe(CapsizeEvent.class, capsizeListener)' and 'eventBus.subscribe(FloodingStartedEvent.class, floodingStartedListener)'. Event handlers onCapsize() (line 465) sets capsizeActive flag, onFloodingStarted() (lines 469-472) sets alertText. The HUD reads FloodingComponent data each frame for display updates (which is standard for real-time HUD rendering), but the alert/trigger logic is event-driven — it does not poll for events. The system also unsubscribes in removedFromEngine() (lines 222-223)."
+    }
+  ],
+  "summary": {
+    "passed": 9,
+    "failed": 0,
+    "total": 9,
+    "pass_rate": 1.0
+  }
+}

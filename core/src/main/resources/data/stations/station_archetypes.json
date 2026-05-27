@@ -1,0 +1,6 @@
+[
+  {"type": "RING", "baseDocks": 4, "baseModules": 6, "basePopulation": 5000, "modulesPerTier": 3, "populationPerTier": 3000, "mandatoryModules": ["COMMAND", "DOCK", "HABITAT"]},
+  {"type": "HUB_SPOKE", "baseDocks": 6, "baseModules": 8, "basePopulation": 8000, "modulesPerTier": 4, "populationPerTier": 5000, "mandatoryModules": ["COMMAND", "DOCK", "HABITAT", "ENGINEERING"]},
+  {"type": "ORBITAL_PLATFORM", "baseDocks": 3, "baseModules": 5, "basePopulation": 3000, "modulesPerTier": 2, "populationPerTier": 2000, "mandatoryModules": ["COMMAND", "DOCK"]},
+  {"type": "OUTPOST", "baseDocks": 1, "baseModules": 3, "basePopulation": 500, "modulesPerTier": 1, "populationPerTier": 500, "mandatoryModules": ["COMMAND"]}
+]

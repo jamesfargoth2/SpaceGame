@@ -1,0 +1,50 @@
+{
+  "expectations": [
+    {
+      "text": "Creates a HullComponent with at least 8 BuoyancySamplePoints distributed across the hull",
+      "passed": true,
+      "evidence": "FishingBoatFactory.buildSamplePoints() creates 14 BuoyancySamplePoints (lines 163-198) distributed across bow (3 points), forward quarter (3), aft quarter (3), stern (3), and keel centreline (2). Well exceeds the 8-point minimum."
+    },
+    {
+      "text": "BuoyancySystem transforms sample points to world space and queries wave height using galaxy-space coordinates",
+      "passed": true,
+      "evidence": "BoatBuoyancySystem.processEntity() transforms local offset to world space via worldPos.set(sample.localOffset); worldPos.mul(tempTransform) (lines 91-92), then converts to galaxy-space via coordinateManager.toGalaxySpace(worldPos) (line 99), and queries waveSystem.getHeight(gx, gz) (line 104)."
+    },
+    {
+      "text": "Buoyancy force direction uses hull normal (not just world-up) to produce natural restoring torques",
+      "passed": true,
+      "evidence": "BoatBuoyancySystem.processEntity() transforms hull normal to world frame via worldNormal.set(sample.normal); worldNormal.rot(tempTransform) (lines 95-96), then applies force along that normal: force.set(worldNormal).scl(forceMagnitude) (line 119). Force is applied at sample point position via applyForce(force, relPos) (line 123), producing torques."
+    },
+    {
+      "text": "HydrodynamicDragSystem subtracts water current velocity before computing drag",
+      "passed": true,
+      "evidence": "HydrodynamicDragSystem.processEntity() computes relative velocity via relVel.set(linearVel).sub(waterBody.currentVelocity) (line 115). All subsequent drag computations use relVel/localRelVel, not the raw linearVel."
+    },
+    {
+      "text": "Drag is quadratic in speed (uses v² term)",
+      "passed": true,
+      "evidence": "HydrodynamicDragSystem uses v * |v| pattern for quadratic drag with sign preservation: dragFwd = -0.5f * rho * vFwd * Math.abs(vFwd) * ... (lines 128-129), dragLat = -0.5f * rho * vLat * Math.abs(vLat) * ... (lines 137-138), dragVert = -0.5f * rho * vVert * Math.abs(vVert) * ... (lines 143-144). Angular damping also uses angSpeed * angSpeed (line 181)."
+    },
+    {
+      "text": "All forces applied via btRigidBody.applyCentralForce/applyTorque, not direct velocity manipulation",
+      "passed": true,
+      "evidence": "BoatBuoyancySystem uses physics.body.applyForce(force, relPos) (line 123) which is force-based application at a point. HydrodynamicDragSystem uses physics.body.applyCentralForce(dragWorld) (line 172) and physics.body.applyTorque(angDamp) (line 185). BoatMotorSystem uses physics.body.applyCentralForce(thrustForce) (line 111) and physics.body.applyTorque(rudderTorque) (line 125). No setLinearVelocity or setAngularVelocity calls are present anywhere."
+    },
+    {
+      "text": "Uses Pools.obtain/free for temporary Vector3 objects",
+      "passed": true,
+      "evidence": "BoatBuoyancySystem obtains 5 Vector3s via Pools.obtain(Vector3.class) (lines 75-79) and frees them in a finally block (lines 126-130). HydrodynamicDragSystem obtains 7 Vector3s (lines 102-108) and frees them in finally (lines 190-196), plus an additional obtain/free for waveForce (lines 167,169). BoatMotorSystem obtains 4 Vector3s (lines 92-95) and frees them in finally (lines 130-133)."
+    },
+    {
+      "text": "Does not hardcode water density — reads from WaterBodyComponent",
+      "passed": true,
+      "evidence": "BoatBuoyancySystem reads density via waterBody.density (line 84) where waterBody is a WaterBodyComponent injected via constructor. HydrodynamicDragSystem reads density via waterBody.density (line 124) where waterBody is a WaterBodyComponent set via setWaterBody(). No hardcoded density constants appear in any drag or buoyancy calculations."
+    }
+  ],
+  "summary": {
+    "passed": 8,
+    "failed": 0,
+    "total": 8,
+    "pass_rate": 1.0
+  }
+}
