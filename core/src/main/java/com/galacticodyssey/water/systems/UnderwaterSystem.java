@@ -59,7 +59,7 @@ public class UnderwaterSystem extends IteratingSystem {
     }
 
     private DepthZone resolveZone(float depth) {
-        if (zonesConfig.zones == null) return DepthZone.SUNLIT;
+        if (zonesConfig == null || zonesConfig.zones == null) return DepthZone.SUNLIT;
         for (DepthZoneData zd : zonesConfig.zones) {
             if (depth >= zd.minDepth && depth < zd.maxDepth) {
                 return DepthZone.valueOf(zd.id);
@@ -69,7 +69,7 @@ public class UnderwaterSystem extends IteratingSystem {
     }
 
     private void updateVisibility(DepthZoneComponent zone, float depth) {
-        if (zonesConfig.zones == null) return;
+        if (zonesConfig == null || zonesConfig.zones == null) return;
         for (DepthZoneData zd : zonesConfig.zones) {
             if (depth >= zd.minDepth && depth < zd.maxDepth) {
                 float t = (depth - zd.minDepth) / Math.max(zd.maxDepth - zd.minDepth, 1f);
@@ -83,7 +83,8 @@ public class UnderwaterSystem extends IteratingSystem {
 
     private void checkPressureDamage(Entity entity, DepthZoneComponent zone, float dt) {
         DiveGearComponent gear = gearMapper.has(entity) ? gearMapper.get(entity) : null;
-        float gearMaxPressure = gear != null ? gear.maxPressure : zonesConfig.noGearMaxPressure;
+        float defaultMaxPressure = zonesConfig != null ? zonesConfig.noGearMaxPressure : 3.0f;
+        float gearMaxPressure = gear != null ? gear.maxPressure : defaultMaxPressure;
 
         if (zone.ambientPressure > gearMaxPressure) {
             float excess = zone.ambientPressure - gearMaxPressure;
@@ -125,7 +126,7 @@ public class UnderwaterSystem extends IteratingSystem {
     }
 
     private DepthZoneData findZoneData(DepthZone zone) {
-        if (zonesConfig.zones == null) return null;
+        if (zonesConfig == null || zonesConfig.zones == null) return null;
         String name = zone.name();
         for (DepthZoneData zd : zonesConfig.zones) {
             if (name.equals(zd.id)) return zd;

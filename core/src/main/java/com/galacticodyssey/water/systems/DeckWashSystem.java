@@ -29,8 +29,13 @@ public class DeckWashSystem extends IteratingSystem {
     private final EventBus eventBus;
     private WaveSystem waveSystem;
     private float testWaterSurfaceHeight = Float.NaN;
+    private final Matrix4 tmpMatrix = new Matrix4();
 
     private static final float GRAVITY = 9.81f;
+    private static final float ALARM_COOLDOWN = 5.0f;
+
+    private float alarmCooldownTimer;
+    private boolean sinkingEventFired;
 
     public DeckWashSystem(int priority, EventBus eventBus) {
         super(Family.all(
@@ -52,9 +57,9 @@ public class DeckWashSystem extends IteratingSystem {
         DeckWashComponent wash = washMapper.get(entity);
         PhysicsBodyComponent physics = physicsMapper.get(entity);
 
-        Matrix4 worldTx = new Matrix4().idt();
+        tmpMatrix.idt();
         if (physics.body != null) {
-            physics.body.getWorldTransform(worldTx);
+            physics.body.getWorldTransform(tmpMatrix);
         }
 
         float totalFlow = 0f;
@@ -65,7 +70,7 @@ public class DeckWashSystem extends IteratingSystem {
             if (idx >= hull.samplePoints.size) continue;
 
             BuoyancySamplePoint sp = hull.samplePoints.get(idx);
-            worldPt.set(sp.localOffset).mul(worldTx);
+            worldPt.set(sp.localOffset).mul(tmpMatrix);
 
             float waterHeight = getWaterHeight(worldPt);
             float overtoppingDepth = waterHeight - worldPt.y;
@@ -98,24 +103,35 @@ public class DeckWashSystem extends IteratingSystem {
             }
         }
 
-        checkFloodingAlarms(entity, flooding);
+        checkFloodingAlarms(entity, flooding, dt);
     }
 
-    private void checkFloodingAlarms(Entity entity, FloodingComponent flooding) {
+    private void checkFloodingAlarms(Entity entity, FloodingComponent flooding, float dt) {
+        if (alarmCooldownTimer > 0f) {
+            alarmCooldownTimer -= dt;
+            return;
+        }
+
         float totalFloodedMass = 0f;
-        boolean allSubmerged = true;
+        boolean allFull = true;
+        boolean alarmFired = false;
         for (int i = 0; i < flooding.compartments.size; i++) {
             Compartment comp = flooding.compartments.get(i);
             totalFloodedMass += comp.waterVolume * 1025f;
-            if (comp.fillFraction() > 0.3f) {
+            if (comp.fillFraction() > 0.3f && !alarmFired) {
                 eventBus.publish(new BilgeAlarmEvent(entity, comp.id, comp.fillFraction()));
+                alarmFired = true;
             }
             if (comp.fillFraction() < 1.0f) {
-                allSubmerged = false;
+                allFull = false;
             }
         }
-        if (allSubmerged && flooding.compartments.size > 0) {
+        if (allFull && flooding.compartments.size > 0 && !sinkingEventFired) {
             eventBus.publish(new ShipSinkingEvent(entity, totalFloodedMass));
+            sinkingEventFired = true;
+        }
+        if (alarmFired) {
+            alarmCooldownTimer = ALARM_COOLDOWN;
         }
     }
 

@@ -91,6 +91,7 @@ import com.galacticodyssey.ui.CockpitHUDSystem;
 import com.galacticodyssey.ship.flooding.systems.FloodingHudSystem;
 import com.galacticodyssey.ship.flooding.systems.ShipFloodingSystem;
 import com.galacticodyssey.ui.systems.DebugHudSystem;
+import com.galacticodyssey.water.DepthZoneComponent;
 import com.galacticodyssey.water.OceanSpawner;
 import com.galacticodyssey.water.SwimmingStateComponent;
 import com.galacticodyssey.water.systems.BallastSystem;
@@ -363,18 +364,18 @@ public class GameWorld implements Disposable {
         WeatherSystem weatherSystem = new WeatherSystem(5, eventBus, waterDataRegistry);
         engine.addSystem(weatherSystem);
 
-        DeckWashSystem deckWashSystem = new DeckWashSystem(12, eventBus);
+        DeckWashSystem deckWashSystem = new DeckWashSystem(17, eventBus);
         deckWashSystem.setWaveSystem(waveSystem);
         engine.addSystem(deckWashSystem);
 
-        HatchFloodingSystem hatchFloodingSystem = new HatchFloodingSystem(13, eventBus);
+        HatchFloodingSystem hatchFloodingSystem = new HatchFloodingSystem(18, eventBus);
         engine.addSystem(hatchFloodingSystem);
 
-        SwimmingSystem swimmingSystem = new SwimmingSystem(15, eventBus, waterDataRegistry);
+        SwimmingSystem swimmingSystem = new SwimmingSystem(20, eventBus, waterDataRegistry);
         swimmingSystem.setWaveSystem(waveSystem);
         engine.addSystem(swimmingSystem);
 
-        UnderwaterSystem underwaterSystem = new UnderwaterSystem(16, eventBus, waterDataRegistry);
+        UnderwaterSystem underwaterSystem = new UnderwaterSystem(21, eventBus, waterDataRegistry);
         engine.addSystem(underwaterSystem);
 
         SwimCameraSystem swimCameraSystem = new SwimCameraSystem(90, waterDataRegistry);
@@ -467,6 +468,7 @@ public class GameWorld implements Disposable {
         player.add(new PlayerStateComponent());
         player.add(new PlayerModelComponent());
         player.add(new SwimmingStateComponent());
+        player.add(new DepthZoneComponent());
 
         PhysicsBodyComponent physics = new PhysicsBodyComponent();
         physics.shape = new btCapsuleShape(0.3f, 1.2f);
