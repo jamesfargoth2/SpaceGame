@@ -61,6 +61,7 @@ public final class KryoRegistrar {
         kryo.register(SaveBundle.class, 21);
         kryo.register(EntitySnapshot.class, 22);
         kryo.register(WorldModification.class, 23);
+        kryo.register(DiscoveredIds.class, 24);
 
         // --- Player snapshots ---
         kryo.register(TransformSnapshot.class, 30);
