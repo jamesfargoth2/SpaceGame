@@ -161,12 +161,15 @@ public final class WorldPopulator {
         b += noiseVal;
 
         // Layer 2: Biome edge blending — lerp with different-biome neighbors
+        // Also includes the cell itself in case the grid value differs from the passed biome
+        // (e.g. a vertex sitting on a biome seam boundary).
         int left  = Math.max(0, gridX - 1);
         int right = Math.min(vertsX - 1, gridX + 1);
         int up    = Math.max(0, gridZ - 1);
         int down  = Math.min(vertsZ - 1, gridZ + 1);
 
         BiomeType[] neighbors = {
+            biomeGrid[gridZ * vertsX + gridX],
             biomeGrid[gridZ * vertsX + left],
             biomeGrid[gridZ * vertsX + right],
             biomeGrid[up * vertsX + gridX],
