@@ -247,6 +247,7 @@ public abstract class SaveListBaseScreen implements Screen, SaveSlotListener {
     @Override
     public void render(float delta) {
         ScreenUtils.clear(Color.BLACK);
+        if (stage == null) return;
 
         starfield.update(delta);
 
@@ -262,11 +263,12 @@ public abstract class SaveListBaseScreen implements Screen, SaveSlotListener {
         batch.end();
 
         stage.act(delta);
-        stage.draw();
+        if (stage != null) stage.draw();
     }
 
     @Override
     public void resize(int width, int height) {
+        if (stage == null) return;
         stage.getViewport().update(width, height, true);
         starfield.resize(width, height);
     }
