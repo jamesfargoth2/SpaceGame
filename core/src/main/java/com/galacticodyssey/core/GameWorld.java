@@ -57,6 +57,7 @@ import com.galacticodyssey.player.components.PlayerModelComponent;
 import com.galacticodyssey.player.components.PlayerStateComponent;
 import com.galacticodyssey.player.components.RecoilComponent;
 import com.galacticodyssey.player.components.ScreenShakeComponent;
+import com.galacticodyssey.player.components.PlayerStatsComponent;
 import com.galacticodyssey.player.systems.ADSSystem;
 import com.galacticodyssey.player.systems.CameraSystem;
 import com.galacticodyssey.player.systems.CrosshairSystem;
@@ -64,6 +65,7 @@ import com.galacticodyssey.player.systems.InteractionSystem;
 import com.galacticodyssey.player.systems.PlayerAnimationSystem;
 import com.galacticodyssey.player.systems.PlayerInputSystem;
 import com.galacticodyssey.player.systems.PlayerMovementSystem;
+import com.galacticodyssey.player.systems.RealTimeSkillSystem;
 import com.galacticodyssey.player.systems.RecoilSystem;
 import com.galacticodyssey.player.systems.ScreenShakeSystem;
 import com.galacticodyssey.player.systems.WeaponSwaySystem;
@@ -76,7 +78,17 @@ import com.galacticodyssey.ship.weapons.systems.ShipHeatSystem;
 import com.galacticodyssey.ship.weapons.systems.ShipProjectileSystem;
 import com.galacticodyssey.ship.weapons.systems.ShipWeaponSystem;
 import com.galacticodyssey.ship.weapons.systems.TurretTrackingSystem;
+import com.galacticodyssey.ship.flooding.systems.FloodingHudSystem;
+import com.galacticodyssey.ship.flooding.systems.ShipFloodingSystem;
 import com.galacticodyssey.ui.systems.DebugHudSystem;
+import com.galacticodyssey.water.OceanSpawner;
+import com.galacticodyssey.water.systems.BallastSystem;
+import com.galacticodyssey.water.systems.BoatBuoyancySystem;
+import com.galacticodyssey.water.systems.BoatMotorSystem;
+import com.galacticodyssey.water.systems.HullIntegritySystem;
+import com.galacticodyssey.water.systems.HydrodynamicDragSystem;
+import com.galacticodyssey.water.systems.WakeTrailSystem;
+import com.galacticodyssey.water.systems.WaveSystem;
 import com.galacticodyssey.vfx.components.ParticlePoolComponent;
 import com.galacticodyssey.vfx.data.VFXEventBindings;
 import com.galacticodyssey.vfx.data.VFXRegistry;
@@ -142,6 +154,9 @@ public class GameWorld implements Disposable {
     private PlanetTerrainSystem planetTerrainSystem;
     private RadialGravitySystem radialGravitySystem;
     private AudioSystem audioSystem;
+    private RealTimeSkillSystem realTimeSkillSystem;
+    private WaveSystem waveSystem;
+    private OceanSpawner oceanSpawner;
     private UUID playerEntityId;
     private SaveCoordinator saveCoordinator;
 
@@ -169,6 +184,8 @@ public class GameWorld implements Disposable {
             new Vector3(0, 0, 0), 9.81f);
         engine.addSystem(radialGravitySystem);
 
+        realTimeSkillSystem = new RealTimeSkillSystem(eventBus);
+        engine.addSystem(realTimeSkillSystem);
         engine.addSystem(playerInputSystem);
         engine.addSystem(playerMovementSystem);
         engine.addSystem(bulletPhysicsSystem);
@@ -244,6 +261,21 @@ public class GameWorld implements Disposable {
         engine.addSystem(shipProjectileSystem);
         engine.addSystem(pointDefenseSystem);
         engine.addSystem(shipHeatSystem);
+
+        // Water / Hydrodynamics
+        waveSystem = new WaveSystem(10);
+        engine.addSystem(waveSystem);
+        engine.addSystem(new BoatBuoyancySystem(coordinateManager, waveSystem));
+        engine.addSystem(new HydrodynamicDragSystem(12, waveSystem));
+        engine.addSystem(new BallastSystem(13, coordinateManager, waveSystem, eventBus));
+        engine.addSystem(new com.galacticodyssey.water.systems.FloodingSystem(14, waveSystem, eventBus));
+        engine.addSystem(new HullIntegritySystem(eventBus));
+        engine.addSystem(new BoatMotorSystem());
+        engine.addSystem(new WakeTrailSystem());
+        engine.addSystem(new ShipFloodingSystem(eventBus));
+        engine.addSystem(new FloodingHudSystem(eventBus));
+
+        oceanSpawner = new OceanSpawner(engine);
 
         // VFX
         // NOTE: VFX effect definitions are loaded from JSON via the asset pipeline
@@ -350,6 +382,8 @@ public class GameWorld implements Disposable {
         player.add(new ArmorComponent());
         player.add(new StatusEffectsComponent());
         player.add(new HitboxComponent());
+
+        player.add(new PlayerStatsComponent());
 
         // Shooting feedback and equipment components.
         player.add(new RecoilComponent());
@@ -519,6 +553,8 @@ public class GameWorld implements Disposable {
 
     public AudioSystem getAudioSystem() { return audioSystem; }
 
+    public OceanSpawner getOceanSpawner() { return oceanSpawner; }
+
     public Engine getEngine() { return engine; }
     public EventBus getEventBus() { return eventBus; }
 
@@ -528,6 +564,10 @@ public class GameWorld implements Disposable {
 
     public PlayerInputSystem getPlayerInputSystem() {
         return playerInputSystem;
+    }
+
+    public RealTimeSkillSystem getRealTimeSkillSystem() {
+        return realTimeSkillSystem;
     }
 
     public void loadPlanet(Planet planet, BiomeMap biomeMap) {
