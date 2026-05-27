@@ -5,7 +5,9 @@ import com.badlogic.ashley.core.Engine;
 import com.badlogic.ashley.core.Entity;
 import com.galacticodyssey.npc.NpcDisposition;
 import com.galacticodyssey.npc.NPCRole;
+import com.galacticodyssey.npc.components.NpcBackstoryComponent;
 import com.galacticodyssey.npc.components.NpcIdentityComponent;
+import com.galacticodyssey.npc.components.NpcPersonalityComponent;
 import com.galacticodyssey.npc.components.NpcStatsComponent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -158,6 +160,44 @@ class NpcGeneratorTest {
         NpcIdentityComponent id = ID_M.get(npc);
         assertEquals(NPCRole.MARINE, id.role);
         assertTrue(id.age >= 18f && id.age <= 70f);
+    }
+
+    @Test
+    void fullyLoadedNpcHasAllComponents() {
+        Entity npc = generator.generate(engine, 12345L, "human", "military", NPCRole.ENGINEER);
+
+        // Identity
+        NpcIdentityComponent id = ID_M.get(npc);
+        assertNotNull(id);
+        assertEquals(NPCRole.ENGINEER, id.role);
+        assertTrue(id.age >= 18f && id.age <= 70f);
+        assertTrue(id.recruitable);
+
+        // Stats
+        NpcStatsComponent stats = STATS_M.get(npc);
+        assertNotNull(stats);
+        assertTrue(stats.accuracy >= 0f && stats.accuracy <= 100f);
+        assertTrue(stats.repair >= 0f && stats.repair <= 100f);
+        assertTrue(stats.medical >= 0f && stats.medical <= 100f);
+        assertTrue(stats.piloting >= 0f && stats.piloting <= 100f);
+        assertTrue(stats.science >= 0f && stats.science <= 100f);
+        assertTrue(stats.combat >= 0f && stats.combat <= 100f);
+        assertTrue(stats.persuasion >= 0f && stats.persuasion <= 100f);
+        assertTrue(stats.stealth >= 0f && stats.stealth <= 100f);
+
+        // Personality
+        ComponentMapper<NpcPersonalityComponent> PM =
+            ComponentMapper.getFor(NpcPersonalityComponent.class);
+        NpcPersonalityComponent personality = PM.get(npc);
+        assertNotNull(personality);
+        assertTrue(personality.traits.size() >= 2 && personality.traits.size() <= 4);
+
+        // Backstory
+        ComponentMapper<NpcBackstoryComponent> BM =
+            ComponentMapper.getFor(NpcBackstoryComponent.class);
+        NpcBackstoryComponent backstory = BM.get(npc);
+        assertNotNull(backstory);
+        assertTrue(backstory.hooks.size() >= 1 && backstory.hooks.size() <= 2);
     }
 
     private void assertStatInRange(float stat) {
