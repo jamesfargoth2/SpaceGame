@@ -5,12 +5,25 @@ import com.badlogic.ashley.core.Entity;
 import com.galacticodyssey.galaxy.SeedDeriver;
 import com.galacticodyssey.npc.NpcDisposition;
 import com.galacticodyssey.npc.NPCRole;
+import com.galacticodyssey.npc.PersonalityTrait;
 import com.galacticodyssey.npc.components.NpcIdentityComponent;
+import com.galacticodyssey.npc.components.NpcPersonalityComponent;
 import com.galacticodyssey.npc.components.NpcStatsComponent;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
+import java.util.Set;
 
 public class NpcGenerator {
+
+    private static final String[][] CONTRADICTORY_PAIRS = {
+        {"BRAVE", "COWARDLY"},
+        {"LOYAL", "VINDICTIVE"},
+        {"GENEROUS", "GREEDY"},
+        {"DISCIPLINED", "RECKLESS"},
+        {"CURIOUS", "PRAGMATIC"},
+    };
 
     private final NpcDataRegistry registry;
 
@@ -64,8 +77,44 @@ public class NpcGenerator {
         stats.stealth    = clampStat(rollBase(npcSeed, 17) + species.stealthMod    + background.stealthMod);
         entity.add(stats);
 
+        NpcPersonalityComponent personality = generatePersonality(npcSeed);
+        entity.add(personality);
+
         engine.addEntity(entity);
         return entity;
+    }
+
+    private NpcPersonalityComponent generatePersonality(long npcSeed) {
+        Random rng = new Random(SeedDeriver.forId(npcSeed, 30));
+        NpcPersonalityComponent personality = new NpcPersonalityComponent();
+
+        int traitCount = 2 + rng.nextInt(3); // 2-4
+        PersonalityTrait[] allTraits = PersonalityTrait.values();
+        Set<String> selectedNames = new HashSet<>();
+        int attempts = 0;
+        while (personality.traits.size() < traitCount && attempts < 100) {
+            attempts++;
+            PersonalityTrait candidate = allTraits[rng.nextInt(allTraits.length)];
+            if (selectedNames.contains(candidate.name())) continue;
+            if (contradictsAny(candidate, selectedNames)) continue;
+            personality.traits.add(candidate);
+            selectedNames.add(candidate.name());
+        }
+
+        personality.loyalty = rng.nextFloat() * 0.8f + 0.1f;  // 0.1-0.9
+        personality.greed   = rng.nextFloat() * 0.7f + 0.1f;  // 0.1-0.8
+        personality.bravery = rng.nextFloat() * 0.7f + 0.2f;  // 0.2-0.9
+
+        return personality;
+    }
+
+    private boolean contradictsAny(PersonalityTrait candidate, Set<String> existing) {
+        String name = candidate.name();
+        for (String[] pair : CONTRADICTORY_PAIRS) {
+            if (pair[0].equals(name) && existing.contains(pair[1])) return true;
+            if (pair[1].equals(name) && existing.contains(pair[0])) return true;
+        }
+        return false;
     }
 
     private String pickName(long npcSeed, String speciesId) {
