@@ -52,6 +52,8 @@ import com.galacticodyssey.core.GalacticOdyssey;
 import com.galacticodyssey.core.GameWorld;
 import com.galacticodyssey.core.components.TransformComponent;
 import com.galacticodyssey.data.TerrainGenerator;
+import com.galacticodyssey.data.WorldPopulator;
+import com.galacticodyssey.planet.BiomeType;
 import com.galacticodyssey.ship.HullGeometry;
 import com.galacticodyssey.ship.ShipFactory;
 import com.galacticodyssey.ship.ShipSizeClass;
@@ -86,6 +88,8 @@ public class GameScreen implements Screen {
     private final Array<ModelInstance> boxInstances = new Array<>();
     private final Array<Entity> boxEntities = new Array<>();
     private final Array<Disposable> disposables = new Array<>();
+
+    private WorldPopulator.PopulatedWorld populatedWorld;
 
     private boolean paused;
     private Stage pauseStage;
@@ -124,6 +128,9 @@ public class GameScreen implements Screen {
             TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, TERRAIN_SEED);
 
         gameWorld.initializeSystems(camera);
+
+        populatedWorld = WorldPopulator.populate(
+            heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, TERRAIN_SEED);
 
         createTerrainMesh();
         createTerrainPhysics();
@@ -299,9 +306,12 @@ public class GameScreen implements Screen {
                 int vi = idx * 10;
                 float h = heightmap[idx];
 
-                vertices[vi]     = x * cellW - halfW;
+                float wx = x * cellW - halfW;
+                float wz = z * cellD - halfD;
+
+                vertices[vi]     = wx;
                 vertices[vi + 1] = h;
-                vertices[vi + 2] = z * cellD - halfD;
+                vertices[vi + 2] = wz;
 
                 vertices[vi + 3] = normals[idx * 3];
                 vertices[vi + 4] = normals[idx * 3 + 1];
@@ -309,13 +319,15 @@ public class GameScreen implements Screen {
 
                 float slope = 1f - normals[idx * 3 + 1];
                 float heightFrac = (h - minH) / (maxH - minH + 0.001f);
-                float r = 0.2f + slope * 0.4f + heightFrac * 0.1f;
-                float g = 0.4f - slope * 0.2f + heightFrac * 0.05f;
-                float b = 0.1f + heightFrac * 0.05f;
 
-                vertices[vi + 6] = r;
-                vertices[vi + 7] = g;
-                vertices[vi + 8] = b;
+                BiomeType biome = populatedWorld.biomeGrid[idx];
+                Color biomeCol = WorldPopulator.biomeColor(biome, heightFrac, slope,
+                    wx, wz, h, minH, maxH, populatedWorld.noisePerm,
+                    populatedWorld.biomeGrid, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, x, z);
+
+                vertices[vi + 6] = biomeCol.r;
+                vertices[vi + 7] = biomeCol.g;
+                vertices[vi + 8] = biomeCol.b;
                 vertices[vi + 9] = 1f;
             }
         }
@@ -490,6 +502,10 @@ public class GameScreen implements Screen {
     }
 
     private void renderShips() {
+        Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
+        Gdx.gl.glDepthFunc(GL20.GL_LEQUAL);
+        Gdx.gl.glDepthMask(true);
+
         ShaderProgram shader = getShipShader();
         shader.bind();
         shader.setUniformMatrix("u_projViewTrans", camera.combined);
@@ -558,10 +574,18 @@ public class GameScreen implements Screen {
             gameWorld.update(clampedDelta);
         }
 
+        if (!paused) {
+            WorldPopulator.updateAnimals(populatedWorld, delta,
+                heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH);
+        }
+
         syncBoxTransforms();
         renderTerrain();
         renderBoxes();
+        renderWorldObjects();
         renderShips();
+
+        gameWorld.getDebugHudSystem().render(delta);
 
         if (paused) {
             pauseStage.act(delta);
@@ -580,6 +604,8 @@ public class GameScreen implements Screen {
 
     private void renderTerrain() {
         Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
+        Gdx.gl.glDepthFunc(GL20.GL_LEQUAL);
+        Gdx.gl.glDepthMask(true);
 
         ShaderProgram shader = getTerrainShader();
         shader.bind();
@@ -599,6 +625,37 @@ public class GameScreen implements Screen {
             modelBatch.render(boxInstances.get(i), environment);
         }
         modelBatch.end();
+    }
+
+    private void renderWorldObjects() {
+        Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
+        Gdx.gl.glDepthMask(true);
+
+        modelBatch.begin(camera);
+        for (int i = 0; i < populatedWorld.treeInstances.size; i++) {
+            modelBatch.render(populatedWorld.treeInstances.get(i), environment);
+        }
+        for (int i = 0; i < populatedWorld.rockInstances.size; i++) {
+            modelBatch.render(populatedWorld.rockInstances.get(i), environment);
+        }
+        for (int i = 0; i < populatedWorld.grassInstances.size; i++) {
+            modelBatch.render(populatedWorld.grassInstances.get(i), environment);
+        }
+        for (int i = 0; i < populatedWorld.animalInstances.size; i++) {
+            modelBatch.render(populatedWorld.animalInstances.get(i), environment);
+        }
+        modelBatch.end();
+
+        if (populatedWorld.waterInstance != null) {
+            Gdx.gl.glEnable(GL20.GL_BLEND);
+            Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+            Gdx.gl.glDepthMask(false);
+            modelBatch.begin(camera);
+            modelBatch.render(populatedWorld.waterInstance, environment);
+            modelBatch.end();
+            Gdx.gl.glDepthMask(true);
+            Gdx.gl.glDisable(GL20.GL_BLEND);
+        }
     }
 
     @Override
@@ -647,6 +704,10 @@ public class GameScreen implements Screen {
         if (overlayTexture != null) {
             overlayTexture.dispose();
             overlayTexture = null;
+        }
+        if (populatedWorld != null) {
+            populatedWorld.dispose();
+            populatedWorld = null;
         }
         for (int i = 0; i < shipEntities.size; i++) {
             ShipMeshComponent meshComp = shipEntities.get(i).getComponent(ShipMeshComponent.class);
