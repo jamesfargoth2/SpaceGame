@@ -68,6 +68,18 @@ public class UiFactory {
         BitmapFont settingFont = generator.generateFont(settingParam);
         skin.add("setting", settingFont);
 
+        FreeTypeFontParameter bodyParam = new FreeTypeFontParameter();
+        bodyParam.size = 15;
+        bodyParam.color = new Color(0.85f, 0.85f, 0.85f, 1f);
+        BitmapFont bodyFont = generator.generateFont(bodyParam);
+        skin.add("body", bodyFont);
+
+        FreeTypeFontParameter subheaderParam = new FreeTypeFontParameter();
+        subheaderParam.size = 20;
+        subheaderParam.color = CYAN;
+        BitmapFont subheaderFont = generator.generateFont(subheaderParam);
+        skin.add("subheader", subheaderFont);
+
         FreeTypeFontParameter slotNameParam = new FreeTypeFontParameter();
         slotNameParam.size = 16;
         slotNameParam.color = CYAN;
@@ -157,6 +169,16 @@ public class UiFactory {
         settingStyle.font = settingFont;
         settingStyle.fontColor = Color.WHITE;
         skin.add("setting", settingStyle);
+
+        Label.LabelStyle bodyStyle = new Label.LabelStyle();
+        bodyStyle.font = bodyFont;
+        bodyStyle.fontColor = new Color(0.85f, 0.85f, 0.85f, 1f);
+        skin.add("body", bodyStyle);
+
+        Label.LabelStyle subheaderStyle = new Label.LabelStyle();
+        subheaderStyle.font = subheaderFont;
+        subheaderStyle.fontColor = CYAN.cpy();
+        skin.add("subheader", subheaderStyle);
 
         Label.LabelStyle slotNameStyle = new Label.LabelStyle();
         slotNameStyle.font = slotNameFont;
