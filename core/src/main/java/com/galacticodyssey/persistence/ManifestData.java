@@ -12,6 +12,21 @@ public class ManifestData {
     public UUID playerEntityId;
     public UUID currentSystemId;
 
+    public String displayName;
+    public String locationName;
+    public String locationDetail;
+    public long playtimeSeconds;
+    public long playerCredits;
+    public String shipName;
+
+    public boolean isAutosave() {
+        return saveName != null && saveName.startsWith("autosave-");
+    }
+
+    public String getDisplayNameOrFallback() {
+        return (displayName != null && !displayName.isEmpty()) ? displayName : saveName;
+    }
+
     public ManifestData() {}
 
     public ManifestData(String saveName, long galaxySeed, UUID playerEntityId, UUID currentSystemId) {
