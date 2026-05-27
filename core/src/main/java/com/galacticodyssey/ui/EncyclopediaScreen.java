@@ -7,7 +7,6 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Batch;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
@@ -131,16 +130,21 @@ public class EncyclopediaScreen implements Screen {
 
     @Override
     public void render(float delta) {
-        ScreenUtils.clear(0.05f, 0.05f, 0.1f, 1f);
+        ScreenUtils.clear(Color.BLACK);
 
-        backgroundCamera.update();
         starfield.update(delta);
-        starfield.render(backgroundCamera);
 
-        stage.getBatch().begin();
-        stage.getBatch().setColor(1, 1, 1, 1);
-        stage.getBatch().draw(overlayTexture, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        stage.getBatch().end();
+        int screenW = Gdx.graphics.getWidth();
+        int screenH = Gdx.graphics.getHeight();
+        Gdx.gl.glViewport(0, 0, Gdx.graphics.getBackBufferWidth(), Gdx.graphics.getBackBufferHeight());
+        backgroundCamera.setToOrtho(false, screenW, screenH);
+
+        Batch batch = stage.getBatch();
+        batch.setProjectionMatrix(backgroundCamera.combined);
+        batch.begin();
+        starfield.render(batch);
+        batch.draw(overlayTexture, 0, 0, screenW, screenH);
+        batch.end();
 
         stage.act(delta);
         stage.draw();
