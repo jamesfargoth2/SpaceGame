@@ -74,8 +74,6 @@ public final class GalaxyGenerationPipeline {
 
         Planet planet = findTerranBreathable(slots, chosenSystem, planetGen);
         if (planet == null) planet = findPlanet(slots, chosenSystem, planetGen, PlanetType.TERRAN);
-        if (planet == null) planet = findPlanet(slots, chosenSystem, planetGen, PlanetType.ARID);
-        if (planet == null) planet = findPlanet(slots, chosenSystem, planetGen, PlanetType.OCEAN);
         if (planet == null) {
             for (OrbitalSlot slot : slots) {
                 Planet p = planetGen.generate(slot, chosenSystem);
@@ -88,7 +86,8 @@ public final class GalaxyGenerationPipeline {
         session.startingPlanet = planet;
 
         String planetName = nameGen.planetName(new Random(planet.seed));
-        session.log.add("Terran world " + planetName + " selected as origin point…");
+        String worldLabel = (planet.type == PlanetType.TERRAN) ? "Terran world" : planet.type.name() + " world";
+        session.log.add(worldLabel + " " + planetName + " selected as origin point…");
 
         // Phase 4 — terrain seed derived from planet properties
         session.terrainSeed = session.seed
