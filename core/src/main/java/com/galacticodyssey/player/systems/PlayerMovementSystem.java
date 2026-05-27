@@ -105,12 +105,12 @@ public class PlayerMovementSystem extends IteratingSystem {
         performGroundCheck(physics, state, tempVec);
 
         if (cam != null) {
-            cam.yawAngle += input.mouseDeltaX * cam.mouseSensitivity;
+            cam.yawAngle -= input.mouseDeltaX * cam.mouseSensitivity;
             cam.pitchAngle += input.mouseDeltaY * cam.mouseSensitivity;
             cam.pitchAngle = MathUtils.clamp(cam.pitchAngle, -85f, 85f);
         }
 
-        buildTangentFrame(cam != null ? cam.yawAngle : 0f);
+        buildTangentFrame(cam != null ? -cam.yawAngle : 0f);
 
         float dirFwd = input.moveForward;
         float dirRight = input.moveStrafe;
@@ -225,7 +225,7 @@ public class PlayerMovementSystem extends IteratingSystem {
 
     private void buildTangentFrame(float yawAngle) {
         Vector3 ref = Math.abs(localUp.y) < 0.999f ? Vector3.Y : Vector3.Z;
-        localRight.set(ref).crs(localUp).nor();
+        localRight.set(localUp).crs(ref).nor();
         localForward.set(localUp).crs(localRight).nor();
 
         float yawRad = yawAngle * MathUtils.degreesToRadians;
