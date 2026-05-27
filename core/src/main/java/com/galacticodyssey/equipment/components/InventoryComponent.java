@@ -2,15 +2,25 @@ package com.galacticodyssey.equipment.components;
 
 import com.badlogic.ashley.core.Component;
 import com.galacticodyssey.equipment.items.Item;
+import com.galacticodyssey.persistence.Snapshotable;
+import com.galacticodyssey.persistence.snapshots.InventorySnapshot;
+import com.galacticodyssey.persistence.snapshots.ItemSnapshot;
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 
-public class InventoryComponent implements Component {
-    public final int gridWidth;
-    public final int gridHeight;
-    public final float maxWeight;
-    private final Item[][] grid;
+public class InventoryComponent implements Component, Snapshotable<InventorySnapshot> {
+    public int gridWidth;
+    public int gridHeight;
+    public float maxWeight;
+    private Item[][] grid;
     private final List<Item> allItems = new ArrayList<>();
+
+    /** No-arg constructor for deserialization / registry restore. */
+    public InventoryComponent() {
+        this(0, 0, 0f);
+    }
 
     public InventoryComponent(int gridWidth, int gridHeight, float maxWeight) {
         this.gridWidth = gridWidth;
@@ -109,5 +119,56 @@ public class InventoryComponent implements Component {
             }
         }
         allItems.add(item);
+    }
+
+    // -------------------------------------------------------------------------
+    // Snapshotable
+    // -------------------------------------------------------------------------
+
+    @Override
+    public InventorySnapshot takeSnapshot() {
+        InventorySnapshot snap = new InventorySnapshot();
+        snap.gridWidth  = gridWidth;
+        snap.gridHeight = gridHeight;
+        snap.maxWeight  = maxWeight;
+
+        // Use an identity map to find each item's top-left anchor only once.
+        Map<Item, int[]> anchors = new IdentityHashMap<>();
+        for (int x = 0; x < gridWidth; x++) {
+            for (int y = 0; y < gridHeight; y++) {
+                Item item = grid[x][y];
+                if (item != null && !anchors.containsKey(item)) {
+                    anchors.put(item, new int[]{x, y});
+                }
+            }
+        }
+
+        for (Item item : allItems) {
+            ItemSnapshot s = item.toItemSnapshot();
+            int[] anchor = anchors.get(item);
+            if (anchor != null) {
+                s.gridX = anchor[0];
+                s.gridY = anchor[1];
+            }
+            snap.items.add(s);
+        }
+        return snap;
+    }
+
+    @Override
+    public void restoreFromSnapshot(InventorySnapshot snap) {
+        // Restore grid dimensions and weight limit from the snapshot.
+        this.gridWidth  = snap.gridWidth;
+        this.gridHeight = snap.gridHeight;
+        this.maxWeight  = snap.maxWeight;
+        this.grid = new Item[gridWidth][gridHeight];
+        allItems.clear();
+
+        for (ItemSnapshot s : snap.items) {
+            Item item = Item.fromItemSnapshot(s);
+            // Place directly at the recorded position, bypassing weight/fit checks
+            // so restore is always exact regardless of order.
+            placeAt(item, s.gridX, s.gridY);
+        }
     }
 }
