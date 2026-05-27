@@ -1,0 +1,35 @@
+[
+  {
+    "id": "human",
+    "name": "Human",
+    "accuracyMod": 0,
+    "repairMod": 5,
+    "medicalMod": 5,
+    "pilotingMod": 0,
+    "scienceMod": 0,
+    "combatMod": 0,
+    "portraitIds": ["portrait_human_01", "portrait_human_02", "portrait_human_03"]
+  },
+  {
+    "id": "veloxi",
+    "name": "Veloxi",
+    "accuracyMod": 10,
+    "repairMod": -5,
+    "medicalMod": 0,
+    "pilotingMod": 5,
+    "scienceMod": 5,
+    "combatMod": -5,
+    "portraitIds": ["portrait_veloxi_01", "portrait_veloxi_02"]
+  },
+  {
+    "id": "krethian",
+    "name": "Krethian",
+    "accuracyMod": -5,
+    "repairMod": 10,
+    "medicalMod": -5,
+    "pilotingMod": 0,
+    "scienceMod": 0,
+    "combatMod": 10,
+    "portraitIds": ["portrait_krethian_01", "portrait_krethian_02"]
+  }
+]

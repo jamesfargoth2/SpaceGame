@@ -1,0 +1,46 @@
+[
+  {
+    "id": "military",
+    "name": "Military",
+    "description": "Former enlisted or officer in a faction navy.",
+    "accuracyMod": 10,
+    "repairMod": 0,
+    "medicalMod": 0,
+    "pilotingMod": 5,
+    "scienceMod": -5,
+    "combatMod": 10
+  },
+  {
+    "id": "civilian",
+    "name": "Civilian",
+    "description": "Ordinary citizen seeking a life among the stars.",
+    "accuracyMod": -5,
+    "repairMod": 5,
+    "medicalMod": 5,
+    "pilotingMod": 0,
+    "scienceMod": 0,
+    "combatMod": -5
+  },
+  {
+    "id": "academic",
+    "name": "Academic",
+    "description": "Researcher or professor from a university or institute.",
+    "accuracyMod": -5,
+    "repairMod": 0,
+    "medicalMod": 10,
+    "pilotingMod": -5,
+    "scienceMod": 15,
+    "combatMod": -10
+  },
+  {
+    "id": "criminal",
+    "name": "Criminal",
+    "description": "Former pirate, smuggler, or black market dealer.",
+    "accuracyMod": 5,
+    "repairMod": 5,
+    "medicalMod": -5,
+    "pilotingMod": 5,
+    "scienceMod": -5,
+    "combatMod": 5
+  }
+]
