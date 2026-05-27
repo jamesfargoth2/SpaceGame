@@ -68,6 +68,30 @@ public class UiFactory {
         BitmapFont settingFont = generator.generateFont(settingParam);
         skin.add("setting", settingFont);
 
+        FreeTypeFontParameter slotNameParam = new FreeTypeFontParameter();
+        slotNameParam.size = 16;
+        slotNameParam.color = CYAN;
+        BitmapFont slotNameFont = generator.generateFont(slotNameParam);
+        skin.add("slot-name", slotNameFont);
+
+        FreeTypeFontParameter slotDetailParam = new FreeTypeFontParameter();
+        slotDetailParam.size = 13;
+        slotDetailParam.color = new Color(0.53f, 0.6f, 0.67f, 1f);
+        BitmapFont slotDetailFont = generator.generateFont(slotDetailParam);
+        skin.add("slot-detail", slotDetailFont);
+
+        FreeTypeFontParameter slotMetaParam = new FreeTypeFontParameter();
+        slotMetaParam.size = 12;
+        slotMetaParam.color = new Color(0.33f, 0.4f, 0.47f, 1f);
+        BitmapFont slotMetaFont = generator.generateFont(slotMetaParam);
+        skin.add("slot-meta", slotMetaFont);
+
+        FreeTypeFontParameter smallButtonParam = new FreeTypeFontParameter();
+        smallButtonParam.size = 12;
+        smallButtonParam.color = Color.WHITE;
+        BitmapFont smallButtonFont = generator.generateFont(smallButtonParam);
+        skin.add("small-button", smallButtonFont);
+
         FreeTypeFontParameter bodyParam = new FreeTypeFontParameter();
         bodyParam.size = 15;
         bodyParam.color = new Color(0.85f, 0.85f, 0.85f, 1f);
@@ -98,6 +122,22 @@ public class UiFactory {
         buttonStyle.disabled = buttonDefault;
         skin.add("default", buttonStyle);
 
+        TextButton.TextButtonStyle smallButtonStyle = new TextButton.TextButtonStyle();
+        smallButtonStyle.font = smallButtonFont;
+        smallButtonStyle.fontColor = CYAN.cpy();
+        smallButtonStyle.overFontColor = Color.WHITE;
+        smallButtonStyle.up = createButtonDrawable(new Color(0f, 0f, 0f, 0.15f), new Color(0f, 0.6f, 0.8f, 0.4f));
+        smallButtonStyle.over = createButtonDrawable(new Color(0f, 0f, 0f, 0.3f), CYAN);
+        skin.add("small", smallButtonStyle);
+
+        TextButton.TextButtonStyle smallRedButtonStyle = new TextButton.TextButtonStyle();
+        smallRedButtonStyle.font = smallButtonFont;
+        smallRedButtonStyle.fontColor = new Color(0.8f, 0.2f, 0.2f, 1f);
+        smallRedButtonStyle.overFontColor = new Color(1f, 0.3f, 0.3f, 1f);
+        smallRedButtonStyle.up = createButtonDrawable(new Color(0f, 0f, 0f, 0.15f), new Color(0.8f, 0.2f, 0.2f, 0.4f));
+        smallRedButtonStyle.over = createButtonDrawable(new Color(0f, 0f, 0f, 0.3f), new Color(0.8f, 0.2f, 0.2f, 1f));
+        skin.add("small-red", smallRedButtonStyle);
+
         Label.LabelStyle titleStyle = new Label.LabelStyle();
         titleStyle.font = titleFont;
         titleStyle.fontColor = Color.WHITE;
@@ -117,6 +157,21 @@ public class UiFactory {
         settingStyle.font = settingFont;
         settingStyle.fontColor = Color.WHITE;
         skin.add("setting", settingStyle);
+
+        Label.LabelStyle slotNameStyle = new Label.LabelStyle();
+        slotNameStyle.font = slotNameFont;
+        slotNameStyle.fontColor = CYAN.cpy();
+        skin.add("slot-name", slotNameStyle);
+
+        Label.LabelStyle slotDetailStyle = new Label.LabelStyle();
+        slotDetailStyle.font = slotDetailFont;
+        slotDetailStyle.fontColor = new Color(0.53f, 0.6f, 0.67f, 1f);
+        skin.add("slot-detail", slotDetailStyle);
+
+        Label.LabelStyle slotMetaStyle = new Label.LabelStyle();
+        slotMetaStyle.font = slotMetaFont;
+        slotMetaStyle.fontColor = new Color(0.33f, 0.4f, 0.47f, 1f);
+        skin.add("slot-meta", slotMetaStyle);
 
         Label.LabelStyle bodyStyle = new Label.LabelStyle();
         bodyStyle.font = bodyFont;
@@ -164,6 +219,15 @@ public class UiFactory {
         selectBoxStyle.listStyle = listStyle;
         selectBoxStyle.scrollStyle = scrollPaneStyle;
         skin.add("default", selectBoxStyle);
+
+        com.badlogic.gdx.scenes.scene2d.ui.TextField.TextFieldStyle textFieldStyle =
+            new com.badlogic.gdx.scenes.scene2d.ui.TextField.TextFieldStyle();
+        textFieldStyle.font = settingFont;
+        textFieldStyle.fontColor = Color.WHITE;
+        textFieldStyle.cursor = createButtonDrawable(CYAN, CYAN);
+        textFieldStyle.selection = createButtonDrawable(new Color(0f, 0.3f, 0.4f, 0.8f), CYAN);
+        textFieldStyle.background = createButtonDrawable(BG_DEFAULT, BORDER_DEFAULT);
+        skin.add("default", textFieldStyle);
 
         return skin;
     }
