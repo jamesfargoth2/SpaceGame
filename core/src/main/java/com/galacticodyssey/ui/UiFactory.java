@@ -86,6 +86,12 @@ public class UiFactory {
         BitmapFont slotMetaFont = generator.generateFont(slotMetaParam);
         skin.add("slot-meta", slotMetaFont);
 
+        FreeTypeFontParameter bodyParam = new FreeTypeFontParameter();
+        bodyParam.size = 16;
+        bodyParam.color = new Color(0.85f, 0.85f, 0.85f, 1f);
+        BitmapFont bodyFont = generator.generateFont(bodyParam);
+        skin.add("body", bodyFont);
+
         FreeTypeFontParameter smallButtonParam = new FreeTypeFontParameter();
         smallButtonParam.size = 12;
         smallButtonParam.color = Color.WHITE;
@@ -145,6 +151,11 @@ public class UiFactory {
         settingStyle.font = settingFont;
         settingStyle.fontColor = Color.WHITE;
         skin.add("setting", settingStyle);
+
+        Label.LabelStyle bodyStyle = new Label.LabelStyle();
+        bodyStyle.font = bodyFont;
+        bodyStyle.fontColor = new Color(0.85f, 0.85f, 0.85f, 1f);
+        skin.add("body", bodyStyle);
 
         Label.LabelStyle slotNameStyle = new Label.LabelStyle();
         slotNameStyle.font = slotNameFont;
