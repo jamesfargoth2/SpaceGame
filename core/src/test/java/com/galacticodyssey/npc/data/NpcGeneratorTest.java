@@ -4,6 +4,7 @@ import com.badlogic.ashley.core.ComponentMapper;
 import com.badlogic.ashley.core.Engine;
 import com.badlogic.ashley.core.Entity;
 import com.galacticodyssey.npc.NpcDisposition;
+import com.galacticodyssey.npc.NPCRole;
 import com.galacticodyssey.npc.components.NpcIdentityComponent;
 import com.galacticodyssey.npc.components.NpcStatsComponent;
 import org.junit.jupiter.api.BeforeEach;
@@ -149,6 +150,14 @@ class NpcGeneratorTest {
         Entity npc2 = generator.generate(engine, 42L);
         assertEquals(ID_M.get(npc1).npcId, ID_M.get(npc2).npcId);
         assertFalse(ID_M.get(npc1).npcId.isEmpty());
+    }
+
+    @Test
+    void generatedNpcHasRoleAndAge() {
+        Entity npc = generator.generate(engine, 12345L, "human", "military", NPCRole.MARINE);
+        NpcIdentityComponent id = ID_M.get(npc);
+        assertEquals(NPCRole.MARINE, id.role);
+        assertTrue(id.age >= 18f && id.age <= 70f);
     }
 
     private void assertStatInRange(float stat) {

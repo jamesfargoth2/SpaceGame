@@ -91,10 +91,16 @@ import com.galacticodyssey.planet.BiomeMap;
 import com.galacticodyssey.planet.Planet;
 import com.galacticodyssey.planet.terrain.PlanetTerrainSystem;
 import com.galacticodyssey.planet.terrain.TerrainChunk;
+import com.galacticodyssey.audio.AudioSystem;
 import com.galacticodyssey.vfx.systems.ParticleRenderSystem;
 import com.galacticodyssey.vfx.systems.ParticleSpawnSystem;
 import com.galacticodyssey.vfx.systems.ParticleUpdateSystem;
+import com.galacticodyssey.persistence.LocalFileSaveBackend;
+import com.galacticodyssey.persistence.PersistenceIdComponent;
+import com.galacticodyssey.persistence.SaveCoordinator;
+import java.io.File;
 import java.util.List;
+import java.util.UUID;
 
 public class GameWorld implements Disposable {
 
@@ -135,6 +141,9 @@ public class GameWorld implements Disposable {
     private PlanetaryEconomyManager planetaryEconomyManager;
     private PlanetTerrainSystem planetTerrainSystem;
     private RadialGravitySystem radialGravitySystem;
+    private AudioSystem audioSystem;
+    private UUID playerEntityId;
+    private SaveCoordinator saveCoordinator;
 
     private final Array<Disposable> disposables = new Array<>();
 
@@ -294,6 +303,10 @@ public class GameWorld implements Disposable {
     public Entity createPlayerEntity(float spawnX, float spawnY, float spawnZ) {
         Entity player = new Entity();
 
+        PersistenceIdComponent pid = new PersistenceIdComponent();
+        player.add(pid);
+        this.playerEntityId = pid.uuid;
+
         TransformComponent transform = new TransformComponent();
         transform.position.set(spawnX, spawnY, spawnZ);
         player.add(transform);
@@ -362,6 +375,7 @@ public class GameWorld implements Disposable {
     public Entity createHostileNPC(Vector3 position, String archetypeId, int squadId,
                                     WeaponDataRegistry weaponData, CombatDataRegistry combatData) {
         Entity entity = new Entity();
+        entity.add(new PersistenceIdComponent());
         TransformComponent transform = new TransformComponent();
         transform.position.set(position);
         entity.add(transform);
@@ -460,15 +474,50 @@ public class GameWorld implements Disposable {
     public void update(float delta) {
         engine.update(delta);
 
-        Entity player = engine.getEntitiesFor(
-            com.badlogic.ashley.core.Family.all(PlayerTagComponent.class, TransformComponent.class).get()).first();
-        TransformComponent t = player.getComponent(TransformComponent.class);
-        coordinateManager.checkRebase(t.position);
+        if (saveCoordinator != null) {
+            saveCoordinator.update(delta);
+        }
+
+        if (planetTerrainSystem == null || planetTerrainSystem.getPlanetRadius() <= 0) {
+            Entity player = engine.getEntitiesFor(
+                com.badlogic.ashley.core.Family.all(PlayerTagComponent.class, TransformComponent.class).get()).first();
+            TransformComponent t = player.getComponent(TransformComponent.class);
+            coordinateManager.checkRebase(t.position);
+        }
     }
 
     public void resize(int width, int height) {
         debugHudSystem.resize(width, height);
     }
+
+    /** Wire up the audio system. Call after GameWorld construction, before the first update(). */
+    public void initAudio(AudioManager audioManager) {
+        audioSystem = new AudioSystem(eventBus, audioManager);
+    }
+
+    /**
+     * Initialize the save/load system. Must be called after {@link #createPlayerEntity} so
+     * that {@code playerEntityId} is available.
+     *
+     * @param galaxySeed seed embedded in every save manifest
+     * @throws IllegalStateException if the player entity has not been created yet
+     */
+    public void initSaveSystem(long galaxySeed) {
+        if (playerEntityId == null) {
+            throw new IllegalStateException("Player entity must be created before initializing save system");
+        }
+        File savesDir;
+        if (com.badlogic.gdx.Gdx.files != null) {
+            savesDir = com.badlogic.gdx.Gdx.files.external("GalacticOdyssey/saves").file();
+        } else {
+            savesDir = new File(System.getProperty("user.home"), "GalacticOdyssey/saves");
+        }
+        LocalFileSaveBackend saveBackend = new LocalFileSaveBackend(savesDir);
+        this.saveCoordinator = new SaveCoordinator(
+            eventBus, engine, saveBackend, galaxySeed, playerEntityId, coordinateManager);
+    }
+
+    public AudioSystem getAudioSystem() { return audioSystem; }
 
     public Engine getEngine() { return engine; }
     public EventBus getEventBus() { return eventBus; }
@@ -495,6 +544,28 @@ public class GameWorld implements Disposable {
 
     public float getPlanetRadius() {
         return planetTerrainSystem.getPlanetRadius();
+    }
+
+    public void saveGame(String saveName) {
+        if (saveCoordinator != null) {
+            saveCoordinator.save(saveName);
+        }
+    }
+
+    public void loadGame(String saveName) {
+        if (saveCoordinator != null) {
+            saveCoordinator.load(saveName);
+        }
+    }
+
+    public void triggerAutoSave() {
+        if (saveCoordinator != null) {
+            saveCoordinator.triggerAutoSave();
+        }
+    }
+
+    public SaveCoordinator getSaveCoordinator() {
+        return saveCoordinator;
     }
 
     @Override

@@ -4,6 +4,7 @@ import com.badlogic.ashley.core.Engine;
 import com.badlogic.ashley.core.Entity;
 import com.galacticodyssey.galaxy.SeedDeriver;
 import com.galacticodyssey.npc.NpcDisposition;
+import com.galacticodyssey.npc.NPCRole;
 import com.galacticodyssey.npc.components.NpcIdentityComponent;
 import com.galacticodyssey.npc.components.NpcStatsComponent;
 
@@ -30,6 +31,10 @@ public class NpcGenerator {
     }
 
     public Entity generate(Engine engine, long seed, String speciesId, String backgroundId) {
+        return generate(engine, seed, speciesId, backgroundId, null);
+    }
+
+    public Entity generate(Engine engine, long seed, String speciesId, String backgroundId, NPCRole role) {
         long npcSeed = SeedDeriver.npcDomain(seed);
         SpeciesDefinition species = registry.getSpecies(speciesId);
         BackgroundDefinition background = registry.getBackground(backgroundId);
@@ -43,18 +48,20 @@ public class NpcGenerator {
         identity.name = pickName(npcSeed, speciesId);
         identity.portraitId = pickFromList(npcSeed, 6, species.portraitIds);
         identity.disposition = NpcDisposition.NEUTRAL;
-        identity.recruitable = false;
+        identity.recruitable = role != null && role.isCrewRole();
+        identity.role = role;
+        identity.age = rollAge(npcSeed);
         entity.add(identity);
 
         NpcStatsComponent stats = new NpcStatsComponent();
-        stats.accuracy = clampStat(rollBase(npcSeed, 10) + species.accuracyMod + background.accuracyMod);
-        stats.repair   = clampStat(rollBase(npcSeed, 11) + species.repairMod   + background.repairMod);
-        stats.medical  = clampStat(rollBase(npcSeed, 12) + species.medicalMod  + background.medicalMod);
-        stats.piloting = clampStat(rollBase(npcSeed, 13) + species.pilotingMod + background.pilotingMod);
-        stats.science  = clampStat(rollBase(npcSeed, 14) + species.scienceMod  + background.scienceMod);
-        stats.combat      = clampStat(rollBase(npcSeed, 15) + species.combatMod      + background.combatMod);
-        stats.persuasion  = clampStat(rollBase(npcSeed, 16) + species.persuasionMod  + background.persuasionMod);
-        stats.stealth     = clampStat(rollBase(npcSeed, 17) + species.stealthMod     + background.stealthMod);
+        stats.accuracy   = clampStat(rollBase(npcSeed, 10) + species.accuracyMod   + background.accuracyMod);
+        stats.repair     = clampStat(rollBase(npcSeed, 11) + species.repairMod     + background.repairMod);
+        stats.medical    = clampStat(rollBase(npcSeed, 12) + species.medicalMod    + background.medicalMod);
+        stats.piloting   = clampStat(rollBase(npcSeed, 13) + species.pilotingMod   + background.pilotingMod);
+        stats.science    = clampStat(rollBase(npcSeed, 14) + species.scienceMod    + background.scienceMod);
+        stats.combat     = clampStat(rollBase(npcSeed, 15) + species.combatMod     + background.combatMod);
+        stats.persuasion = clampStat(rollBase(npcSeed, 16) + species.persuasionMod + background.persuasionMod);
+        stats.stealth    = clampStat(rollBase(npcSeed, 17) + species.stealthMod    + background.stealthMod);
         entity.add(stats);
 
         engine.addEntity(entity);
@@ -83,6 +90,12 @@ public class NpcGenerator {
         long derived = SeedDeriver.forId(seed, slot);
         float normalized = ((derived & Long.MAX_VALUE) % 10000) / 10000f;
         return normalized * 60f + 20f;
+    }
+
+    private float rollAge(long npcSeed) {
+        long derived = SeedDeriver.forId(npcSeed, 20);
+        float normalized = ((derived & Long.MAX_VALUE) % 10000) / 10000f;
+        return normalized * 52f + 18f; // 18-70
     }
 
     private float clampStat(float value) {
