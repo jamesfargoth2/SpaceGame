@@ -1,0 +1,13 @@
+{
+  "maxVisibilityDistance": 100.0,
+  "maxRenderDepth": 1200.0,
+  "maxLightDepth": 800.0,
+  "noGearMaxPressure": 2.0,
+  "zones": [
+    {"id":"SUNLIT","minDepth":0,"maxDepth":10,"visibilityStart":1.0,"visibilityEnd":0.6,"fogColorR":0.1,"fogColorG":0.4,"fogColorB":0.7,"requiresLight":false,"pressureDamageRate":0,"gearRequired":"none"},
+    {"id":"TWILIGHT","minDepth":10,"maxDepth":50,"visibilityStart":0.6,"visibilityEnd":0.3,"fogColorR":0.05,"fogColorG":0.2,"fogColorB":0.5,"requiresLight":false,"pressureDamageRate":0.5,"gearRequired":"basic_rebreather"},
+    {"id":"MIDNIGHT","minDepth":50,"maxDepth":200,"visibilityStart":0.3,"visibilityEnd":0.05,"fogColorR":0.02,"fogColorG":0.05,"fogColorB":0.15,"requiresLight":true,"pressureDamageRate":2.0,"gearRequired":"dive_suit"},
+    {"id":"ABYSSAL","minDepth":200,"maxDepth":500,"visibilityStart":0.05,"visibilityEnd":0.01,"fogColorR":0.01,"fogColorG":0.02,"fogColorB":0.05,"requiresLight":true,"pressureDamageRate":5.0,"gearRequired":"pressure_suit"},
+    {"id":"HADAL","minDepth":500,"maxDepth":99999,"visibilityStart":0.01,"visibilityEnd":0.0,"fogColorR":0.0,"fogColorG":0.0,"fogColorB":0.01,"requiresLight":true,"pressureDamageRate":10.0,"gearRequired":"exosuit"}
+  ]
+}

@@ -1,0 +1,108 @@
+<h2>Swimming & Water Systems — Architecture Overview</h2>
+<p class="subtitle">How the new systems layer onto the existing codebase</p>
+
+<div style="max-width: 900px; margin: 0 auto;">
+
+  <!-- System diagram -->
+  <div class="mockup">
+    <div class="mockup-header">System Architecture Diagram</div>
+    <div class="mockup-body" style="padding: 24px; background: #0a0a1a;">
+      <svg viewBox="0 0 800 520" style="width: 100%; font-family: system-ui, sans-serif;">
+        <!-- Existing systems (blue) -->
+        <rect x="20" y="10" width="760" height="90" rx="8" fill="#1a2744" stroke="#2d5aa0" stroke-width="1.5"/>
+        <text x="400" y="32" text-anchor="middle" fill="#5b9bd5" font-size="11" font-weight="bold">EXISTING SYSTEMS</text>
+
+        <rect x="40" y="42" width="140" height="48" rx="6" fill="#1e3a5f" stroke="#3d7ac7" stroke-width="1"/>
+        <text x="110" y="70" text-anchor="middle" fill="#8bbee8" font-size="11">WaveSystem</text>
+
+        <rect x="200" y="42" width="140" height="48" rx="6" fill="#1e3a5f" stroke="#3d7ac7" stroke-width="1"/>
+        <text x="270" y="70" text-anchor="middle" fill="#8bbee8" font-size="11">BuoyancySystem</text>
+
+        <rect x="360" y="42" width="140" height="48" rx="6" fill="#1e3a5f" stroke="#3d7ac7" stroke-width="1"/>
+        <text x="430" y="70" text-anchor="middle" fill="#8bbee8" font-size="11">PlayerMovement</text>
+
+        <rect x="520" y="42" width="140" height="48" rx="6" fill="#1e3a5f" stroke="#3d7ac7" stroke-width="1"/>
+        <text x="590" y="70" text-anchor="middle" fill="#8bbee8" font-size="11">BulletPhysics</text>
+
+        <rect x="680" y="42" width="90" height="48" rx="6" fill="#1e3a5f" stroke="#3d7ac7" stroke-width="1"/>
+        <text x="725" y="70" text-anchor="middle" fill="#8bbee8" font-size="11">EventBus</text>
+
+        <!-- Arrow down -->
+        <line x1="400" y1="100" x2="400" y2="130" stroke="#555" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <defs><marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#888"/></marker></defs>
+
+        <!-- NEW: Weather System -->
+        <rect x="20" y="130" width="230" height="100" rx="8" fill="#2a1a3a" stroke="#8b5cf6" stroke-width="1.5"/>
+        <text x="135" y="152" text-anchor="middle" fill="#a78bfa" font-size="11" font-weight="bold">NEW: Weather System</text>
+        <text x="135" y="172" text-anchor="middle" fill="#9ca3af" font-size="10">Storm state machine</text>
+        <text x="135" y="187" text-anchor="middle" fill="#9ca3af" font-size="10">Drives wave amplitude/chop</text>
+        <text x="135" y="202" text-anchor="middle" fill="#9ca3af" font-size="10">Localized storm cells</text>
+        <text x="135" y="217" text-anchor="middle" fill="#9ca3af" font-size="10">Wind → current velocity</text>
+
+        <!-- NEW: Swimming System -->
+        <rect x="280" y="130" width="240" height="100" rx="8" fill="#1a2a1a" stroke="#22c55e" stroke-width="1.5"/>
+        <text x="400" y="152" text-anchor="middle" fill="#4ade80" font-size="11" font-weight="bold">NEW: Swimming System</text>
+        <text x="400" y="172" text-anchor="middle" fill="#9ca3af" font-size="10">Water detection (capsule vs surface)</text>
+        <text x="400" y="187" text-anchor="middle" fill="#9ca3af" font-size="10">Surface/diving/underwater states</text>
+        <text x="400" y="202" text-anchor="middle" fill="#9ca3af" font-size="10">Buoyancy + drag on player body</text>
+        <text x="400" y="217" text-anchor="middle" fill="#9ca3af" font-size="10">Breath, pressure, stamina</text>
+
+        <!-- NEW: Underwater System -->
+        <rect x="550" y="130" width="230" height="100" rx="8" fill="#1a2a2a" stroke="#06b6d4" stroke-width="1.5"/>
+        <text x="665" y="152" text-anchor="middle" fill="#22d3ee" font-size="11" font-weight="bold">NEW: Underwater System</text>
+        <text x="665" y="172" text-anchor="middle" fill="#9ca3af" font-size="10">Depth zones (0–1000m+)</text>
+        <text x="665" y="187" text-anchor="middle" fill="#9ca3af" font-size="10">Visibility/fog falloff</text>
+        <text x="665" y="202" text-anchor="middle" fill="#9ca3af" font-size="10">Pressure damage model</text>
+        <text x="665" y="217" text-anchor="middle" fill="#9ca3af" font-size="10">Dive gear integration</text>
+
+        <!-- Arrows between new systems -->
+        <line x1="250" y1="180" x2="280" y2="180" stroke="#666" stroke-width="1" marker-end="url(#arrow)"/>
+        <line x1="520" y1="180" x2="550" y2="180" stroke="#666" stroke-width="1" marker-end="url(#arrow)"/>
+
+        <!-- NEW: Components row -->
+        <rect x="20" y="260" width="760" height="100" rx="8" fill="#1a1a10" stroke="#ca8a04" stroke-width="1.5"/>
+        <text x="400" y="282" text-anchor="middle" fill="#facc15" font-size="11" font-weight="bold">NEW COMPONENTS (ECS)</text>
+
+        <rect x="40" y="295" width="130" height="52" rx="5" fill="#292517" stroke="#a16207" stroke-width="1"/>
+        <text x="105" y="314" text-anchor="middle" fill="#fbbf24" font-size="10">SwimmingState</text>
+        <text x="105" y="330" text-anchor="middle" fill="#9ca3af" font-size="9">breath, depth, swimState</text>
+
+        <rect x="185" y="295" width="130" height="52" rx="5" fill="#292517" stroke="#a16207" stroke-width="1"/>
+        <text x="250" y="314" text-anchor="middle" fill="#fbbf24" font-size="10">WeatherState</text>
+        <text x="250" y="330" text-anchor="middle" fill="#9ca3af" font-size="9">stormPhase, intensity</text>
+
+        <rect x="330" y="295" width="130" height="52" rx="5" fill="#292517" stroke="#a16207" stroke-width="1"/>
+        <text x="395" y="314" text-anchor="middle" fill="#fbbf24" font-size="10">DiveGear</text>
+        <text x="395" y="330" text-anchor="middle" fill="#9ca3af" font-size="9">oxygenTank, pressureSuit</text>
+
+        <rect x="475" y="295" width="130" height="52" rx="5" fill="#292517" stroke="#a16207" stroke-width="1"/>
+        <text x="540" y="314" text-anchor="middle" fill="#fbbf24" font-size="10">DepthZone</text>
+        <text x="540" y="330" text-anchor="middle" fill="#9ca3af" font-size="9">zone, visibility, pressure</text>
+
+        <rect x="620" y="295" width="140" height="52" rx="5" fill="#292517" stroke="#a16207" stroke-width="1"/>
+        <text x="690" y="314" text-anchor="middle" fill="#fbbf24" font-size="10">WaterInteraction</text>
+        <text x="690" y="330" text-anchor="middle" fill="#9ca3af" font-size="9">deckWash, flooding rate</text>
+
+        <!-- Events row -->
+        <rect x="20" y="390" width="760" height="65" rx="8" fill="#1a1010" stroke="#dc2626" stroke-width="1.5"/>
+        <text x="400" y="412" text-anchor="middle" fill="#f87171" font-size="11" font-weight="bold">EVENTS (Event Bus)</text>
+        <text x="400" y="435" text-anchor="middle" fill="#9ca3af" font-size="10">PlayerEnteredWater · PlayerExitedWater · PlayerStartedDiving · BreathDepleted · PressureDamage · StormStarted · StormEnded · DeckWash · GearEquipped</text>
+
+        <!-- Data files row -->
+        <rect x="20" y="470" width="760" height="45" rx="8" fill="#101a10" stroke="#16a34a" stroke-width="1"/>
+        <text x="400" y="497" text-anchor="middle" fill="#4ade80" font-size="10">DATA FILES: water/swim_config.json · water/depth_zones.json · water/weather_profiles.json · water/dive_gear.json</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="section" style="margin-top: 24px;">
+    <h3>Key Integration Points</h3>
+    <ul style="color: #9ca3af; line-height: 1.8;">
+      <li><strong style="color: #8bbee8;">WaveSystem</strong> — already exists, extended by WeatherSystem to drive amplitude/chop dynamically</li>
+      <li><strong style="color: #4ade80;">SwimmingSystem</strong> — takes over from PlayerMovementSystem when player enters water</li>
+      <li><strong style="color: #22d3ee;">UnderwaterSystem</strong> — manages depth zones, visibility, and pressure as player descends</li>
+      <li><strong style="color: #facc15;">Components</strong> — all new ECS components, data-driven from JSON config files</li>
+      <li><strong style="color: #f87171;">Events</strong> — cross-system communication via existing EventBus (no direct references)</li>
+    </ul>
+  </div>
+</div>

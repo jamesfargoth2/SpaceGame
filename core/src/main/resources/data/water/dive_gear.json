@@ -1,0 +1,6 @@
+[
+  {"id":"basic_rebreather","name":"Basic Rebreather","oxygenCapacity":300,"maxPressure":6,"providesLight":false,"lightRadius":0,"swimSpeedModifier":1.0,"depthRating":"Twilight-rated (60m)"},
+  {"id":"dive_suit","name":"Dive Suit with Lamp","oxygenCapacity":600,"maxPressure":20,"providesLight":true,"lightRadius":15,"swimSpeedModifier":0.9,"depthRating":"Midnight-rated (200m)"},
+  {"id":"pressure_suit","name":"Pressure Suit","oxygenCapacity":1200,"maxPressure":50,"providesLight":true,"lightRadius":20,"swimSpeedModifier":0.8,"depthRating":"Abyssal-rated (500m)"},
+  {"id":"exosuit","name":"Deep-Sea Exosuit","oxygenCapacity":1800,"maxPressure":120,"providesLight":true,"lightRadius":25,"swimSpeedModifier":0.7,"depthRating":"Hadal-rated (1200m)"}
+]

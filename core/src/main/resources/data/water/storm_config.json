@@ -1,0 +1,12 @@
+{
+  "minRadius": 1000,
+  "maxRadius": 5000,
+  "minDriftSpeed": 5,
+  "maxDriftSpeed": 20,
+  "spawnIntervalMin": 300,
+  "spawnIntervalMax": 900,
+  "intensificationChance": 0.1,
+  "intensificationAmplitudeBoost": 0.3,
+  "edgeBandFraction": 0.3,
+  "approachWarningDistance": 500
+}

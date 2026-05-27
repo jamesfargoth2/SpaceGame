@@ -1,0 +1,183 @@
+<h2>Underwater Depth Zone System</h2>
+<p class="subtitle">Full ocean column: surface to abyssal depths with progressive hazards</p>
+
+<div style="max-width: 900px; margin: 0 auto;">
+
+  <div class="mockup">
+    <div class="mockup-header">Ocean Depth Zones — Visual Profile</div>
+    <div class="mockup-body" style="padding: 0; background: #000; overflow: hidden;">
+      <svg viewBox="0 0 800 600" style="width: 100%; font-family: system-ui, sans-serif;">
+        <defs>
+          <linearGradient id="ocean" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#1a6fb5"/>
+            <stop offset="8%" stop-color="#0e4d8a"/>
+            <stop offset="25%" stop-color="#0a3060"/>
+            <stop offset="50%" stop-color="#051830"/>
+            <stop offset="75%" stop-color="#020c18"/>
+            <stop offset="100%" stop-color="#000005"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Ocean gradient background -->
+        <rect x="100" y="0" width="600" height="600" fill="url(#ocean)"/>
+
+        <!-- Surface line -->
+        <path d="M 100 20 Q 150 10 200 20 Q 250 30 300 20 Q 350 10 400 20 Q 450 30 500 20 Q 550 10 600 20 Q 650 30 700 20" fill="none" stroke="#5bb8f5" stroke-width="2"/>
+
+        <!-- Zone boundaries -->
+        <line x1="100" y1="60" x2="700" y2="60" stroke="#ffffff20" stroke-width="1" stroke-dasharray="4,4"/>
+        <line x1="100" y1="150" x2="700" y2="150" stroke="#ffffff15" stroke-width="1" stroke-dasharray="4,4"/>
+        <line x1="100" y1="300" x2="700" y2="300" stroke="#ffffff10" stroke-width="1" stroke-dasharray="4,4"/>
+        <line x1="100" y1="450" x2="700" y2="450" stroke="#ffffff08" stroke-width="1" stroke-dasharray="4,4"/>
+
+        <!-- Zone labels (left side) -->
+        <text x="90" y="20" text-anchor="end" fill="#5bb8f5" font-size="10">0m</text>
+        <text x="90" y="60" text-anchor="end" fill="#4a9ed4" font-size="10">10m</text>
+        <text x="90" y="150" text-anchor="end" fill="#2d6fa0" font-size="10">50m</text>
+        <text x="90" y="300" text-anchor="end" fill="#1a4060" font-size="10">200m</text>
+        <text x="90" y="450" text-anchor="end" fill="#0d2040" font-size="10">500m</text>
+        <text x="90" y="590" text-anchor="end" fill="#060f20" font-size="10">1000m+</text>
+
+        <!-- SUNLIT ZONE -->
+        <rect x="710" y="5" width="15" height="55" rx="3" fill="#22c55e"/>
+        <text x="735" y="20" fill="#4ade80" font-size="11" font-weight="bold">SUNLIT</text>
+        <text x="735" y="34" fill="#9ca3af" font-size="9">0–10m</text>
+        <text x="735" y="48" fill="#6b8db5" font-size="8">Breath only</text>
+
+        <!-- TWILIGHT ZONE -->
+        <rect x="710" y="65" width="15" height="80" rx="3" fill="#eab308"/>
+        <text x="735" y="85" fill="#facc15" font-size="11" font-weight="bold">TWILIGHT</text>
+        <text x="735" y="99" fill="#9ca3af" font-size="9">10–50m</text>
+        <text x="735" y="113" fill="#6b8db5" font-size="8">Basic dive gear</text>
+        <text x="735" y="126" fill="#6b8db5" font-size="8">Vis: 60%→30%</text>
+
+        <!-- MIDNIGHT ZONE -->
+        <rect x="710" y="155" width="15" height="140" rx="3" fill="#f97316"/>
+        <text x="735" y="185" fill="#fb923c" font-size="11" font-weight="bold">MIDNIGHT</text>
+        <text x="735" y="199" fill="#9ca3af" font-size="9">50–200m</text>
+        <text x="735" y="213" fill="#6b8db5" font-size="8">Advanced gear req'd</text>
+        <text x="735" y="226" fill="#6b8db5" font-size="8">Vis: 30%→5%</text>
+        <text x="735" y="239" fill="#6b8db5" font-size="8">Light source needed</text>
+
+        <!-- ABYSSAL ZONE -->
+        <rect x="710" y="305" width="15" height="140" rx="3" fill="#ef4444"/>
+        <text x="735" y="335" fill="#f87171" font-size="11" font-weight="bold">ABYSSAL</text>
+        <text x="735" y="349" fill="#9ca3af" font-size="9">200–500m</text>
+        <text x="735" y="363" fill="#6b8db5" font-size="8">Pressure suit req'd</text>
+        <text x="735" y="376" fill="#6b8db5" font-size="8">Vis: near zero</text>
+        <text x="735" y="389" fill="#6b8db5" font-size="8">Pressure damage ticks</text>
+        <text x="735" y="402" fill="#6b8db5" font-size="8">Bioluminescence</text>
+
+        <!-- HADAL ZONE -->
+        <rect x="710" y="455" width="15" height="140" rx="3" fill="#dc2626"/>
+        <text x="735" y="485" fill="#ef4444" font-size="11" font-weight="bold">HADAL</text>
+        <text x="735" y="499" fill="#9ca3af" font-size="9">500m+</text>
+        <text x="735" y="513" fill="#6b8db5" font-size="8">Submarine or exosuit</text>
+        <text x="735" y="526" fill="#6b8db5" font-size="8">Total darkness</text>
+        <text x="735" y="539" fill="#6b8db5" font-size="8">Crush pressure</text>
+        <text x="735" y="552" fill="#6b8db5" font-size="8">Unique fauna/resources</text>
+
+        <!-- Visual elements in ocean -->
+        <!-- Sunlit: fish, coral, light rays -->
+        <line x1="180" y1="0" x2="220" y2="55" stroke="#ffffff08" stroke-width="12"/>
+        <line x1="350" y1="0" x2="380" y2="50" stroke="#ffffff06" stroke-width="16"/>
+        <line x1="550" y1="0" x2="570" y2="45" stroke="#ffffff05" stroke-width="10"/>
+        <text x="400" y="42" text-anchor="middle" fill="#5bb8f5aa" font-size="10">☀ light rays, fish schools, coral</text>
+
+        <!-- Twilight: jellyfish, sparse life -->
+        <text x="400" y="110" text-anchor="middle" fill="#4a9ed488" font-size="10">🫧 jellyfish, kelp forests, visibility fading</text>
+
+        <!-- Midnight: bioluminescence dots -->
+        <circle cx="250" cy="200" r="2" fill="#00ffcc33"/>
+        <circle cx="380" cy="220" r="1.5" fill="#00ccff33"/>
+        <circle cx="500" cy="240" r="2" fill="#ff66cc22"/>
+        <circle cx="300" cy="260" r="1" fill="#00ffcc22"/>
+        <circle cx="450" cy="210" r="1.5" fill="#66ffff22"/>
+        <text x="400" y="275" text-anchor="middle" fill="#2d6fa066" font-size="10">✧ scattered bioluminescence, deep creatures</text>
+
+        <!-- Abyssal: sparse bioluminescent creatures -->
+        <circle cx="320" cy="350" r="3" fill="#00ffcc15"/>
+        <circle cx="500" cy="380" r="2" fill="#ff33cc10"/>
+        <circle cx="200" cy="400" r="2.5" fill="#00ccff10"/>
+        <text x="400" y="420" text-anchor="middle" fill="#1a406044" font-size="10">◈ alien megafauna, rare resources, crushing pressure</text>
+
+        <!-- Hadal: near black, faint glow -->
+        <circle cx="400" cy="520" r="4" fill="#ff000008"/>
+        <text x="400" y="560" text-anchor="middle" fill="#0d204055" font-size="10">▼ thermal vents, unknown entities, extreme rewards</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="section" style="margin-top: 20px;">
+    <h3>Depth Zone Mechanics</h3>
+    <table style="width:100%; border-collapse: collapse; color: #d1d5db; font-size: 12px;">
+      <tr style="border-bottom: 1px solid #333; background: #111;">
+        <th style="padding: 8px; text-align: left; color: #888; width: 100px;">Zone</th>
+        <th style="padding: 8px; text-align: left; color: #888;">Gear Required</th>
+        <th style="padding: 8px; text-align: left; color: #888;">Visibility</th>
+        <th style="padding: 8px; text-align: left; color: #888;">Pressure</th>
+        <th style="padding: 8px; text-align: left; color: #888;">Air Supply</th>
+      </tr>
+      <tr style="border-bottom: 1px solid #222;">
+        <td style="padding: 8px; color: #4ade80;">Sunlit</td>
+        <td style="padding: 8px;">None — just hold breath</td>
+        <td style="padding: 8px;">100%→60%, blue tint</td>
+        <td style="padding: 8px;">None</td>
+        <td style="padding: 8px;">Breath: 30–60s base</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #222;">
+        <td style="padding: 8px; color: #facc15;">Twilight</td>
+        <td style="padding: 8px;">Basic rebreather</td>
+        <td style="padding: 8px;">60%→30%, deep blue</td>
+        <td style="padding: 8px;">Mild (ear pop SFX)</td>
+        <td style="padding: 8px;">O₂ tank: 5–15 min</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #222;">
+        <td style="padding: 8px; color: #fb923c;">Midnight</td>
+        <td style="padding: 8px;">Dive suit + lamp</td>
+        <td style="padding: 8px;">30%→5%, near black</td>
+        <td style="padding: 8px;">Slow health drain w/o suit</td>
+        <td style="padding: 8px;">O₂ tank: 5–15 min</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #222;">
+        <td style="padding: 8px; color: #f87171;">Abyssal</td>
+        <td style="padding: 8px;">Pressure suit</td>
+        <td style="padding: 8px;">Near zero, biolum only</td>
+        <td style="padding: 8px;">Damage ticks w/o suit</td>
+        <td style="padding: 8px;">Sealed suit supply: 20 min</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; color: #ef4444;">Hadal</td>
+        <td style="padding: 8px;">Exosuit / submarine</td>
+        <td style="padding: 8px;">Total darkness</td>
+        <td style="padding: 8px;">Crush damage even with suit</td>
+        <td style="padding: 8px;">Vehicle/exosuit supply</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="section" style="margin-top: 20px;">
+    <h3>Pressure Model</h3>
+    <p style="color: #9ca3af; line-height: 1.7;">
+      Pressure is <strong style="color:#fff;">continuous, not stepped</strong> — zones just define what gear is needed.
+      The formula: <code style="color:#facc15;">pressure_atm = 1.0 + (depth_m / 10.0)</code>.
+      Each piece of dive gear has a <code style="color:#facc15;">maxPressure</code> rating.
+      When ambient pressure exceeds gear rating, damage ticks begin — scaling linearly with the excess.
+      No gear at all means damage starts at ~15m (1.5 atm, with a small grace buffer for the Sunlit zone).
+    </p>
+    <p style="color: #9ca3af; line-height: 1.7; margin-top: 8px;">
+      <strong style="color:#fff;">Ascent sickness</strong>: rising faster than 10 m/s from below 30m triggers a disorientation debuff (camera wobble, blurred vision) lasting 5–10 seconds.
+      This discourages rocket-ascents and adds tactical depth — you must plan your return.
+    </p>
+  </div>
+
+  <div class="section" style="margin-top: 20px;">
+    <h3>Visibility & Rendering</h3>
+    <p style="color: #9ca3af; line-height: 1.7;">
+      <strong style="color:#fff;">Fog distance</strong> decreases with depth: <code style="color:#22d3ee;">fogEnd = maxVisibility * (1.0 - depth/maxDepth)²</code>.
+      <strong style="color:#fff;">Color shift</strong>: water absorbs red first → scene tints blue-green in twilight, blue-black in midnight, pure black in abyss.
+      <strong style="color:#fff;">Light sources</strong> (player lamp, bioluminescent creatures) punch through fog with a <code style="color:#22d3ee;">pointLightRadius</code> that also decreases with depth due to particulate scattering.
+      All configured via <code style="color:#4ade80;">depth_zones.json</code> — no hardcoded depth thresholds.
+    </p>
+  </div>
+</div>

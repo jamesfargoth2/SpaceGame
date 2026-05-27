@@ -1,0 +1,6 @@
+[
+  {"phase":"CALM","minDuration":60,"maxDuration":300,"waveCount":2,"minAmplitude":0.3,"maxAmplitude":0.8,"minSteepness":0.05,"maxSteepness":0.15,"directionSpread":15,"minWindSpeed":0,"maxWindSpeed":5,"lerpRate":0.5,"staminaDrainMultiplier":1.0},
+  {"phase":"BUILDING","minDuration":30,"maxDuration":120,"waveCount":4,"minAmplitude":0.8,"maxAmplitude":3.0,"minSteepness":0.15,"maxSteepness":0.4,"directionSpread":30,"minWindSpeed":5,"maxWindSpeed":15,"lerpRate":0.3,"staminaDrainMultiplier":1.2},
+  {"phase":"STORM","minDuration":60,"maxDuration":180,"waveCount":6,"minAmplitude":3.0,"maxAmplitude":6.0,"minSteepness":0.4,"maxSteepness":0.8,"directionSpread":60,"minWindSpeed":15,"maxWindSpeed":30,"lerpRate":0.2,"staminaDrainMultiplier":2.0},
+  {"phase":"SUBSIDING","minDuration":60,"maxDuration":120,"waveCount":3,"minAmplitude":0.8,"maxAmplitude":2.0,"minSteepness":0.1,"maxSteepness":0.3,"directionSpread":25,"minWindSpeed":5,"maxWindSpeed":10,"lerpRate":0.4,"staminaDrainMultiplier":1.5}
+]
