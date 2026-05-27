@@ -13,6 +13,7 @@ dependencies {
     api("com.badlogicgames.gdx:gdx-bullet:$gdxVersion")
     api("com.badlogicgames.ashley:ashley:$ashleyVersion")
     api("com.badlogicgames.gdx:gdx-ai:$gdxAiVersion")
+    api("com.esotericsoftware:kryo:5.6.0")
 
     testImplementation("org.junit.jupiter:junit-jupiter:$junitVersion")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
