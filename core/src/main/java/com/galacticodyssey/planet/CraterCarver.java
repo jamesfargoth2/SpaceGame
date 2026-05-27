@@ -36,10 +36,12 @@ public final class CraterCarver {
     public static void carve(float[] heights, int vertsX, int vertsZ,
                              int cx, int cz, float rimR, CraterSpec spec,
                              float heightScale, float erosionRate) {
-        float degradation = (float) Math.exp(-spec.ageGyr * erosionRate);
-        float depth = spec.depthKm * heightScale * degradation;
-        float rimUp = spec.rimHeightKm * heightScale * degradation;
-        float peakH = spec.centralPeakHeightKm * heightScale * degradation;
+        float bowlDegradation = (float) Math.exp(-spec.ageGyr * erosionRate * 0.8f);
+        float rimDegradation = (float) Math.exp(-spec.ageGyr * erosionRate * 1.5f);
+        float ejectaDegradation = (float) Math.exp(-spec.ageGyr * erosionRate * 2.0f);
+        float depth = spec.depthKm * heightScale * bowlDegradation;
+        float rimUp = spec.rimHeightKm * heightScale * rimDegradation;
+        float peakH = spec.centralPeakHeightKm * heightScale * bowlDegradation;
 
         // Ejecta radius in vertex units: proportional to spec ratio
         float ejectaR = rimR * (spec.ejectaRadiusKm / (spec.diameterKm * 0.5f));
@@ -87,7 +89,8 @@ public final class CraterCarver {
                     // Ejecta blanket
                     float ejectaNorm = dist / ejectaR;
                     if (ejectaNorm <= 1.0f) {
-                        float ejectaThickness = depth * 0.05f * (1.0f - ejectaNorm);
+                        float ejectaThickness = spec.depthKm * heightScale * ejectaDegradation
+                                * 0.05f * (1.0f - ejectaNorm);
                         delta += ejectaThickness;
                     }
                 }

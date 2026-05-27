@@ -22,12 +22,13 @@ public final class AtmosphereGenerator {
         if (planet.type == PlanetType.BARREN && rng.nextFloat() >= 0.1f) return null;
         if (planet.type == PlanetType.ICE_WORLD && rng.nextFloat() >= 0.3f) return null;
 
-        Map<Gas, Float> composition = generateComposition(planet.type, rng);
-        float pressure = generatePressure(planet.type, rng);
-        float greenhouse = generateGreenhouse(planet.type, rng);
+        float ageGyr = estimateSystemAge(system);
 
-        float equilibriumTemp = 278f * (float) Math.pow(system.luminosity, 0.25)
-            / (float) Math.sqrt(findOrbitalRadius(planet, system));
+        Map<Gas, Float> composition = generateComposition(planet, system, rng);
+        float pressure = generatePressure(planet, planet.type, ageGyr, rng);
+        float greenhouse = generateGreenhouse(composition, pressure);
+
+        float equilibriumTemp = estimateEquilibriumTemp(planet, system);
         float surfaceTemp = equilibriumTemp * greenhouse;
 
         boolean breathable = isBreathable(composition, pressure);
@@ -37,9 +38,9 @@ public final class AtmosphereGenerator {
             equilibriumTemp, surfaceTemp, breathable, hazards);
     }
 
-    private Map<Gas, Float> generateComposition(PlanetType type, Random rng) {
+    private Map<Gas, Float> generateComposition(Planet planet, com.galacticodyssey.galaxy.StarSystem system, Random rng) {
         Map<Gas, Float> comp = new EnumMap<>(Gas.class);
-        switch (type) {
+        switch (planet.type) {
             case ARID -> {
                 float co2 = RngUtil.range(rng, 0.75f, 0.85f);
                 float n2 = RngUtil.range(rng, 0.10f, 0.20f);
@@ -80,6 +81,17 @@ public final class AtmosphereGenerator {
             }
             default -> comp.put(Gas.N2, 1f);
         }
+
+        // Filter gases by Jeans escape BEFORE normalization
+        float eqTemp = estimateEquilibriumTemp(planet, system);
+        var iter = comp.entrySet().iterator();
+        while (iter.hasNext()) {
+            var entry = iter.next();
+            if (!AtmospherePhysics.gasRetained(planet.escapeVelocity, eqTemp, entry.getKey().molecularMass)) {
+                iter.remove();
+            }
+        }
+
         normalizeComposition(comp);
         return comp;
     }
@@ -93,26 +105,31 @@ public final class AtmosphereGenerator {
         }
     }
 
-    private float generatePressure(PlanetType type, Random rng) {
-        return switch (type) {
+    private float generatePressure(Planet planet, PlanetType type, float ageGyr, Random rng) {
+        float volatileInventory = switch (type) {
             case BARREN -> RngUtil.range(rng, 0.001f, 0.01f);
-            case ARID -> RngUtil.range(rng, 0.01f, 0.5f);
-            case TERRAN -> RngUtil.range(rng, 0.5f, 2.0f);
-            case OCEAN -> RngUtil.range(rng, 1.0f, 4.0f);
-            case TOXIC -> RngUtil.range(rng, 2.0f, 90.0f);
+            case ARID -> RngUtil.range(rng, 0.01f, 0.1f);
+            case TERRAN -> RngUtil.range(rng, 0.1f, 0.5f);
+            case OCEAN -> RngUtil.range(rng, 0.3f, 1.0f);
+            case TOXIC -> RngUtil.range(rng, 0.5f, 10.0f);
             case ICE_WORLD -> RngUtil.range(rng, 0.001f, 0.05f);
             default -> 0f;
         };
+        return AtmospherePhysics.surfacePressure(planet.surfaceGravity, volatileInventory, ageGyr);
     }
 
-    private float generateGreenhouse(PlanetType type, Random rng) {
-        return switch (type) {
-            case ARID -> RngUtil.range(rng, 1.1f, 1.4f);
-            case TERRAN -> RngUtil.range(rng, 1.1f, 1.3f);
-            case OCEAN -> RngUtil.range(rng, 1.3f, 1.8f);
-            case TOXIC -> RngUtil.range(rng, 1.5f, 3.0f);
-            default -> 1.0f;
-        };
+    private float generateGreenhouse(Map<Gas, Float> composition, float pressure) {
+        return AtmospherePhysics.greenhouseMultiplier(composition, pressure);
+    }
+
+    private float estimateEquilibriumTemp(Planet planet, com.galacticodyssey.galaxy.StarSystem system) {
+        float orbitalRadius = findOrbitalRadius(planet, system);
+        return 278f * (float) Math.pow(system.luminosity, 0.25) / (float) Math.sqrt(orbitalRadius);
+    }
+
+    private float estimateSystemAge(com.galacticodyssey.galaxy.StarSystem system) {
+        if (system.age > 0f) return system.age;
+        return Math.max(0.5f, Math.min(10f, 4.5f / (float) Math.sqrt(Math.max(0.01f, system.luminosity))));
     }
 
     private float findOrbitalRadius(Planet planet, com.galacticodyssey.galaxy.StarSystem system) {

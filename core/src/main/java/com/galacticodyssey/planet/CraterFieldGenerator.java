@@ -1,5 +1,6 @@
 package com.galacticodyssey.planet;
 
+import com.galacticodyssey.galaxy.RngUtil;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -55,6 +56,26 @@ public final class CraterFieldGenerator {
             float craterAge = rng.nextFloat() * surfaceAgeGyr;
 
             craters.add(CraterSpec.fromDiameter(diam, craterAge, rng));
+        }
+
+        // Generate secondary craters from large, young primary impacts
+        List<CraterSpec> secondaries = new ArrayList<>();
+        for (CraterSpec primary : craters) {
+            if (primary.diameterKm > 20f && primary.ageGyr < 2.0f) {
+                int secondaryCount = RngUtil.range(rng, 3, 11);
+                for (int s = 0; s < secondaryCount; s++) {
+                    float secondaryDiam = primary.diameterKm * RngUtil.range(rng, 0.02f, 0.08f);
+                    secondaryDiam = Math.max(minDiam, secondaryDiam);
+                    secondaries.add(CraterSpec.secondary(secondaryDiam, primary.ageGyr, rng));
+                }
+            }
+        }
+        int remaining = MAX_CRATERS - craters.size();
+        if (remaining > 0 && !secondaries.isEmpty()) {
+            if (secondaries.size() > remaining) {
+                secondaries = secondaries.subList(0, remaining);
+            }
+            craters.addAll(secondaries);
         }
 
         // Sort largest first so big craters overprint small ones

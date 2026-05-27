@@ -16,10 +16,19 @@ public final class CraterSpec {
     public final boolean hasRaySystem;
     public final float ageGyr;
     public final CraterMorphology morphology;
+    public final boolean isSecondary;
 
     public CraterSpec(float diameterKm, float depthKm, float rimHeightKm,
                       float ejectaRadiusKm, float centralPeakHeightKm,
                       boolean hasRaySystem, float ageGyr, CraterMorphology morphology) {
+        this(diameterKm, depthKm, rimHeightKm, ejectaRadiusKm,
+                centralPeakHeightKm, hasRaySystem, ageGyr, morphology, false);
+    }
+
+    public CraterSpec(float diameterKm, float depthKm, float rimHeightKm,
+                      float ejectaRadiusKm, float centralPeakHeightKm,
+                      boolean hasRaySystem, float ageGyr, CraterMorphology morphology,
+                      boolean isSecondary) {
         this.diameterKm = diameterKm;
         this.depthKm = depthKm;
         this.rimHeightKm = rimHeightKm;
@@ -28,6 +37,7 @@ public final class CraterSpec {
         this.hasRaySystem = hasRaySystem;
         this.ageGyr = ageGyr;
         this.morphology = morphology;
+        this.isSecondary = isSecondary;
     }
 
     /**
@@ -58,5 +68,19 @@ public final class CraterSpec {
 
         return new CraterSpec(diamKm, depth, rimHeight, ejectaRadius,
                 centralPeakHeight, hasRaySystem, ageGyr, morphology);
+    }
+
+    /**
+     * Creates a secondary crater specification. Secondary craters are always
+     * SIMPLE morphology, have no ray system, and are marked with
+     * {@code isSecondary = true}.
+     */
+    public static CraterSpec secondary(float diamKm, float ageGyr, Random rng) {
+        float depth = 0.196f * (float) Math.pow(diamKm, 1.010);
+        float rimHeight = depth * RngUtil.range(rng, 0.15f, 0.25f);
+        float ejectaRadius = diamKm * RngUtil.range(rng, 1.5f, 3.0f);
+
+        return new CraterSpec(diamKm, depth, rimHeight, ejectaRadius,
+                0f, false, ageGyr, CraterMorphology.SIMPLE, true);
     }
 }

@@ -116,6 +116,7 @@ public final class TerrainMeshBuilder {
             case ROCKY_WASTE ->     new float[] { 0.5f, 0.45f, 0.4f, 1f };
             case BADLANDS ->        new float[] { 0.7f, 0.4f, 0.25f, 1f };
             case VOLCANIC ->        new float[] { 0.3f, 0.15f, 0.1f, 1f };
+            case RIVER ->           new float[] { 0.15f, 0.35f, 0.75f, 1f };
         };
     }
 }

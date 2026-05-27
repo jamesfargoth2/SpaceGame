@@ -1,9 +1,14 @@
 // core/src/main/java/com/galacticodyssey/data/TerrainGenerator.java
 package com.galacticodyssey.data;
 
+import com.galacticodyssey.galaxy.GalaxyNoise;
+import com.galacticodyssey.galaxy.SeedDeriver;
 import com.galacticodyssey.planet.BiomeType;
 import com.galacticodyssey.planet.CraterCarver;
 import com.galacticodyssey.planet.CraterSpec;
+import com.galacticodyssey.planet.terrain.DrainageNetwork;
+import com.galacticodyssey.planet.terrain.HydraulicErosion;
+import com.galacticodyssey.planet.terrain.ThermalErosion;
 import java.util.List;
 import java.util.Random;
 
@@ -13,8 +18,7 @@ public final class TerrainGenerator {
 
     public static float[] generateHeightmap(int vertsX, int vertsZ, float worldWidth, float worldDepth, long seed) {
         float[] heights = new float[vertsX * vertsZ];
-        Random rng = new Random(seed);
-        int[] perm = createPermutation(rng);
+        GalaxyNoise gn = new GalaxyNoise(seed);
 
         float cellWidth = worldWidth / (vertsX - 1);
         float cellDepth = worldDepth / (vertsZ - 1);
@@ -26,21 +30,29 @@ public final class TerrainGenerator {
                 float wx = x * cellWidth - halfWidth;
                 float wz = z * cellDepth - halfDepth;
 
-                float continent = noise2D(perm, wx * 0.002f, wz * 0.002f) * 40f;
-                float hills = noise2D(perm, wx * 0.005f, wz * 0.005f) * 30f;
-                float detail = noise2D(perm, wx * 0.02f + 100f, wz * 0.02f + 100f) * 5f;
-                float fine = noise2D(perm, wx * 0.05f + 200f, wz * 0.05f + 200f) * 1.5f;
+                float continent = gn.domainWarp2D(wx * 0.002f, wz * 0.002f, 0.7f, 3, 6) * 40f;
+                float mountains = gn.ridgedFbm(wx * 0.004f, wz * 0.004f, 8, 2.0f, 2.0f) * 60f;
+                float hills = gn.fbm(wx * 0.01f, wz * 0.01f, 6, 0.5f, 2.0f) * 15f;
+                float detail = gn.billowFbm(wx * 0.04f, wz * 0.04f, 4, 0.5f, 2.0f) * 3f;
 
-                float ridgeNoise = Math.abs(noise2D(perm, wx * 0.008f + 50f, wz * 0.008f + 50f));
-                float mountains = ridgeNoise * ridgeNoise * 80f;
-
-                float river = noise2D(perm, wx * 0.003f + 300f, wz * 0.003f + 300f);
-                float riverCarve = Math.abs(river) < 0.04f ? -8f * (1f - Math.abs(river) / 0.04f) : 0f;
-
-                float h = continent + hills + detail + fine + mountains + riverCarve;
+                float h = continent + mountains + hills + detail;
                 heights[z * vertsX + x] = h;
             }
         }
+
+        long erosionSeed = SeedDeriver.domain(seed, SeedDeriver.EROSION_DOMAIN);
+        HydraulicErosion.erode(heights, vertsX, vertsZ, erosionSeed, 70000);
+        ThermalErosion.erode(heights, vertsX, vertsZ, 0.6f, 50);
+
+        DrainageNetwork.Result drainage = DrainageNetwork.compute(
+            heights, vertsX, vertsZ, vertsX * 0.5f);
+        for (int i = 0; i < heights.length; i++) {
+            if (drainage.isRiver[i]) {
+                float depth = Math.min(5f, drainage.flowAccumulation[i] * 0.01f);
+                heights[i] -= depth;
+            }
+        }
+
         return heights;
     }
 
@@ -94,16 +106,10 @@ public final class TerrainGenerator {
         return normals;
     }
 
-    /**
-     * Applies biome-specific terrain variation to an existing heightmap.
-     * Uses the biome's amplitude to scale height variation and ridgeMix
-     * to blend between smooth simplex noise and ridged noise.
-     */
     public static void applyBiomeVariation(float[] heights, int vertsX, int vertsZ,
                                            float worldWidth, float worldDepth,
                                            BiomeType biome, long seed) {
-        Random rng = new Random(seed);
-        int[] perm = createPermutation(rng);
+        GalaxyNoise gn = new GalaxyNoise(seed);
 
         float cellWidth = worldWidth / (vertsX - 1);
         float cellDepth = worldDepth / (vertsZ - 1);
@@ -118,17 +124,9 @@ public final class TerrainGenerator {
                 float wx = x * cellWidth - halfWidth;
                 float wz = z * cellDepth - halfDepth;
 
-                // Smooth simplex noise layer
-                float smooth = noise2D(perm, wx * 0.01f, wz * 0.01f);
-
-                // Ridged noise: absolute value of simplex inverted to create ridges
-                float ridged = 1.0f - Math.abs(noise2D(perm, wx * 0.015f + 500f, wz * 0.015f + 500f));
-                ridged = ridged * ridged; // sharpen ridges
-
-                // Blend between smooth and ridged based on ridgeMix
+                float smooth = gn.fbm(wx * 0.01f, wz * 0.01f, 5, 0.5f, 2.0f);
+                float ridged = gn.ridgedFbm(wx * 0.015f + 500f, wz * 0.015f + 500f, 6, 2.0f, 2.0f);
                 float blended = smooth * (1.0f - ridge) + ridged * ridge;
-
-                // Scale by amplitude and apply
                 heights[z * vertsX + x] += blended * amp * 50f;
             }
         }

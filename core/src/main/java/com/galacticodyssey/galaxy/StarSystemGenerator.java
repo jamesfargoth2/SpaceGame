@@ -4,6 +4,9 @@ import com.badlogic.gdx.graphics.Color;
 import java.util.Random;
 
 public final class StarSystemGenerator {
+    private static final float UNIVERSE_AGE_GYR = 13f;
+    private static final float BINARY_CHANCE = 0.30f;
+
     private final long galaxySeed;
 
     public StarSystemGenerator(long galaxySeed) {
@@ -16,17 +19,80 @@ public final class StarSystemGenerator {
         Random rng = new Random(starSeed);
 
         SpectralClass spectral = rollSpectralClass(rng, region);
-        LuminosityClass luminosity = LuminosityClass.fromRoll(rng.nextFloat());
+        float stellarMass = massFromSpectral(spectral, rng);
+
+        // Determine age and luminosity class from stellar evolution
+        float maxAge = Math.min(StellarEvolution.mainSequenceLifetime(stellarMass), UNIVERSE_AGE_GYR);
+        float age = RngUtil.range(rng, 0.1f, UNIVERSE_AGE_GYR);
+        LuminosityClass luminosityClass = determineLuminosityClass(stellarMass, age, rng);
+
+        // Constrain age for main-sequence stars
+        if (luminosityClass == LuminosityClass.MAIN_SEQUENCE) {
+            age = Math.min(age, maxAge);
+        }
 
         float temperature = RngUtil.range(rng, spectral.tempMin, spectral.tempMax);
-        float stellarMass = massFromSpectral(spectral, luminosity, rng);
-        float stellarLuminosity = luminosityFromMass(stellarMass, luminosity);
-        float stellarRadius = radiusFromMassLuminosity(stellarMass, luminosity, rng);
-        float age = RngUtil.range(rng, 0.1f, 13.0f);
-        Color color = colorFromTemperature(temperature);
 
-        return new StarSystem(star.uniqueId, starSeed, spectral, luminosity,
+        // Compute luminosity and radius using StellarEvolution
+        float stellarLuminosity;
+        float stellarRadius;
+        if (luminosityClass == LuminosityClass.MAIN_SEQUENCE) {
+            stellarLuminosity = StellarEvolution.mainSequenceLuminosity(stellarMass);
+            stellarRadius = StellarEvolution.mainSequenceRadius(stellarMass);
+        } else {
+            stellarLuminosity = StellarEvolution.evolvedLuminosity(stellarMass, luminosityClass, rng);
+            stellarRadius = StellarEvolution.evolvedRadius(stellarMass, luminosityClass, rng);
+        }
+
+        Color color = StellarEvolution.colorFromTemperature(temperature);
+
+        StarSystem system = new StarSystem(star.uniqueId, starSeed, spectral, luminosityClass,
             temperature, stellarLuminosity, stellarMass, stellarRadius, age, color);
+
+        // Binary companion generation (30% chance)
+        if (rng.nextFloat() < BINARY_CHANCE) {
+            system.companion = generateCompanion(stellarMass, rng);
+        }
+
+        return system;
+    }
+
+    private LuminosityClass determineLuminosityClass(float mass, float age, Random rng) {
+        if (!StellarEvolution.isEvolved(mass, age)) {
+            return LuminosityClass.MAIN_SEQUENCE;
+        }
+        // Evolved star: classify based on original mass
+        if (mass > 8f) {
+            return LuminosityClass.SUPERGIANT;
+        }
+        if (mass > 0.5f) {
+            return LuminosityClass.GIANT;
+        }
+        return LuminosityClass.WHITE_DWARF;
+    }
+
+    private BinaryStarData generateCompanion(float primaryMass, Random rng) {
+        float companionMass = primaryMass * RngUtil.range(rng, 0.1f, 1.0f);
+        // Log-uniform separation from 0.1 to 100 AU
+        float separationAU = 0.1f * (float) Math.pow(1000f, rng.nextFloat());
+
+        SpectralClass companionSpectral = spectralClassFromMass(companionMass);
+        float companionTemp = RngUtil.range(rng, companionSpectral.tempMin, companionSpectral.tempMax);
+        float companionLuminosity = StellarEvolution.mainSequenceLuminosity(companionMass);
+        Color companionColor = StellarEvolution.colorFromTemperature(companionTemp);
+
+        return new BinaryStarData(companionSpectral, companionMass, companionLuminosity,
+            companionTemp, separationAU, companionColor);
+    }
+
+    private SpectralClass spectralClassFromMass(float mass) {
+        if (mass >= 16f) return SpectralClass.O;
+        if (mass >= 2.1f) return SpectralClass.B;
+        if (mass >= 1.4f) return SpectralClass.A;
+        if (mass >= 1.04f) return SpectralClass.F;
+        if (mass >= 0.8f) return SpectralClass.G;
+        if (mass >= 0.45f) return SpectralClass.K;
+        return SpectralClass.M;
     }
 
     private SpectralClass rollSpectralClass(Random rng, GalaxyRegion region) {
@@ -41,8 +107,8 @@ public final class StarSystemGenerator {
         return SpectralClass.fromRoll(roll);
     }
 
-    private float massFromSpectral(SpectralClass sc, LuminosityClass lc, Random rng) {
-        float baseMass = switch (sc) {
+    private float massFromSpectral(SpectralClass sc, Random rng) {
+        return switch (sc) {
             case O -> RngUtil.range(rng, 16f, 50f);
             case B -> RngUtil.range(rng, 2.1f, 16f);
             case A -> RngUtil.range(rng, 1.4f, 2.1f);
@@ -51,34 +117,5 @@ public final class StarSystemGenerator {
             case K -> RngUtil.range(rng, 0.45f, 0.8f);
             case M -> RngUtil.range(rng, 0.08f, 0.45f);
         };
-        if (lc == LuminosityClass.GIANT) baseMass *= RngUtil.range(rng, 1.5f, 3f);
-        if (lc == LuminosityClass.SUPERGIANT) baseMass *= RngUtil.range(rng, 3f, 10f);
-        if (lc == LuminosityClass.WHITE_DWARF) baseMass = RngUtil.range(rng, 0.5f, 1.4f);
-        return baseMass;
-    }
-
-    private float luminosityFromMass(float mass, LuminosityClass lc) {
-        if (lc == LuminosityClass.WHITE_DWARF) return 0.001f + mass * 0.01f;
-        if (lc == LuminosityClass.GIANT) return (float) Math.pow(mass, 3.5) * 10f;
-        if (lc == LuminosityClass.SUPERGIANT) return (float) Math.pow(mass, 3.5) * 100f;
-        return (float) Math.pow(mass, 3.5);
-    }
-
-    private float radiusFromMassLuminosity(float mass, LuminosityClass lc, Random rng) {
-        if (lc == LuminosityClass.WHITE_DWARF) return RngUtil.range(rng, 0.008f, 0.02f);
-        if (lc == LuminosityClass.GIANT) return (float) Math.pow(mass, 0.8) * RngUtil.range(rng, 5f, 25f);
-        if (lc == LuminosityClass.SUPERGIANT) return (float) Math.pow(mass, 0.8) * RngUtil.range(rng, 30f, 200f);
-        return (float) Math.pow(mass, 0.8);
-    }
-
-    private Color colorFromTemperature(float tempK) {
-        float t = (tempK - 2000f) / 38000f;
-        t = Math.max(0f, Math.min(1f, t));
-        float r = 1f;
-        float g = 0.5f + t * 0.5f;
-        float b = 0.3f + t * 0.7f;
-        if (t > 0.5f) { r = 1.2f - t * 0.4f; g = 1.1f - t * 0.2f; }
-        return new Color(
-            Math.min(1f, r), Math.min(1f, g), Math.min(1f, b), 1f);
     }
 }

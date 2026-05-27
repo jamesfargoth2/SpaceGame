@@ -20,6 +20,7 @@ public final class StarSystem {
     public final float frostLine;
     public final float systemEdge;
     public final List<OrbitalSlot> orbits;
+    public BinaryStarData companion;
 
     public StarSystem(long uniqueId, long seed, SpectralClass spectralClass,
                       LuminosityClass luminosityClass, float temperature,
