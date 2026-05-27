@@ -28,7 +28,7 @@ public final class GalaxyGenerationPipeline {
         GalaxyManager manager = new GalaxyManager(session.seed, config);
         session.galaxy = manager;
         session.log.add("Mapping " + session.galaxySize.starCount
-            + " star systems across " + session.galaxyName + "…");
+            + " star systems across the " + session.galaxyName + "…");
 
         // Phase 2 — find starting G/K main-sequence star deterministically
         Random seedRng = new Random(session.seed);
@@ -72,7 +72,8 @@ public final class GalaxyGenerationPipeline {
         List<OrbitalSlot> slots = layoutGen.generate(chosenSystem);
         PlanetGenerator planetGen = new PlanetGenerator(session.seed);
 
-        Planet planet = findPlanet(slots, chosenSystem, planetGen, PlanetType.TERRAN);
+        Planet planet = findTerranBreathable(slots, chosenSystem, planetGen);
+        if (planet == null) planet = findPlanet(slots, chosenSystem, planetGen, PlanetType.TERRAN);
         if (planet == null) planet = findPlanet(slots, chosenSystem, planetGen, PlanetType.ARID);
         if (planet == null) planet = findPlanet(slots, chosenSystem, planetGen, PlanetType.OCEAN);
         if (planet == null) {
@@ -126,6 +127,18 @@ public final class GalaxyGenerationPipeline {
         if (!gk.isEmpty()) return gk;
         if (!mainSeq.isEmpty()) return mainSeq;
         return any;
+    }
+
+    /** Returns the first TERRAN planet whose atmosphere is non-null and breathable. */
+    private static Planet findTerranBreathable(List<OrbitalSlot> slots, StarSystem system,
+                                               PlanetGenerator gen) {
+        for (OrbitalSlot slot : slots) {
+            Planet p = gen.generate(slot, system);
+            if (p.type == PlanetType.TERRAN && p.atmosphere != null && p.atmosphere.breathable) {
+                return p;
+            }
+        }
+        return null;
     }
 
     private static Planet findPlanet(List<OrbitalSlot> slots, StarSystem system,
