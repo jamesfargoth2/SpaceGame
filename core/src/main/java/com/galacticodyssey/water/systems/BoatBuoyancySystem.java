@@ -35,7 +35,7 @@ import com.galacticodyssey.water.WaterBodyComponent;
  */
 public class BoatBuoyancySystem extends IteratingSystem {
 
-    private static final int PRIORITY = 6;
+    private static final int PRIORITY = 11;
 
     private final ComponentMapper<HullComponent> hullMapper =
         ComponentMapper.getFor(HullComponent.class);

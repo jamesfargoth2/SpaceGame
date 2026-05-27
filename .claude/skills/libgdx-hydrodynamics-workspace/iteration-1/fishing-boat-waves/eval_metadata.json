@@ -1,0 +1,15 @@
+{
+  "eval_id": 1,
+  "eval_name": "fishing-boat-waves",
+  "prompt": "I need to add a small fishing boat that the player can pilot across the ocean on our water planet. The boat should bob realistically on the waves, feel heavy when turning, and slow down properly when the player stops accelerating. Create the ECS components and systems for this — the planet already has a WaterBodyComponent on it with some basic wave params.",
+  "assertions": [
+    "Creates a HullComponent with at least 8 BuoyancySamplePoints distributed across the hull",
+    "BuoyancySystem transforms sample points to world space and queries wave height using galaxy-space coordinates",
+    "Buoyancy force direction uses hull normal (not just world-up) to produce natural restoring torques",
+    "HydrodynamicDragSystem subtracts water current velocity before computing drag",
+    "Drag is quadratic in speed (uses v² term)",
+    "All forces applied via btRigidBody.applyCentralForce/applyTorque, not direct velocity manipulation",
+    "Uses Pools.obtain/free for temporary Vector3 objects",
+    "Does not hardcode water density — reads from WaterBodyComponent"
+  ]
+}

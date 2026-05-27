@@ -1,0 +1,50 @@
+{
+  "expectations": [
+    {
+      "text": "Creates a HullComponent with at least 8 BuoyancySamplePoints distributed across the hull",
+      "passed": true,
+      "evidence": "FishingBoatFactory.buildSamplePoints() creates exactly 16 sample points distributed across bow (4 points: indices 0-3), forward quarter (4 points: indices 4-7), aft quarter (4 points: indices 8-11), and stern (4 points: indices 12-15). Each point has a distinct localOffset covering starboard, port, keel, waterline, and deck positions. 16 >= 8."
+    },
+    {
+      "text": "BuoyancySystem transforms sample points to world space and queries wave height using galaxy-space coordinates",
+      "passed": true,
+      "evidence": "BuoyancySystem.processEntity() at line 102: 'worldPt.set(sp.localOffset).mul(worldTx)' transforms the sample point to world space. Then at lines 106-108: 'double gx = originManager.getOriginOffsetX() + worldPt.x; double gz = originManager.getOriginOffsetZ() + worldPt.z; float surfaceY = waveSystem.getHeight(gx, gz);' converts to galaxy-space doubles before querying wave height."
+    },
+    {
+      "text": "Buoyancy force direction uses hull normal (not just world-up) to produce natural restoring torques",
+      "passed": true,
+      "evidence": "BuoyancySystem.processEntity() at line 117: 'force.set(sp.normal).rot(worldTx).scl(pressure * sp.area)' — the force direction is set from the sample point's hull normal (sp.normal), rotated into world space via rot(worldTx), then scaled by pressure * area. This is explicitly not world-up (0,1,0). The torque is then computed as lever cross force at lines 121-124 and applied at line 129."
+    },
+    {
+      "text": "HydrodynamicDragSystem subtracts water current velocity before computing drag",
+      "passed": true,
+      "evidence": "HydrodynamicDragSystem.processEntity() at line 122: 'relVel.set(linearVel).sub(waterBody.currentVelocity)' — the vessel's linear velocity has the water body's current velocity subtracted before any drag computation. All subsequent drag calculations use relVel or localRelVel (line 129: transformed to body-local frame)."
+    },
+    {
+      "text": "Drag is quadratic in speed (uses v^2 term)",
+      "passed": true,
+      "evidence": "HydrodynamicDragSystem uses v * |v| (which equals v^2 in magnitude while preserving sign) in all drag terms. Line 136-137: 'dragFwd = -0.5f * rho * vFwd * Math.abs(vFwd) * hull.dragCoefficientLinear * hull.wettedArea'. Line 144-145: 'dragLat = -0.5f * rho * vLat * Math.abs(vLat) * hull.dragCoefficientQuad * lateralArea'. Line 150-151: 'dragVert = -0.5f * rho * vVert * Math.abs(vVert) * hull.dragCoefficientQuad * verticalArea'. This is the standard quadratic drag formula F = 0.5 * rho * Cd * A * v^2."
+    },
+    {
+      "text": "All forces applied via btRigidBody.applyCentralForce/applyTorque, not direct velocity manipulation",
+      "passed": true,
+      "evidence": "BuoyancySystem uses physics.body.applyCentralForce(totalForce) at line 128 and physics.body.applyTorque(torque) at line 129. HydrodynamicDragSystem uses physics.body.applyCentralForce(dragWorld) at line 180 and physics.body.applyTorque(angDamp) at line 193. No calls to setLinearVelocity, setAngularVelocity, or any direct velocity manipulation exist in either system."
+    },
+    {
+      "text": "Uses Pools.obtain/free for temporary Vector3 objects",
+      "passed": true,
+      "evidence": "BuoyancySystem uses Pools.obtain(Vector3.class) for worldPt, force, lever, torque, totalForce, and comPos (lines 88-93), then frees all of them (lines 140-145). HydrodynamicDragSystem uses Pools.obtain(Vector3.class) for linearVel, relVel, localRelVel, dragLocal, dragWorld, angVel, angDamp (lines 109-116), frees them in a finally block (lines 198-204), and also obtains/frees a waveForce vector (lines 174, 177)."
+    },
+    {
+      "text": "Does not hardcode water density — reads from WaterBodyComponent",
+      "passed": true,
+      "evidence": "BuoyancySystem reads density at line 116: 'waterBody.density * waveSystem.getGravity() * sp.depth' where waterBody is a WaterBodyComponent. HydrodynamicDragSystem reads density at line 131: 'final float rho = waterBody.density' and uses rho throughout all drag calculations. WaterBodyComponent defines density as a configurable field (line 23: 'public float density = 1025f') with a default but not hardcoded in the physics systems."
+    }
+  ],
+  "summary": {
+    "passed": 8,
+    "failed": 0,
+    "total": 8,
+    "pass_rate": 1.0
+  }
+}

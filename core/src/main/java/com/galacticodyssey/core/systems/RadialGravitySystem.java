@@ -33,6 +33,8 @@ public class RadialGravitySystem extends IteratingSystem {
         dynamicsWorld.setGravity(new Vector3(0, 0, 0));
     }
 
+    public float getGravityMagnitude() { return gravity; }
+
     @Override
     protected void processEntity(Entity entity, float deltaTime) {
         PlayerStateComponent playerState = playerStateMapper.get(entity);

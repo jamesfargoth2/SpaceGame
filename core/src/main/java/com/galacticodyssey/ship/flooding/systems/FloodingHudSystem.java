@@ -54,7 +54,7 @@ import com.galacticodyssey.water.events.StabilityWarningEvent;
  */
 public class FloodingHudSystem extends EntitySystem implements Disposable {
 
-    public static final int PRIORITY = 20;
+    public static final int PRIORITY = 50;
 
     // -- Warning level colours --
     private static final Color COLOR_NORMAL   = new Color(0.2f, 0.8f, 0.2f, 1f);

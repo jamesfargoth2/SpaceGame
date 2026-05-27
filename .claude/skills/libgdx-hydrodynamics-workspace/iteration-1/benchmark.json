@@ -1,0 +1,197 @@
+{
+  "metadata": {
+    "skill_name": "libgdx-hydrodynamics",
+    "skill_path": "C:\\Users\\james\\IdeaProjects\\SpaceGame\\.claude\\skills\\libgdx-hydrodynamics",
+    "executor_model": "claude-opus-4-6",
+    "analyzer_model": "claude-opus-4-6",
+    "timestamp": "2026-05-26T21:45:00Z",
+    "evals_run": [1, 2, 3],
+    "runs_per_configuration": 1
+  },
+  "runs": [
+    {
+      "eval_id": 1,
+      "eval_name": "fishing-boat-waves",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 8,
+        "failed": 0,
+        "total": 8,
+        "time_seconds": 794.0,
+        "tokens": 151316,
+        "tool_calls": 100,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "Creates a HullComponent with at least 8 BuoyancySamplePoints distributed across the hull", "passed": true, "evidence": "FishingBoatFactory creates 16 sample points across bow, forward quarter, aft quarter, stern"},
+        {"text": "BuoyancySystem transforms sample points to world space and queries wave height using galaxy-space coordinates", "passed": true, "evidence": "Transforms via worldPt.set(sp.localOffset).mul(worldTx), converts to galaxy-space doubles via originManager"},
+        {"text": "Buoyancy force direction uses hull normal (not just world-up) to produce natural restoring torques", "passed": true, "evidence": "Force set from sp.normal rotated into world space, torque computed as cross product of lever arm and force"},
+        {"text": "HydrodynamicDragSystem subtracts water current velocity before computing drag", "passed": true, "evidence": "relVel.set(linearVel).sub(waterBody.currentVelocity)"},
+        {"text": "Drag is quadratic in speed (uses v² term)", "passed": true, "evidence": "Uses v * |v| pattern for sign-preserving v-squared"},
+        {"text": "All forces applied via btRigidBody.applyCentralForce/applyTorque, not direct velocity manipulation", "passed": true, "evidence": "Both systems exclusively use applyCentralForce and applyTorque"},
+        {"text": "Uses Pools.obtain/free for temporary Vector3 objects", "passed": true, "evidence": "Both BuoyancySystem and HydrodynamicDragSystem use Pools.obtain/free"},
+        {"text": "Does not hardcode water density — reads from WaterBodyComponent", "passed": true, "evidence": "Both systems read waterBody.density from WaterBodyComponent"}
+      ]
+    },
+    {
+      "eval_id": 1,
+      "eval_name": "fishing-boat-waves",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 8,
+        "failed": 0,
+        "total": 8,
+        "time_seconds": 504.3,
+        "tokens": 101874,
+        "tool_calls": 64,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "Creates a HullComponent with at least 8 BuoyancySamplePoints distributed across the hull", "passed": true, "evidence": "FishingBoatFactory creates 14 sample points across bow, quarters, stern, keel"},
+        {"text": "BuoyancySystem transforms sample points to world space and queries wave height using galaxy-space coordinates", "passed": true, "evidence": "Transforms via matrix multiplication, converts to galaxy-space via CoordinateManager"},
+        {"text": "Buoyancy force direction uses hull normal (not just world-up) to produce natural restoring torques", "passed": true, "evidence": "Force applied along world-space hull normal via applyForce(force, relPos)"},
+        {"text": "HydrodynamicDragSystem subtracts water current velocity before computing drag", "passed": true, "evidence": "relVel = linearVel - waterBody.currentVelocity"},
+        {"text": "Drag is quadratic in speed (uses v² term)", "passed": true, "evidence": "Uses v * |v| for all three axes plus angular damping"},
+        {"text": "All forces applied via btRigidBody.applyCentralForce/applyTorque, not direct velocity manipulation", "passed": true, "evidence": "All systems use applyForce, applyCentralForce, applyTorque exclusively"},
+        {"text": "Uses Pools.obtain/free for temporary Vector3 objects", "passed": true, "evidence": "All three systems use Pools.obtain/free in try/finally"},
+        {"text": "Does not hardcode water density — reads from WaterBodyComponent", "passed": true, "evidence": "Density always read from WaterBodyComponent.density"}
+      ]
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "submarine-ballast-depth",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.875,
+        "passed": 7,
+        "failed": 1,
+        "total": 8,
+        "time_seconds": 750.1,
+        "tokens": 135154,
+        "tool_calls": 85,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "BallastComponent has PID gains (Kp, Ki, Kd) and BallastTanks with capacity/fill/rates", "passed": true, "evidence": "depthKp, depthKi, depthKd fields plus Array<BallastTank> with capacity, currentFill, fillRate, drainRate"},
+        {"text": "BallastSystem implements PID controller: proportional + integral + derivative terms for depth error", "passed": true, "evidence": "Full P+I+D computation with integral clamping and dead-band"},
+        {"text": "Ballast mass changes update rigid body via setMassProps()", "passed": true, "evidence": "physBody.body.setMassProps(hull.dryMass + ballastMass, inertia) called each tick"},
+        {"text": "Hull crush depth triggers a HullBreachEvent via EventBus", "passed": true, "evidence": "eventBus.publish(new SubmarineHullBreachEvent(...)) when currentDepth > hull.crushDepth"},
+        {"text": "FloodingSystem uses Torricelli's theorem (flow proportional to sqrt of head) for breach ingress", "passed": true, "evidence": "flow = Cd * A * sqrt(2*g*h) in FloodingSystem Phase 1"},
+        {"text": "Cross-compartment flow equalizes based on water head difference between connected compartments", "passed": true, "evidence": "Phase 2 computes head difference and transfers proportional to sqrt(2*g*|headDiff|)"},
+        {"text": "Free surface effect is computed for partially-flooded compartments", "passed": true, "evidence": "computeFreeSurfaceEffect() calculates GZ_loss = rho * I_free / displacement for partial fill"},
+        {"text": "Flooding shifts the rigid body's centre of mass, not just its total mass", "passed": false, "evidence": "floodedCoM computed correctly but adjustRigidBodyMass() only calls setMassProps, never applies CoM offset to body"}
+      ]
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "submarine-ballast-depth",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.5,
+        "passed": 4,
+        "failed": 4,
+        "total": 8,
+        "time_seconds": 612.2,
+        "tokens": 121581,
+        "tool_calls": 75,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "BallastComponent has PID gains (Kp, Ki, Kd) and BallastTanks with capacity/fill/rates", "passed": true, "evidence": "PID gains in DepthControlComponent; BallastTankComponent has capacity, currentVolume, flowRate"},
+        {"text": "BallastSystem implements PID controller: proportional + integral + derivative terms for depth error", "passed": true, "evidence": "DepthControlSystem computes P+I+D with anti-windup"},
+        {"text": "Ballast mass changes update rigid body via setMassProps()", "passed": false, "evidence": "No setMassProps() call anywhere. Uses force-based compensation instead"},
+        {"text": "Hull crush depth triggers a HullBreachEvent via EventBus", "passed": true, "evidence": "HullIntegritySystem publishes HullBreachEvent when integrity drops below threshold"},
+        {"text": "FloodingSystem uses Torricelli's theorem (flow proportional to sqrt of head) for breach ingress", "passed": false, "evidence": "Uses linear pressure scaling (1 + depth/100), not sqrt(2*g*h). No sqrt() in flooding code"},
+        {"text": "Cross-compartment flow equalizes based on water head difference between connected compartments", "passed": true, "evidence": "Computes levelDiff between compartments and transfers proportionally"},
+        {"text": "Free surface effect is computed for partially-flooded compartments", "passed": false, "evidence": "No free surface effect computation. Metacentric height is static 1.5f"},
+        {"text": "Flooding shifts the rigid body's centre of mass, not just its total mass", "passed": false, "evidence": "Applies torques to simulate effect but never calls setCenterOfMassTransform"}
+      ]
+    },
+    {
+      "eval_id": 3,
+      "eval_name": "torpedo-flooding-capsize",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 9,
+        "failed": 0,
+        "total": 9,
+        "time_seconds": 706.3,
+        "tokens": 118926,
+        "tool_calls": 67,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "At least 3 compartments defined with connections between them", "passed": true, "evidence": "FloodableShipFactory creates engine_room, cargo_hold, crew_quarters with DoorwayConnections"},
+        {"text": "Engine room compartment has nonzero breachArea and breachDepth", "passed": true, "evidence": "applyTorpedoBreach() sets both fields on engine room"},
+        {"text": "Breach ingress uses discharge coefficient (Cd ~0.6) and Torricelli's theorem", "passed": true, "evidence": "BREACH_CD = 0.6f, flow = Cd * A * sqrt(2*g*h)"},
+        {"text": "Cross-compartment flow uses head difference and orifice equation", "passed": true, "evidence": "simulateCrossFlow() computes head diff, applies Q = Cd * A * sqrt(2*g*|dh|)"},
+        {"text": "Flooded mass and centre-of-mass shift are computed and applied to the rigid body", "passed": true, "evidence": "updateFloodedMassAndCoM() computes weighted centroid, applies via applyCentralForce/applyTorque"},
+        {"text": "Free surface effect (GZ loss) is calculated for partially-filled compartments", "passed": true, "evidence": "computeFreeSurfaceEffect() with parabolic envelope peaking at 50% fill"},
+        {"text": "StabilityWarningEvent published when GZ loss exceeds threshold", "passed": true, "evidence": "checkStabilityWarnings() publishes at 0.1/0.3/0.6m thresholds"},
+        {"text": "CapsizeEvent published when roll exceeds critical angle", "passed": true, "evidence": "checkCapsize() publishes when roll > 60 degrees for 2+ seconds"},
+        {"text": "Event-driven HUD integration — subscribes to stability/flooding events, does not poll", "passed": true, "evidence": "FloodingHudSystem subscribes via eventBus.subscribe(), trigger-based not polling"}
+      ]
+    },
+    {
+      "eval_id": 3,
+      "eval_name": "torpedo-flooding-capsize",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 9,
+        "failed": 0,
+        "total": 9,
+        "time_seconds": 646.4,
+        "tokens": 114609,
+        "tool_calls": 85,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "At least 3 compartments defined with connections between them", "passed": true, "evidence": "FloodableShipFactory creates engine_room, cargo_hold, crew_quarters with bidirectional connections"},
+        {"text": "Engine room compartment has nonzero breachArea and breachDepth", "passed": true, "evidence": "applyTorpedoBreach() and onHullBreach() set nonzero values"},
+        {"text": "Breach ingress uses discharge coefficient (Cd ~0.6) and Torricelli's theorem", "passed": true, "evidence": "Q = 0.6 * A * sqrt(2*g*h) in simulateExternalIngress()"},
+        {"text": "Cross-compartment flow uses head difference and orifice equation", "passed": true, "evidence": "simulateCrossFlow() computes head diff, applies Q = Cd * A * sqrt(2*g*|dh|)"},
+        {"text": "Flooded mass and centre-of-mass shift are computed and applied to the rigid body", "passed": true, "evidence": "updateFloodedMassAndCoM() computes weighted centroid, applies forces/torques"},
+        {"text": "Free surface effect (GZ loss) is calculated for partially-filled compartments", "passed": true, "evidence": "computeFreeSurfaceEffect() with parabolic fill envelope"},
+        {"text": "StabilityWarningEvent published when GZ loss exceeds threshold", "passed": true, "evidence": "Published when freeSurfaceGzLoss >= 0.1 with three severity levels"},
+        {"text": "CapsizeEvent published when roll exceeds critical angle", "passed": true, "evidence": "Published when roll > 60 degrees for 2+ seconds"},
+        {"text": "Event-driven HUD integration — subscribes to stability/flooding events, does not poll", "passed": true, "evidence": "FloodingHudSystem subscribes via eventBus.subscribe(), trigger-based"}
+      ],
+      "notes": []
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {"mean": 0.958, "stddev": 0.059, "min": 0.875, "max": 1.0},
+      "time_seconds": {"mean": 750.1, "stddev": 35.9, "min": 706.3, "max": 794.0},
+      "tokens": {"mean": 135132, "stddev": 13225, "min": 118926, "max": 151316}
+    },
+    "without_skill": {
+      "pass_rate": {"mean": 0.833, "stddev": 0.236, "min": 0.5, "max": 1.0},
+      "time_seconds": {"mean": 587.6, "stddev": 60.5, "min": 504.3, "max": 646.4},
+      "tokens": {"mean": 112688, "stddev": 8159, "min": 101874, "max": 121581}
+    },
+    "delta": {
+      "pass_rate": "+0.125",
+      "time_seconds": "+162.5",
+      "tokens": "+22444"
+    }
+  },
+  "notes": [
+    "Eval 1 (fishing-boat-waves) assertions pass 100% in both configurations — non-discriminating. The model already knows buoyancy physics well enough to pass these checks without the skill.",
+    "Eval 3 (torpedo-flooding-capsize) also passes 100% in both — non-discriminating. The prompt is specific enough about Torricelli/capsize that the model implements them correctly either way.",
+    "Eval 2 (submarine-ballast-depth) is the discriminating eval: 88% with skill vs 50% without. Without the skill, the model missed Torricelli flow (used linear scaling), free surface effect entirely, and setMassProps().",
+    "The skill adds ~163s average execution time and ~22k tokens per run — moderate overhead for physics fidelity gains.",
+    "Both with-skill and without-skill failed to actually apply CoM offset to the Bullet rigid body (assertion 8 in eval 2). The skill should add explicit code for setCenterOfMassTransform().",
+    "Qualitative benefit not captured by assertions: with-skill runs use consistent component naming (HullComponent, BallastComponent) and system priority ordering (1-5), while without-skill runs invent their own naming conventions."
+  ]
+}

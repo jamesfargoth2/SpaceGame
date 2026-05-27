@@ -8,6 +8,7 @@ import com.badlogic.ashley.systems.IteratingSystem;
 import com.badlogic.ashley.utils.ImmutableArray;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.Pools;
 import com.galacticodyssey.combat.components.HealthComponent;
 import com.galacticodyssey.combat.components.HitboxComponent;
 import com.galacticodyssey.combat.components.ProjectileComponent;
@@ -17,33 +18,17 @@ import com.galacticodyssey.combat.events.WeaponFiredEvent;
 import com.galacticodyssey.core.EventBus;
 import com.galacticodyssey.core.components.TransformComponent;
 
-/**
- * Moves projectile entities each frame, detects collisions with hittable targets, and publishes
- * {@link ProjectileHitEvent} on contact.
- *
- * <p>Projectile travel direction is encoded into the {@link TransformComponent#rotation} quaternion
- * as a raw float3 (x, y, z components hold the normalised direction; w is set to 0).  This avoids
- * adding a new field to an existing component while keeping direction co-located with the entity's
- * transform.
- *
- * <p>Priority: {@value #PRIORITY} (runs after {@link HitscanSystem}).
- */
 public class ProjectileSystem extends IteratingSystem {
 
     public static final int PRIORITY = 7;
 
-    /** Sphere radius for simple distance-based collision detection (metres). */
     private static final float COLLISION_RADIUS = 1.0f;
+    private static final Vector3 GRAVITY = new Vector3(0f, -9.81f, 0f);
 
     private final EventBus eventBus;
-
-    /** Engine reference stored via {@link #addedToEngine} / {@link #removedFromEngine}. */
     private Engine engine;
-
-    /** Deferred removal list — populated during iteration, flushed in {@link #update}. */
     private final Array<Entity> toRemove = new Array<>();
 
-    /** Entities that can be hit: need a position, hitbox, and health pool. */
     private static final Family TARGET_FAMILY =
         Family.all(TransformComponent.class, HitboxComponent.class, HealthComponent.class).get();
 
@@ -62,10 +47,6 @@ public class ProjectileSystem extends IteratingSystem {
         eventBus.subscribe(WeaponFiredEvent.class, this::onWeaponFired);
     }
 
-    // -------------------------------------------------------------------------
-    // Engine lifecycle
-    // -------------------------------------------------------------------------
-
     @Override
     public void addedToEngine(Engine engine) {
         super.addedToEngine(engine);
@@ -77,10 +58,6 @@ public class ProjectileSystem extends IteratingSystem {
         super.removedFromEngine(engine);
         this.engine = null;
     }
-
-    // -------------------------------------------------------------------------
-    // Subscription handler — spawns a projectile entity for non-hitscan shots
-    // -------------------------------------------------------------------------
 
     private void onWeaponFired(WeaponFiredEvent event) {
         if (event.hitscan) return;
@@ -95,21 +72,15 @@ public class ProjectileSystem extends IteratingSystem {
         float speed = weaponComp.projectileSpeed != null ? weaponComp.projectileSpeed : 40f;
         float lifetime = (speed > 0f) ? weaponComp.range / speed : 2f;
 
-        // Normalise aim direction
-        Vector3 dir = new Vector3(event.aimDirection).nor();
+        Vector3 dir = Pools.obtain(Vector3.class).set(event.aimDirection).nor();
 
-        // Build projectile entity
         Entity projectile = engine.createEntity();
 
         TransformComponent transform = engine.createComponent(TransformComponent.class);
         transform.position.set(shooterTransform.position);
-        // Store direction in the rotation quaternion's x/y/z fields as a raw float3
-        transform.rotation.x = dir.x;
-        transform.rotation.y = dir.y;
-        transform.rotation.z = dir.z;
-        transform.rotation.w = 0f;
 
         ProjectileComponent proj = engine.createComponent(ProjectileComponent.class);
+        proj.velocity.set(dir).scl(speed);
         proj.speed = speed;
         proj.damage = weaponComp.damage;
         proj.damageType = weaponComp.damageType;
@@ -122,17 +93,14 @@ public class ProjectileSystem extends IteratingSystem {
         projectile.add(transform);
         projectile.add(proj);
         engine.addEntity(projectile);
-    }
 
-    // -------------------------------------------------------------------------
-    // IteratingSystem — update flushes deferred removals after iteration
-    // -------------------------------------------------------------------------
+        Pools.free(dir);
+    }
 
     @Override
     public void update(float deltaTime) {
         super.update(deltaTime);
 
-        // Flush deferred removals after the iteration is complete
         if (engine != null) {
             for (Entity e : toRemove) {
                 engine.removeEntity(e);
@@ -146,30 +114,51 @@ public class ProjectileSystem extends IteratingSystem {
         ProjectileComponent proj = PROJECTILE_M.get(entity);
         TransformComponent transform = TRANSFORM_M.get(entity);
 
-        // 1. Age and expire
         proj.age += deltaTime;
         if (proj.age >= proj.lifetime) {
             toRemove.add(entity);
             return;
         }
 
-        // 2. Move along stored direction (rotation.x/y/z)
-        float dx = transform.rotation.x;
-        float dy = transform.rotation.y;
-        float dz = transform.rotation.z;
+        // --- Physics integration ---
 
-        transform.position.x += dx * proj.speed * deltaTime;
-        transform.position.y += dy * proj.speed * deltaTime;
-        transform.position.z += dz * proj.speed * deltaTime;
+        Vector3 accel = Pools.obtain(Vector3.class).setZero();
 
-        // 3. Collision detection — iterate all valid target entities
+        if (proj.affectedByGravity) {
+            accel.add(GRAVITY);
+        }
+
+        if (proj.dragCoeff > 0f && proj.crossSection > 0f) {
+            float vSq = proj.velocity.len2();
+            if (vSq > 0.001f) {
+                // Simplified drag: F = 0.5 * rho * v^2 * Cd * A  (rho=1.225 at sea level)
+                float airDensity = 1.225f;
+                float dragMag = 0.5f * airDensity * vSq * proj.dragCoeff * proj.crossSection;
+                Vector3 drag = Pools.obtain(Vector3.class)
+                    .set(proj.velocity).nor().scl(-dragMag / proj.mass);
+                accel.add(drag);
+                Pools.free(drag);
+            }
+        }
+
+        proj.velocity.mulAdd(accel, deltaTime);
+        Pools.free(accel);
+
+        float stepDist = proj.velocity.len() * deltaTime;
+        transform.position.mulAdd(proj.velocity, deltaTime);
+        proj.distanceTravelled += stepDist;
+
+        if (proj.distanceTravelled >= proj.maxRange) {
+            toRemove.add(entity);
+            return;
+        }
+
+        // --- Collision detection ---
         if (engine == null) return;
 
         ImmutableArray<Entity> targets = engine.getEntitiesFor(TARGET_FAMILY);
         for (int i = 0, n = targets.size(); i < n; i++) {
             Entity candidate = targets.get(i);
-
-            // Skip the owner
             if (candidate == proj.owner) continue;
 
             HealthComponent hp = HEALTH_M.get(candidate);
@@ -190,7 +179,7 @@ public class ProjectileSystem extends IteratingSystem {
                     proj.ammoTypeId
                 ));
                 toRemove.add(entity);
-                return; // projectile consumed by first hit
+                return;
             }
         }
     }

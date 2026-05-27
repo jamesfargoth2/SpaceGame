@@ -1,0 +1,40 @@
+Submarine Ballast & Depth Control — File Manifest
+===================================================
+
+COMPONENTS (water/)
+-------------------
+WaveParams.java                     — Single Gerstner wave contribution (amplitude, wavelength, speed, steepness, direction)
+WaterBodyComponent.java             — Defines a body of liquid (density, viscosity, wave list, current velocity, bounds)
+BuoyancySamplePoint.java            — Hull surface patch for multi-point buoyancy sampling (local offset, normal, area)
+HullComponent.java                  — Hull characteristics for any floating/submersible vessel (mass, drag coefficients, crush depth)
+BallastTank.java                    — Single ballast tank with capacity, fill state, pump/blow rates, and position
+BallastComponent.java               — Submarine depth-control state with PID controller gains and dead-band
+Compartment.java                    — Single watertight compartment tracking flood volume, breach area, and connectivity
+FloodingComponent.java              — Aggregate flooding state across all compartments (total mass, CoM shift)
+WakeComponent.java                  — Kelvin wake trail data for rendering (Froude number, intensity, trail points)
+
+EVENTS (water/events/)
+----------------------
+VesselEnteredWaterEvent.java        — Published when first hull sample point submerges (splashdown)
+VesselExitedWaterEvent.java         — Published when last hull sample point clears the surface
+SubmarineHullBreachEvent.java       — Published when submarine exceeds crush depth causing hull failure
+StabilityWarningEvent.java          — Published when free-surface GZ loss exceeds threshold (capsize risk)
+FloodingStartedEvent.java           — Published when a compartment first begins taking water
+CapsizeEvent.java                   — Published when vessel roll exceeds 60 degrees and is not recovering
+
+SYSTEMS (water/systems/)
+------------------------
+WaveSystem.java          (Priority 1) — Gerstner wave surface evaluation; galaxy-space phase for origin-rebase safety
+BuoyancySystem.java      (Priority 2) — Multi-point hull buoyancy via hydrostatic pressure on hull normals; emergent righting torques
+HydrodynamicDragSystem.java (Priority 3) — Viscous + form + wave-making drag; axis-decomposed in body frame; Kelvin wake update
+BallastSystem.java       (Priority 4) — PID depth controller driving ballast tanks; crush depth breach detection
+FloodingSystem.java      (Priority 5) — Torricelli ingress, orifice cross-flow, free-surface stability effect, capsize detection
+
+ARCHITECTURE NOTES
+------------------
+- All forces applied through Bullet btRigidBody (applyCentralForce / applyTorque), never bypassing physics
+- Wave phase uses galaxy-space doubles for seamless floating-origin rebases
+- Fluid density/viscosity read from WaterBodyComponent (supports alien fluids: methane, ammonia, lava)
+- Free-surface effect computed for partially-flooded compartments (more dangerous than fully flooded)
+- Events published via EventBus for decoupled UI/audio/VFX reaction
+- libGDX Pools used for temporary Vector3 allocations to minimize GC pressure

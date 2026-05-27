@@ -1,0 +1,54 @@
+{
+  "skill_name": "libgdx-hydrodynamics",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I need to add a small fishing boat that the player can pilot across the ocean on our water planet. The boat should bob realistically on the waves, feel heavy when turning, and slow down properly when the player stops accelerating. Create the ECS components and systems for this — the planet already has a WaterBodyComponent on it with some basic wave params.",
+      "expected_output": "Creates HullComponent with ~12-16 sample points arranged around a fishing boat hull shape, a BuoyancySystem that queries WaveSystem for surface height at each sample point and applies upward forces using hull normals, and a HydrodynamicDragSystem with skin friction + form drag. Boat should naturally bob on waves due to per-point buoyancy and resist turning via angular damping. All forces go through Bullet btRigidBody.",
+      "files": [],
+      "expectations": [
+        "Creates a HullComponent with at least 8 BuoyancySamplePoints distributed across the hull",
+        "BuoyancySystem transforms sample points to world space and queries wave height using galaxy-space coordinates",
+        "Buoyancy force direction uses hull normal (not just world-up) to produce natural restoring torques",
+        "HydrodynamicDragSystem subtracts water current velocity before computing drag",
+        "Drag is quadratic in speed (uses v² term)",
+        "All forces applied via btRigidBody.applyCentralForce/applyTorque, not direct velocity manipulation",
+        "Uses Pools.obtain/free for temporary Vector3 objects",
+        "Does not hardcode water density — reads from WaterBodyComponent"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "We need a submarine for the deep ocean exploration gameplay. The player should be able to set a target depth and the sub automatically maintains it using ballast tanks. If the sub goes too deep past its crush depth, the hull should breach and start flooding. The flooding needs to spread between connected compartments and affect the sub's stability.",
+      "expected_output": "Creates BallastComponent with BallastTanks, a BallastSystem using PID depth control that floods/blows tanks to reach target depth, and adjusts rigid body mass accordingly. FloodingComponent with Compartments connected to each other, FloodingSystem with orifice flow (Torricelli) for breach ingress and cross-compartment equalization. HullBreachEvent published when crush depth exceeded, StabilityWarningEvent when free surface effect is dangerous. Mass and CoM shift applied to rigid body as compartments flood.",
+      "files": [],
+      "expectations": [
+        "BallastComponent has PID gains (Kp, Ki, Kd) and BallastTanks with capacity/fill/rates",
+        "BallastSystem implements PID controller: proportional + integral + derivative terms for depth error",
+        "Ballast mass changes update rigid body via setMassProps()",
+        "Hull crush depth triggers a HullBreachEvent via EventBus",
+        "FloodingSystem uses Torricelli's theorem (flow proportional to sqrt of head) for breach ingress",
+        "Cross-compartment flow equalizes based on water head difference between connected compartments",
+        "Free surface effect is computed for partially-flooded compartments",
+        "Flooding shifts the rigid body's centre of mass, not just its total mass"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "The player's cargo ship just got hit by a torpedo and has a hull breach in the engine room. I need to implement the flooding and damage system — water should pour in through the breach, gradually spread to the adjacent cargo hold and crew quarters through the internal doorways, and as the ship takes on water it should list to one side and eventually capsize if the player doesn't seal the breach in time. The HUD should show warnings about stability.",
+      "expected_output": "Implements a FloodingComponent with 3+ compartments (engine room, cargo hold, crew quarters) connected by passages. Engine room has a breach with nonzero breachArea/breachDepth. FloodingSystem computes Torricelli ingress through the breach and orifice flow between compartments. As compartments fill asymmetrically, the flooded CoM shifts off-center, creating a listing moment via the rigid body. Free surface effect computed for partially-filled compartments reduces effective stability. StabilityWarningEvent and CapsizeEvent published. HUD integration via event subscription.",
+      "files": [],
+      "expectations": [
+        "At least 3 compartments defined with connections between them (engine room -> cargo hold -> crew quarters)",
+        "Engine room compartment has nonzero breachArea and breachDepth",
+        "Breach ingress uses discharge coefficient (Cd ~0.6) and Torricelli's theorem",
+        "Cross-compartment flow uses head difference and orifice equation",
+        "Flooded mass and centre-of-mass shift are computed and applied to the rigid body",
+        "Free surface effect (GZ loss) is calculated for partially-filled compartments",
+        "StabilityWarningEvent published when GZ loss exceeds threshold",
+        "CapsizeEvent published when roll exceeds critical angle",
+        "Event-driven HUD integration — subscribes to stability/flooding events, does not poll"
+      ]
+    }
+  ]
+}

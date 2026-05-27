@@ -6,13 +6,6 @@ plugins {
 // These are placeholder tests for future features; they do not compile until
 // the referenced classes exist.  Remove entries here as each system lands.
 sourceSets {
-    main {
-        java {
-            exclude(
-                "com/galacticodyssey/water/SubmarineFactory.java"
-            )
-        }
-    }
     test {
         java {
             exclude(

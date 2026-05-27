@@ -27,7 +27,7 @@ import com.galacticodyssey.water.events.HullBreachEvent;
  */
 public class HullIntegritySystem extends IteratingSystem {
 
-    private static final int PRIORITY = 9;
+    private static final int PRIORITY = 15;
 
     /** Integrity threshold below which a new breach can occur. */
     private static final float BREACH_THRESHOLD_STEP = 0.15f;

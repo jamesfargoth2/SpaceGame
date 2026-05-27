@@ -51,7 +51,7 @@ public class BoatMotorSystem extends EntitySystem {
     private final Matrix4 tempTransform = new Matrix4();
 
     public BoatMotorSystem() {
-        super(12);
+        super(16);
     }
 
     @Override

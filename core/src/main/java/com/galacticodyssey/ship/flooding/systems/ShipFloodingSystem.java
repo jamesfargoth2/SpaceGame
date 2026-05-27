@@ -55,7 +55,7 @@ import com.galacticodyssey.water.events.StabilityWarningEvent;
 public class ShipFloodingSystem extends EntitySystem {
 
     /** System priority -- runs after basic physics systems. */
-    public static final int PRIORITY = 5;
+    public static final int PRIORITY = 18;
 
     /** Discharge coefficient for a hull breach (sharp-edged orifice). */
     private static final float BREACH_CD = 0.6f;
