@@ -55,8 +55,8 @@ public class MainMenuScreen implements Screen {
         Label title = new Label("GALACTIC ODYSSEY", skin, "title");
         root.add(title).padBottom(50).row();
 
-        addMenuButton(root, "New Game", skin, false,
-            () -> game.setScreen(new GameScreen(game)));
+        addMenuButton(root, "Single Player", skin, false,
+            () -> game.setScreen(new SinglePlayerMenuScreen(game)));
 
         boolean hasSaves = !game.getSaveBackend().listSaves().isEmpty();
 
