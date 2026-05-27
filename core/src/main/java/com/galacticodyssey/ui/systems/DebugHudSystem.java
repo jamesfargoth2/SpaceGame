@@ -136,8 +136,11 @@ public class DebugHudSystem extends EntitySystem implements Disposable {
         }
 
         fpsLabel.setText("FPS: " + Gdx.graphics.getFramesPerSecond());
+    }
 
-        stage.act(deltaTime);
+    public void render(float delta) {
+        if (!visible) return;
+        stage.act(delta);
         stage.draw();
     }
 
