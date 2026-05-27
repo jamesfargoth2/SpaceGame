@@ -136,13 +136,7 @@ public class GameSetupScreen implements Screen {
             public void clicked(InputEvent event, float x, float y) {
                 audioManager.playSound("audio/sfx/ui_click.ogg");
                 GameSession session = buildSession();
-                Gdx.app.log("GameSetupScreen",
-                    "Session created — seed=" + session.seed
-                    + " name=" + session.galaxyName
-                    + " type=" + session.galaxyType
-                    + " size=" + session.galaxySize
-                    + " region=" + session.startingRegion);
-                // TODO Task 6: game.setScreen(new GalaxyLoadingScreen(game, session));
+                game.setScreen(new GalaxyLoadingScreen(game, session));
             }
         });
 
