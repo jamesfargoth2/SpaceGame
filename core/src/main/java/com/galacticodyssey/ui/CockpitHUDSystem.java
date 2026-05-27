@@ -25,6 +25,7 @@ import com.galacticodyssey.ship.events.StallWarningEvent;
 import com.galacticodyssey.ship.weapons.components.WeaponGroupComponent;
 import com.galacticodyssey.ui.events.CockpitHUDHideEvent;
 import com.galacticodyssey.ui.events.CockpitHUDShowEvent;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 
 /**
  * Scene2D HUD system that renders flight instruments while the player is piloting a ship.
@@ -58,6 +59,8 @@ public class CockpitHUDSystem extends EntitySystem implements Disposable {
     private Label heatLabel;
     private Label alertLabel;
     private Label[] weaponGroupLabels;
+
+    private OrbitHUDPanel orbitHUDPanel;
 
     // State
     private boolean visible = false;
@@ -99,6 +102,11 @@ public class CockpitHUDSystem extends EntitySystem implements Disposable {
         styleRed      = new Label.LabelStyle(font, Color.RED);
         styleCyan     = new Label.LabelStyle(font, Color.CYAN);
         styleDarkGray = new Label.LabelStyle(font, Color.DARK_GRAY);
+
+        Skin defaultSkin = new Skin();
+        defaultSkin.add("default", styleWhite, Label.LabelStyle.class);
+        orbitHUDPanel = new OrbitHUDPanel(defaultSkin);
+        orbitHUDPanel.subscribeToEventBus(eventBus);
 
         buildLayout();
         applyVisibility();
@@ -228,6 +236,10 @@ public class CockpitHUDSystem extends EntitySystem implements Disposable {
         root.add(weaponPanel).bottom().right().expand();
 
         stage.addActor(root);
+
+        // Orbit HUD panel — anchored to the bottom-center of the screen
+        orbitHUDPanel.setPosition(8f, 8f);
+        stage.addActor(orbitHUDPanel);
     }
 
     // ------------------------------------------------------------------ instrument refresh
@@ -304,12 +316,14 @@ public class CockpitHUDSystem extends EntitySystem implements Disposable {
     private void onShow(CockpitHUDShowEvent event) {
         shipEntity = event.ship;
         visible = true;
+        if (orbitHUDPanel != null) orbitHUDPanel.setShipEntity(shipEntity);
         applyVisibility();
     }
 
     private void onHide(CockpitHUDHideEvent event) {
         shipEntity = null;
         visible = false;
+        if (orbitHUDPanel != null) orbitHUDPanel.setShipEntity(null);
         applyVisibility();
     }
 

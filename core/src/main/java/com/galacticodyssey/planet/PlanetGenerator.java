@@ -1,6 +1,7 @@
 package com.galacticodyssey.planet;
 
 import com.galacticodyssey.galaxy.*;
+import com.galacticodyssey.planet.rings.RingSystemGenerator;
 import java.util.Random;
 
 public final class PlanetGenerator {
@@ -44,7 +45,18 @@ public final class PlanetGenerator {
             planet.moons.add(new Moon(moonSeed, moonType, moonRadius, moonMass));
         }
 
+        RingSystemGenerator ringGen = new RingSystemGenerator();
+        planet.rings = ringGen.generate(planet, estimatePlanetAge(system), rng);
+
         return planet;
+    }
+
+    private float estimatePlanetAge(StarSystem system) {
+        // StarSystem.age is in Gyr; use it directly when available (> 0)
+        if (system.age > 0f) return system.age;
+        // Fallback: bright stars are typically younger; dim stars older
+        // luminosity ~1 → solar analogue ~4.5 Gyr; scale inversely
+        return Math.max(0.5f, Math.min(10f, 4.5f / (float) Math.sqrt(Math.max(0.01f, system.luminosity))));
     }
 
     private PlanetType rollPlanetType(Random rng, OrbitalZone zone) {

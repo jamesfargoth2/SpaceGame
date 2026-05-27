@@ -84,6 +84,9 @@ import com.galacticodyssey.ship.weapons.systems.ShipWeaponPilotSystem;
 import com.galacticodyssey.ship.weapons.systems.ShipWeaponSystem;
 import com.galacticodyssey.ship.weapons.systems.TargetingSystem;
 import com.galacticodyssey.ship.weapons.systems.TurretTrackingSystem;
+import com.galacticodyssey.galaxy.KeplerianOrbitSystem;
+import com.galacticodyssey.ship.systems.RelativisticDopplerSystem;
+import com.galacticodyssey.ship.systems.VelocityTimeDilationSystem;
 import com.galacticodyssey.ui.CockpitHUDSystem;
 import com.galacticodyssey.ship.flooding.systems.FloodingHudSystem;
 import com.galacticodyssey.ship.flooding.systems.ShipFloodingSystem;
@@ -110,7 +113,11 @@ import com.galacticodyssey.economy.systems.PlanetaryStockSystem;
 import com.galacticodyssey.economy.systems.PricingSystem;
 import com.galacticodyssey.planet.BiomeMap;
 import com.galacticodyssey.planet.Planet;
+import com.galacticodyssey.planet.terrain.DustSystem;
 import com.galacticodyssey.planet.terrain.PlanetTerrainSystem;
+import com.galacticodyssey.planet.terrain.SeismicSystem;
+import com.galacticodyssey.planet.terrain.SurfaceAnchorSystem;
+import com.galacticodyssey.planet.terrain.SurfaceVehicleSystem;
 import com.galacticodyssey.planet.terrain.TerrainChunk;
 import com.galacticodyssey.audio.AudioSystem;
 import com.galacticodyssey.vfx.systems.ParticleRenderSystem;
@@ -157,6 +164,7 @@ public class GameWorld implements Disposable {
     private ShipClassRegistry shipClassRegistry;
     private CockpitModelSystem cockpitModelSystem;
     private CockpitHUDSystem cockpitHUDSystem;
+    private KeplerianOrbitSystem keplerianOrbitSystem;
     private VFXRegistry vfxRegistry;
     private ParticlePoolComponent particlePool;
     private CommodityRegistry commodityRegistry;
@@ -165,6 +173,10 @@ public class GameWorld implements Disposable {
     private PlanetaryEconomyManager planetaryEconomyManager;
     private PlanetTerrainSystem planetTerrainSystem;
     private RadialGravitySystem radialGravitySystem;
+    private SurfaceVehicleSystem surfaceVehicleSystem;
+    private DustSystem dustSystem;
+    private SeismicSystem seismicSystem;
+    private SurfaceAnchorSystem surfaceAnchorSystem;
     private AudioSystem audioSystem;
     private RealTimeSkillSystem realTimeSkillSystem;
     private WaveSystem waveSystem;
@@ -203,6 +215,17 @@ public class GameWorld implements Disposable {
         engine.addSystem(radialGravitySystem);
         playerMovementSystem.setPlanetCenter(planetCenter);
 
+        // Surface vehicle physics — pass null for GravitySystem: RadialGravitySystem
+        // already applies gravity forces directly; SurfaceVehicleSystem falls back to 9.81 m/s².
+        surfaceVehicleSystem = new SurfaceVehicleSystem(null, eventBus);
+        dustSystem = new DustSystem(eventBus);
+        seismicSystem = new SeismicSystem(eventBus);
+        surfaceAnchorSystem = new SurfaceAnchorSystem(eventBus);
+        engine.addSystem(surfaceVehicleSystem);
+        engine.addSystem(dustSystem);
+        engine.addSystem(seismicSystem);
+        engine.addSystem(surfaceAnchorSystem);
+
         realTimeSkillSystem = new RealTimeSkillSystem(eventBus);
         engine.addSystem(realTimeSkillSystem);
         engine.addSystem(playerInputSystem);
@@ -218,6 +241,8 @@ public class GameWorld implements Disposable {
 
         ShipFlightSystem shipFlightSystem = new ShipFlightSystem();
         engine.addSystem(shipFlightSystem);
+        engine.addSystem(new VelocityTimeDilationSystem(eventBus));
+        engine.addSystem(new RelativisticDopplerSystem(eventBus));
 
         PilotTransitionSystem pilotTransitionSystem = new PilotTransitionSystem(eventBus);
         engine.addSystem(pilotTransitionSystem);
@@ -295,6 +320,9 @@ public class GameWorld implements Disposable {
 
         cockpitHUDSystem = new CockpitHUDSystem(eventBus);
         engine.addSystem(cockpitHUDSystem);
+
+        keplerianOrbitSystem = new KeplerianOrbitSystem(eventBus);
+        engine.addSystem(keplerianOrbitSystem);
 
         shipClassRegistry = new ShipClassRegistry();
         if (com.badlogic.gdx.Gdx.files != null) {
@@ -624,6 +652,10 @@ public class GameWorld implements Disposable {
 
     public DebugHudSystem getDebugHudSystem() {
         return debugHudSystem;
+    }
+
+    public KeplerianOrbitSystem getKeplerianOrbitSystem() {
+        return keplerianOrbitSystem;
     }
 
     @Override
