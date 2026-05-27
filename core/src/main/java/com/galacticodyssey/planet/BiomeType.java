@@ -18,7 +18,8 @@ public enum BiomeType {
     BADLANDS(0.45f, 0.7f),
     VOLCANIC(0.6f, 0.9f),
     OCEAN(0.05f, 0.1f),
-    LAKE(0.05f, 0.05f);
+    LAKE(0.05f, 0.05f),
+    RIVER(0.02f, 0.0f);
 
     public final float amplitude;
     public final float ridgeMix;

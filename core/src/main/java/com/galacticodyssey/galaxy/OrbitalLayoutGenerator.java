@@ -12,6 +12,12 @@ public final class OrbitalLayoutGenerator {
             system.spectralClass.planetCountMin,
             system.spectralClass.planetCountMax + 1);
 
+        // Binary companions truncate the inner orbit limit
+        float innerLimit = 0f;
+        if (system.companion != null) {
+            innerLimit = system.companion.separationAU * 0.33f;
+        }
+
         float baseAU = 0.2f + rng.nextFloat() * 0.2f;
         List<OrbitalSlot> slots = new ArrayList<>(planetCount);
 
@@ -25,6 +31,7 @@ public final class OrbitalLayoutGenerator {
             } else {
                 radius = prevRadius * step * jitter;
             }
+            radius = Math.max(radius, innerLimit);
             float eccentricity = rng.nextFloat() * 0.3f;
             OrbitalZone zone = classifyZone(radius, system);
 

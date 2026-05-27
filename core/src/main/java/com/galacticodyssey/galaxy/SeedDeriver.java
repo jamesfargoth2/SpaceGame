@@ -21,6 +21,10 @@ public final class SeedDeriver {
     public static final long ECONOMY_DOMAIN        = 0x3F56B0C4FCA1AF8BL;
     public static final long CRATER_DOMAIN         = 0xAB54A98CEB1C3F47L;
     public static final long NPC_DOMAIN            = 0xF2A84C39E71B5D06L;
+    public static final long CLIMATE_DOMAIN        = 0xE3A1B5C72D4F8901L;
+    public static final long DRAINAGE_DOMAIN       = 0x4B7D9E2F1A6C3508L;
+    public static final long TECTONIC_DOMAIN       = 0x8F2C6A4E1D5B7903L;
+    public static final long EROSION_DOMAIN        = 0x5E1D3A7B9C2F4680L;
 
     private SeedDeriver() {}
 

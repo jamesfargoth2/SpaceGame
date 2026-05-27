@@ -1,12 +1,18 @@
 package com.galacticodyssey.planet;
 
 import com.galacticodyssey.galaxy.SeedDeriver;
+import com.galacticodyssey.planet.climate.ClimateData;
+import com.galacticodyssey.planet.climate.ClimateSimulator;
 import java.util.EnumSet;
 import java.util.Random;
 
 public final class BiomeMapper {
 
     public BiomeMap generate(Planet planet, Atmosphere atmosphere) {
+        return generate(planet, atmosphere, (lon, lat) -> 0f);
+    }
+
+    public BiomeMap generate(Planet planet, Atmosphere atmosphere, HeightSampler heightSampler) {
         long biomeSeed = SeedDeriver.forId(
             SeedDeriver.domain(planet.seed, SeedDeriver.BIOME_DOMAIN), 0);
         Random rng = new Random(biomeSeed);
@@ -17,7 +23,11 @@ public final class BiomeMapper {
         float surfaceTemp = atmosphere != null ? atmosphere.surfaceTemp : 200f;
         EnumSet<BiomeType> allowed = allowedBiomesForType(planet.type);
 
-        return new BiomeMap(biomeSeed, seaLevel, snowLine, baseMoisture, surfaceTemp, allowed);
+        long climateSeed = SeedDeriver.domain(biomeSeed, SeedDeriver.CLIMATE_DOMAIN);
+        ClimateSimulator simulator = new ClimateSimulator(climateSeed);
+        ClimateData climate = simulator.simulate(planet, atmosphere, heightSampler);
+
+        return new BiomeMap(biomeSeed, seaLevel, snowLine, baseMoisture, surfaceTemp, allowed, climate);
     }
 
     private float moistureFromType(PlanetType type, Random rng) {

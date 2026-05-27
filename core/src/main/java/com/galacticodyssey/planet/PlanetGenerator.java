@@ -18,9 +18,15 @@ public final class PlanetGenerator {
 
         PlanetType type = rollPlanetType(rng, slot.zone);
         float radius = RngUtil.range(rng, type.radiusMin, type.radiusMax);
-        float mass = radius * radius * RngUtil.range(rng, 0.7f, 1.3f);
-        float dayLength = RngUtil.range(rng, 5f, 2000f);
-        float axialTilt = rng.nextFloat() * 45f;
+        float density = densityForType(type, rng);
+        float mass = density * radius * radius * radius;
+
+        float basePeriod = 24f; // Earth hours baseline
+        float dayLength = basePeriod / (float) Math.sqrt(mass) * RngUtil.range(rng, 0.5f, 2.0f);
+        dayLength = Math.max(2f, Math.min(2000f, dayLength));
+
+        float axialTilt = Math.abs((float) (rng.nextGaussian() * 12.0));
+        axialTilt = Math.min(axialTilt, 90f);
 
         boolean tidallyLocked = false;
         if (slot.zone == OrbitalZone.INNER && system.spectralClass == SpectralClass.M) {
@@ -30,7 +36,7 @@ public final class PlanetGenerator {
         }
         if (tidallyLocked) dayLength = slot.orbitalPeriod * 24f * 365.25f;
 
-        Planet planet = new Planet(planetSeed, type, radius, mass, dayLength, axialTilt, tidallyLocked);
+        Planet planet = new Planet(planetSeed, type, radius, mass, density, dayLength, axialTilt, tidallyLocked);
 
         int moonCount = (type.moonMax > type.moonMin)
             ? RngUtil.range(rng, type.moonMin, type.moonMax + 1)
@@ -51,11 +57,26 @@ public final class PlanetGenerator {
         return planet;
     }
 
+    private float densityForType(PlanetType type, Random rng) {
+        return switch (type) {
+            case MOLTEN -> RngUtil.range(rng, 5.0f, 8.0f);
+            case TERRAN -> RngUtil.range(rng, 4.5f, 6.0f);
+            case OCEAN -> RngUtil.range(rng, 3.5f, 5.5f);
+            case ARID -> RngUtil.range(rng, 4.0f, 5.5f);
+            case TOXIC -> RngUtil.range(rng, 4.5f, 6.5f);
+            case BARREN -> RngUtil.range(rng, 3.0f, 5.0f);
+            case ICE_WORLD -> RngUtil.range(rng, 1.5f, 3.0f);
+            case GAS_GIANT -> RngUtil.range(rng, 0.7f, 1.6f);
+            case ICE_GIANT -> RngUtil.range(rng, 1.2f, 2.0f);
+            case DWARF -> RngUtil.range(rng, 2.0f, 4.0f);
+        };
+    }
+
     private float estimatePlanetAge(StarSystem system) {
         // StarSystem.age is in Gyr; use it directly when available (> 0)
         if (system.age > 0f) return system.age;
         // Fallback: bright stars are typically younger; dim stars older
-        // luminosity ~1 → solar analogue ~4.5 Gyr; scale inversely
+        // luminosity ~1 -> solar analogue ~4.5 Gyr; scale inversely
         return Math.max(0.5f, Math.min(10f, 4.5f / (float) Math.sqrt(Math.max(0.01f, system.luminosity))));
     }
 
