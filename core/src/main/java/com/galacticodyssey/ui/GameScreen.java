@@ -149,8 +149,14 @@ public class GameScreen implements Screen {
 
         gameWorld.initializeSystems(camera);
 
-        populatedWorld = WorldPopulator.populate(
-            heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, terrainSeed);
+        if (session != null && session.biomeMap != null) {
+            populatedWorld = WorldPopulator.populate(
+                heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, terrainSeed,
+                session.biomeMap, session.spawnLat, session.spawnLon);
+        } else {
+            populatedWorld = WorldPopulator.populate(
+                heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, terrainSeed);
+        }
 
         createTerrainMesh();
         createTerrainPhysics();

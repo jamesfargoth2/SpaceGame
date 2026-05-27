@@ -40,7 +40,7 @@ class GalaxyGenerationPipelineTest {
     void pipelineLogsAllFivePhases() {
         GameSession s = session(42L);
         GalaxyGenerationPipeline.run(s);
-        assertEquals(5, s.log.size(), "Expected exactly 5 log entries");
+        assertEquals(6, s.log.size(), "Expected exactly 6 log entries");
     }
 
     @Test

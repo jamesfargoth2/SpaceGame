@@ -4,6 +4,9 @@ import com.badlogic.gdx.math.Vector3;
 import com.galacticodyssey.data.GameSession;
 import com.galacticodyssey.data.TerrainGenerator;
 import com.galacticodyssey.data.names.SpaceNameGenerator;
+import com.galacticodyssey.planet.BiomeMap;
+import com.galacticodyssey.planet.BiomeMapper;
+import com.galacticodyssey.planet.HeightSampler;
 import com.galacticodyssey.planet.Planet;
 import com.galacticodyssey.planet.PlanetGenerator;
 import com.galacticodyssey.planet.PlanetType;
@@ -94,6 +97,18 @@ public final class GalaxyGenerationPipeline {
             ^ Long.reverse(Float.floatToRawIntBits(planet.mass))
             ^ Float.floatToRawIntBits(planet.dayLength);
         session.log.add("Surveying surface of " + planetName + "…");
+
+        // Phase 4b — climate simulation and biome map
+        GalaxyNoise planetNoise = new GalaxyNoise(planet.seed);
+        HeightSampler heightSampler = (lon, lat) ->
+            planetNoise.fbm(lon * 2f, lat * 2f, 4, 0.5f, 2.0f);
+        BiomeMapper biomeMapper = new BiomeMapper();
+        session.biomeMap = biomeMapper.generate(planet, planet.atmosphere, heightSampler);
+
+        Random spawnRng = new Random(session.terrainSeed);
+        session.spawnLat = (spawnRng.nextFloat() - 0.5f) * 1.2f;
+        session.spawnLon = (spawnRng.nextFloat() - 0.5f) * 2f * (float) Math.PI;
+        session.log.add("Climate patterns analyzed for " + planetName + "…");
 
         // Phase 5 — spawn coordinates
         float[] hmap = TerrainGenerator.generateHeightmap(

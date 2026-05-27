@@ -15,6 +15,7 @@ import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Disposable;
+import com.galacticodyssey.planet.BiomeMap;
 import com.galacticodyssey.planet.BiomeType;
 import com.galacticodyssey.planet.WhittakerGrid;
 
@@ -80,12 +81,15 @@ public final class WorldPopulator {
     public static PopulatedWorld populate(
             float[] heightmap, int vertsX, int vertsZ,
             float worldWidth, float worldDepth, long seed) {
+        return populate(heightmap, vertsX, vertsZ, worldWidth, worldDepth, seed, null, 0f, 0f);
+    }
+
+    public static PopulatedWorld populate(
+            float[] heightmap, int vertsX, int vertsZ,
+            float worldWidth, float worldDepth, long seed,
+            BiomeMap biomeMap, float spawnLat, float spawnLon) {
 
         Random rng = new Random(seed + 7919L);
-        float cellW = worldWidth / (vertsX - 1);
-        float cellD = worldDepth / (vertsZ - 1);
-        float halfW = worldWidth / 2f;
-        float halfD = worldDepth / 2f;
 
         float minH = Float.MAX_VALUE, maxH = -Float.MAX_VALUE;
         for (float h : heightmap) {
@@ -96,7 +100,13 @@ public final class WorldPopulator {
         float seaLevel = minH + heightRange * 0.25f;
 
         int[] noisePerm = createPermutation(new Random(seed + 31337L));
-        BiomeType[] biomeGrid = classifyBiomes(heightmap, vertsX, vertsZ, minH, heightRange, seaLevel, seed);
+        BiomeType[] biomeGrid;
+        if (biomeMap != null) {
+            biomeGrid = classifyBiomesFromClimate(heightmap, vertsX, vertsZ, minH,
+                heightRange, seaLevel, seed, biomeMap, spawnLat, spawnLon);
+        } else {
+            biomeGrid = classifyBiomes(heightmap, vertsX, vertsZ, minH, heightRange, seaLevel, seed);
+        }
         PopulatedWorld world = new PopulatedWorld(biomeGrid, noisePerm);
         world.seaLevel = seaLevel;
 
@@ -131,6 +141,47 @@ public final class WorldPopulator {
                 float tempK = 290f - heightFrac * 60f + noise2D(perm, nx * 3f, nz * 3f) * 15f;
                 float moisture = 0.5f + noise2D(perm, nx * 4f + 50f, nz * 4f + 50f) * 0.4f;
                 moisture = Math.max(0f, Math.min(1f, moisture));
+
+                if (h < seaLevel) {
+                    grid[idx] = tempK > 273f ? BiomeType.OCEAN : BiomeType.ICE_SHEET;
+                } else if (heightFrac > 0.85f) {
+                    grid[idx] = BiomeType.ICE_FIELD;
+                } else {
+                    grid[idx] = WhittakerGrid.classify(tempK, moisture);
+                }
+            }
+        }
+        return grid;
+    }
+
+    private static BiomeType[] classifyBiomesFromClimate(
+            float[] heightmap, int vertsX, int vertsZ,
+            float minH, float heightRange, float seaLevel, long seed,
+            BiomeMap biomeMap, float spawnLat, float spawnLon) {
+        BiomeType[] grid = new BiomeType[vertsX * vertsZ];
+        int[] perm = createPermutation(new Random(seed + 31337L));
+
+        float patchExtent = 0.15f;
+
+        for (int z = 0; z < vertsZ; z++) {
+            for (int x = 0; x < vertsX; x++) {
+                int idx = z * vertsX + x;
+                float h = heightmap[idx];
+                float heightFrac = (h - minH) / heightRange;
+
+                float lat = spawnLat + ((float) z / (vertsZ - 1) - 0.5f) * patchExtent * 2f;
+                float lon = spawnLon + ((float) x / (vertsX - 1) - 0.5f) * patchExtent * 2f;
+
+                float baseTemp = biomeMap.getTemperature(lat, lon);
+                float baseMoisture = biomeMap.getMoisture(lat, lon);
+
+                float nx = x / (float) vertsX;
+                float nz = z / (float) vertsZ;
+                float tempNoise = noise2D(perm, nx * 3f, nz * 3f) * 10f;
+                float moistNoise = noise2D(perm, nx * 4f + 50f, nz * 4f + 50f) * 0.15f;
+
+                float tempK = baseTemp + tempNoise - heightFrac * 20f;
+                float moisture = Math.max(0f, Math.min(1f, baseMoisture + moistNoise));
 
                 if (h < seaLevel) {
                     grid[idx] = tempK > 273f ? BiomeType.OCEAN : BiomeType.ICE_SHEET;
@@ -247,6 +298,7 @@ public final class WorldPopulator {
             case BADLANDS:         return new float[]{0.62f, 0.35f, 0.22f};
             case VOLCANIC:         return new float[]{0.25f, 0.15f, 0.12f};
             case LAKE:             return new float[]{0.10f, 0.25f, 0.50f};
+            case RIVER:            return new float[]{0.08f, 0.22f, 0.48f};
             default:               return new float[]{0.30f, 0.30f, 0.30f};
         }
     }

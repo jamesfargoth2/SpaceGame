@@ -6,6 +6,7 @@ import com.galacticodyssey.galaxy.GalaxySize;
 import com.galacticodyssey.galaxy.GalaxyType;
 import com.galacticodyssey.galaxy.StarSystem;
 import com.galacticodyssey.galaxy.StartingRegion;
+import com.galacticodyssey.planet.BiomeMap;
 import com.galacticodyssey.planet.Planet;
 
 import java.util.ArrayList;
@@ -26,6 +27,9 @@ public class GameSession {
     public volatile StarSystem startingSystem;
     public volatile Planet startingPlanet;
     public volatile long terrainSeed;
+    public volatile BiomeMap biomeMap;
+    public volatile float spawnLat;
+    public volatile float spawnLon;
     public volatile Vector3 playerSpawnPos;
     public volatile Vector3 shipSpawnPos;
 
