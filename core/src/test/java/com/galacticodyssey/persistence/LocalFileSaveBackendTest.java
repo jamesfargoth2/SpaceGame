@@ -60,4 +60,33 @@ class LocalFileSaveBackendTest {
         backend.deleteSave("doomed");
         assertEquals(0, backend.listSaves().size());
     }
+
+    @Test
+    void copySaveCreatesIdenticalCopy() {
+        LocalFileSaveBackend backend = new LocalFileSaveBackend(tempDir);
+
+        SaveBundle bundle = new SaveBundle();
+        bundle.manifest = new ManifestData("original", 42L, UUID.randomUUID(), UUID.randomUUID());
+        bundle.playerSnapshot = new EntitySnapshot(bundle.manifest.playerEntityId);
+        backend.writeSave("original", bundle);
+
+        backend.copySave("original", "copy-of-original");
+
+        SaveBundle copied = backend.readSave("copy-of-original");
+        assertEquals("original", copied.manifest.saveName);
+        assertTrue(new File(tempDir, "copy-of-original").exists());
+    }
+
+    @Test
+    void readManifestOnlyReturnsManifestWithoutFullLoad() {
+        LocalFileSaveBackend backend = new LocalFileSaveBackend(tempDir);
+
+        SaveBundle bundle = new SaveBundle();
+        bundle.manifest = new ManifestData("quick-read", 42L, UUID.randomUUID(), UUID.randomUUID());
+        bundle.playerSnapshot = new EntitySnapshot(bundle.manifest.playerEntityId);
+        backend.writeSave("quick-read", bundle);
+
+        ManifestData manifest = backend.readManifestOnly("quick-read");
+        assertEquals("quick-read", manifest.saveName);
+    }
 }

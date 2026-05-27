@@ -100,6 +100,23 @@ public class SaveReader {
         return bundle;
     }
 
+    /**
+     * Reads only the manifest from a save folder's {@code manifest.bin} file,
+     * without loading any other save data.
+     *
+     * @param manifestFile the {@code manifest.bin} file to read
+     * @return the deserialized {@link ManifestData}
+     * @throws RuntimeException wrapping any I/O or deserialization failure
+     */
+    public ManifestData readManifest(File manifestFile) {
+        try (com.esotericsoftware.kryo.io.Input input =
+                 new com.esotericsoftware.kryo.io.Input(new java.io.FileInputStream(manifestFile))) {
+            return kryo.readObject(input, ManifestData.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to read manifest: " + manifestFile, e);
+        }
+    }
+
     // -------------------------------------------------------------------------
     // Internal helpers
     // -------------------------------------------------------------------------
