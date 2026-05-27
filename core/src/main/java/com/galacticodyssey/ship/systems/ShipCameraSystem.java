@@ -12,8 +12,8 @@ import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 import com.galacticodyssey.core.components.PlayerTagComponent;
 import com.galacticodyssey.core.components.TransformComponent;
-import com.galacticodyssey.player.components.PlayerInputComponent;
 import com.galacticodyssey.player.components.PlayerStateComponent;
+import com.galacticodyssey.ship.components.ShipFlightInputComponent;
 import com.galacticodyssey.player.components.PlayerStateComponent.PlayerMode;
 import com.galacticodyssey.ship.components.PilotSeatComponent;
 import com.galacticodyssey.ship.components.ShipDataComponent;
@@ -31,8 +31,8 @@ public class ShipCameraSystem extends EntitySystem {
         ComponentMapper.getFor(PlayerStateComponent.class);
     private final ComponentMapper<TransformComponent> transformMapper =
         ComponentMapper.getFor(TransformComponent.class);
-    private final ComponentMapper<PlayerInputComponent> inputMapper =
-        ComponentMapper.getFor(PlayerInputComponent.class);
+    private final ComponentMapper<ShipFlightInputComponent> flightInputMapper =
+        ComponentMapper.getFor(ShipFlightInputComponent.class);
     private final ComponentMapper<ShipDataComponent> dataMapper =
         ComponentMapper.getFor(ShipDataComponent.class);
     private final ComponentMapper<PilotSeatComponent> seatMapper =
@@ -68,10 +68,10 @@ public class ShipCameraSystem extends EntitySystem {
         PlayerStateComponent state = stateMapper.get(player);
         if (state.currentMode != PlayerMode.PILOTING || state.currentShip == null) return;
 
-        PlayerInputComponent input = inputMapper.get(player);
-        if (input != null && input.cameraTogglePressed) {
+        ShipFlightInputComponent flightInput = flightInputMapper.get(player);
+        if (flightInput != null && flightInput.cameraTogglePressed) {
             cameraMode = (cameraMode == CameraMode.COCKPIT) ? CameraMode.CHASE : CameraMode.COCKPIT;
-            input.cameraTogglePressed = false;
+            flightInput.cameraTogglePressed = false;
         }
 
         Entity ship = state.currentShip;
