@@ -108,12 +108,17 @@ public class ShipFactory implements Disposable {
         HullGeometry    hull    = hullGenerator.generate(blueprint);
         InteriorLayout  layout  = interiorGenerator.generate(blueprint, hull);
 
+        // Adjust Y so the hull bottom sits at the requested y (hull extends below center)
+        Vector3 bboxMin = new Vector3();
+        hull.boundingBox.getMin(bboxMin);
+        float adjustedY = y - bboxMin.y;
+
         // ----- 3. Assemble entity -----
         Entity entity = new Entity();
 
         // Transform
         TransformComponent transform = new TransformComponent();
-        transform.position.set(x, y, z);
+        transform.position.set(x, adjustedY, z);
         entity.add(transform);
 
         // Ship data (deferred mesh creation: hullGeometry stored for GameScreen)
@@ -158,13 +163,14 @@ public class ShipFactory implements Disposable {
         // Entry / airlock point
         ShipEntryPointComponent entryPoint = new ShipEntryPointComponent();
         entryPoint.worldPosition.set(x + layout.airlockPosition.x,
-                                     y + layout.airlockPosition.y,
+                                     adjustedY + layout.airlockPosition.y,
                                      z + layout.airlockPosition.z);
         entryPoint.interiorPosition.set(layout.airlockPosition);
+        entryPoint.localExteriorPosition.set(0f, bboxMin.y - 0.5f, 0f);
         entity.add(entryPoint);
 
         // Exterior physics body (dynamic, zero-gravity so it hovers in place until piloted)
-        PhysicsBodyComponent physicsBody = buildExteriorPhysicsBody(hull, mass, x, y, z);
+        PhysicsBodyComponent physicsBody = buildExteriorPhysicsBody(hull, mass, x, adjustedY, z);
         entity.add(physicsBody);
 
         // ----- 4. Register with engine -----
@@ -312,8 +318,11 @@ public class ShipFactory implements Disposable {
         body.setWorldTransform(worldTransform);
         body.setGravity(new Vector3(0, 0, 0));
         body.setDamping(0.8f, 0.9f);
+        body.setActivationState(4); // DISABLE_DEACTIVATION
 
-        physics.getDynamicsWorld().addRigidBody(body);
+        short shipGroup = 4;
+        short shipMask = (short)(0xFFFF & ~1);
+        physics.getDynamicsWorld().addRigidBody(body, shipGroup, shipMask);
         physics.addManagedBody(body);
 
         PhysicsBodyComponent comp = new PhysicsBodyComponent();

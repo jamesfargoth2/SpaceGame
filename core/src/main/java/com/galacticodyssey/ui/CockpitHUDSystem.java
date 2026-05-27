@@ -145,15 +145,15 @@ public class CockpitHUDSystem extends EntitySystem implements Disposable {
             }
         }
 
-        if (!visible || shipEntity == null) {
-            stage.act(deltaTime);
-            stage.draw();
-            return;
-        }
+        stage.act(deltaTime);
+
+        if (!visible || shipEntity == null) return;
 
         refreshInstruments();
+    }
 
-        stage.act(deltaTime);
+    public void render(float delta) {
+        if (stage == null) return;
         stage.draw();
     }
 

@@ -15,15 +15,20 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.galacticodyssey.core.CoordinateManager;
+import com.galacticodyssey.core.EventBus;
 import com.galacticodyssey.core.components.PlayerTagComponent;
 import com.galacticodyssey.core.components.TransformComponent;
 import com.galacticodyssey.core.components.PhysicsBodyComponent;
+import com.galacticodyssey.core.events.InteractionPromptEvent;
 import com.galacticodyssey.player.components.MovementStateComponent;
 import com.galacticodyssey.player.components.PlayerStateComponent;
 
 public class DebugHudSystem extends EntitySystem implements Disposable {
 
     private final CoordinateManager coordinateManager;
+
+    private String pendingPrompt = "";
+    private boolean promptVisible = false;
 
     private SpriteBatch batch;
     private Stage stage;
@@ -37,14 +42,21 @@ public class DebugHudSystem extends EntitySystem implements Disposable {
     private Label fpsLabel;
     private Label modeLabel;
     private Label shipSpeedLabel;
+    private Label promptLabel;
+    private Table debugTable;
+    private BitmapFont promptFont;
 
     private boolean visible = true;
 
     private ImmutableArray<Entity> playerEntities;
 
-    public DebugHudSystem(CoordinateManager coordinateManager) {
+    public DebugHudSystem(CoordinateManager coordinateManager, EventBus eventBus) {
         super(10);
         this.coordinateManager = coordinateManager;
+        eventBus.subscribe(InteractionPromptEvent.class, e -> {
+            pendingPrompt = e.promptText;
+            promptVisible = e.visible;
+        });
     }
 
     @Override
@@ -61,10 +73,10 @@ public class DebugHudSystem extends EntitySystem implements Disposable {
 
         Label.LabelStyle style = new Label.LabelStyle(font, Color.WHITE);
 
-        Table table = new Table();
-        table.top().left();
-        table.setFillParent(true);
-        table.pad(10);
+        debugTable = new Table();
+        debugTable.top().left();
+        debugTable.setFillParent(true);
+        debugTable.pad(10);
 
         galaxyPosLabel = new Label("Galaxy: -", style);
         localPosLabel = new Label("Local: -", style);
@@ -76,24 +88,40 @@ public class DebugHudSystem extends EntitySystem implements Disposable {
         modeLabel = new Label("Mode: -", style);
         shipSpeedLabel = new Label("Ship: -", style);
 
-        table.add(fpsLabel).left().row();
-        table.add(modeLabel).left().row();
-        table.add(shipSpeedLabel).left().row();
-        table.add(galaxyPosLabel).left().row();
-        table.add(localPosLabel).left().row();
-        table.add(velocityLabel).left().row();
-        table.add(groundLabel).left().row();
-        table.add(stateLabel).left().row();
-        table.add(staminaLabel).left().row();
+        debugTable.add(fpsLabel).left().row();
+        debugTable.add(modeLabel).left().row();
+        debugTable.add(shipSpeedLabel).left().row();
+        debugTable.add(galaxyPosLabel).left().row();
+        debugTable.add(localPosLabel).left().row();
+        debugTable.add(velocityLabel).left().row();
+        debugTable.add(groundLabel).left().row();
+        debugTable.add(stateLabel).left().row();
+        debugTable.add(staminaLabel).left().row();
 
-        stage.addActor(table);
+        stage.addActor(debugTable);
+
+        promptFont = new BitmapFont();
+        promptFont.getData().setScale(1.5f);
+        promptLabel = new Label("", new Label.LabelStyle(promptFont, Color.YELLOW));
+        Table promptTable = new Table();
+        promptTable.setFillParent(true);
+        promptTable.center().bottom();
+        promptTable.padBottom(120);
+        promptTable.add(promptLabel).center();
+        stage.addActor(promptTable);
     }
 
     @Override
     public void update(float deltaTime) {
         if (Gdx.input.isKeyJustPressed(Input.Keys.F3)) {
             visible = !visible;
+            if (debugTable != null) debugTable.setVisible(visible);
         }
+
+        if (promptLabel != null) {
+            promptLabel.setText(promptVisible ? pendingPrompt : "");
+        }
+
         if (!visible) return;
 
         if (playerEntities.size() > 0) {
@@ -140,7 +168,7 @@ public class DebugHudSystem extends EntitySystem implements Disposable {
     }
 
     public void render(float delta) {
-        if (!visible) return;
+        if (stage == null) return;
         stage.act(delta);
         stage.draw();
         Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
@@ -154,5 +182,6 @@ public class DebugHudSystem extends EntitySystem implements Disposable {
     public void dispose() {
         if (stage != null) stage.dispose();
         if (font != null) font.dispose();
+        if (promptFont != null) promptFont.dispose();
     }
 }

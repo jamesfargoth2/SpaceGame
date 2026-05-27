@@ -176,7 +176,7 @@ public class GameScreen implements Screen {
                 session.shipSpawnPos.x, shipY, session.shipSpawnPos.z);
             shipEntities.add(starterShip);
         } else {
-            float smallX = 10f, smallZ = 10f;
+            float smallX = 5f, smallZ = 5f;
             float smallY = TerrainGenerator.getHeightAt(
                 heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, smallX, smallZ) + 2f;
             Entity smallShip = shipFactory.createShip(42L, ShipSizeClass.SMALL, smallX, smallY, smallZ);
@@ -659,6 +659,7 @@ public class GameScreen implements Screen {
         renderWorldObjects();
         renderShips();
 
+        gameWorld.getCockpitHUDSystem().render(delta);
         gameWorld.getDebugHudSystem().render(delta);
 
         if (paused) {
