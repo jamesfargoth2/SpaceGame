@@ -16,7 +16,8 @@ public class ShipWeaponRegistry {
     private final Map<String, List<HardpointTemplate>> hardpointTemplates = new HashMap<>();
 
     public void loadWeapons(String path) {
-        JsonValue root = new JsonReader().parse(Gdx.files.internal(path));
+        JsonReader reader = new JsonReader();
+        JsonValue root = reader.parse(Gdx.files.internal(path));
         for (JsonValue entry = root.child; entry != null; entry = entry.next) {
             ShipWeaponData data = new ShipWeaponData();
             data.id = entry.getString("id");
@@ -41,7 +42,8 @@ public class ShipWeaponRegistry {
     }
 
     public void loadHardpointTemplates(String path) {
-        JsonValue root = new JsonReader().parse(Gdx.files.internal(path));
+        JsonReader reader = new JsonReader();
+        JsonValue root = reader.parse(Gdx.files.internal(path));
         for (JsonValue ship = root.child; ship != null; ship = ship.next) {
             String shipId = ship.getString("shipClass");
             List<HardpointTemplate> templates = new ArrayList<>();

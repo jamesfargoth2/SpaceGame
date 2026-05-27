@@ -25,8 +25,19 @@ public final class TerrainGenerator {
             for (int x = 0; x < vertsX; x++) {
                 float wx = x * cellWidth - halfWidth;
                 float wz = z * cellDepth - halfDepth;
-                float h = noise2D(perm, wx * 0.005f, wz * 0.005f) * 30f
-                        + noise2D(perm, wx * 0.02f + 100f, wz * 0.02f + 100f) * 5f;
+
+                float continent = noise2D(perm, wx * 0.002f, wz * 0.002f) * 40f;
+                float hills = noise2D(perm, wx * 0.005f, wz * 0.005f) * 30f;
+                float detail = noise2D(perm, wx * 0.02f + 100f, wz * 0.02f + 100f) * 5f;
+                float fine = noise2D(perm, wx * 0.05f + 200f, wz * 0.05f + 200f) * 1.5f;
+
+                float ridgeNoise = Math.abs(noise2D(perm, wx * 0.008f + 50f, wz * 0.008f + 50f));
+                float mountains = ridgeNoise * ridgeNoise * 80f;
+
+                float river = noise2D(perm, wx * 0.003f + 300f, wz * 0.003f + 300f);
+                float riverCarve = Math.abs(river) < 0.04f ? -8f * (1f - Math.abs(river) / 0.04f) : 0f;
+
+                float h = continent + hills + detail + fine + mountains + riverCarve;
                 heights[z * vertsX + x] = h;
             }
         }

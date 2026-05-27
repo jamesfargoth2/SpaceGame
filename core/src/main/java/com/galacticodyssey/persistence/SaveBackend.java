@@ -7,4 +7,6 @@ public interface SaveBackend {
     SaveBundle readSave(String saveId);
     List<ManifestData> listSaves();
     void deleteSave(String saveId);
+    void copySave(String sourceId, String destId);
+    ManifestData readManifestOnly(String saveId);
 }

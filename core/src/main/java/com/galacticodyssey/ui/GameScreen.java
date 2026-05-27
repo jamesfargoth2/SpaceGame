@@ -60,6 +60,8 @@ import com.galacticodyssey.planet.terrain.CubeFace;
 import com.galacticodyssey.planet.terrain.CubeSphere;
 import com.galacticodyssey.planet.terrain.TerrainChunk;
 import com.galacticodyssey.planet.terrain.TerrainNoiseStack;
+import com.galacticodyssey.data.WorldPopulator;
+import com.galacticodyssey.planet.BiomeType;
 import com.galacticodyssey.ship.HullGeometry;
 import com.galacticodyssey.ship.ShipFactory;
 import com.galacticodyssey.ship.ShipSizeClass;
@@ -91,6 +93,17 @@ public class GameScreen implements Screen {
     private ModelBatch modelBatch;
     private Environment environment;
     private final Array<Disposable> disposables = new Array<>();
+
+    private WorldPopulator.PopulatedWorld populatedWorld;
+
+    private static final float FOG_DENSITY = 0.004f;
+    private float fogDensity = FOG_DENSITY;
+    private final Vector3 horizonColor = new Vector3(0.6f, 0.55f, 0.45f);
+    private final Vector3 sunDirection = new Vector3(-0.4f, -0.8f, -0.3f).nor();
+
+    private SkyRenderer skyRenderer;
+    private FogShaderProvider fogShaderProvider;
+    private ModelBatch fogModelBatch;
 
     private boolean paused;
     private Stage pauseStage;
@@ -153,6 +166,12 @@ public class GameScreen implements Screen {
         gameWorld.initAudio(game.getAudioManager());
         gameWorld.loadPlanet(planet, biomeMap);
 
+        populatedWorld = WorldPopulator.populate(
+            heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, TERRAIN_SEED);
+
+        createTerrainMesh();
+        createTerrainPhysics();
+        createScatterBoxes();
         Vector3 spawnDir = findLandSpawnDirection();
         float height = terrainNoise.heightAt(spawnDir, biomeMap, 0);
         float spawnAlt = planetRadius + height * planetRadius * 0.01f + 2f;
@@ -183,6 +202,10 @@ public class GameScreen implements Screen {
         environment.add(new DirectionalLight().set(0.8f, 0.8f, 0.75f, -0.4f, -0.8f, -0.3f));
 
         buildPauseMenu();
+
+        skyRenderer = new SkyRenderer();
+        fogShaderProvider = new FogShaderProvider();
+        fogModelBatch = new ModelBatch(fogShaderProvider);
 
         Gdx.app.log("DIAG", "initializeWorld complete: planetRadius=" + planetRadius
             + " spawnPos=" + camera.position
@@ -270,6 +293,13 @@ public class GameScreen implements Screen {
         root.add(title).padBottom(40).row();
 
         addPauseButton(root, "Resume", skin, audio, this::togglePause);
+        addPauseButton(root, "Save Game", skin, audio, () -> {
+            game.setScreen(new SaveScreen(game, game.getSaveBackend(), GameScreen.this));
+        });
+        addPauseButton(root, "Load Game", skin, audio, () -> {
+            game.setScreen(new LoadScreen(game, game.getSaveBackend(),
+                GameScreen.this, LoadScreen.Origin.PAUSE_MENU, GameScreen.this));
+        });
         addPauseButton(root, "Settings", skin, audio, () -> {
             game.setScreen(new SettingsScreen(game, this));
         });
@@ -315,6 +345,162 @@ public class GameScreen implements Screen {
         table.add(button).width(300).height(50).padBottom(12).row();
     }
 
+    private void createTerrainMesh() {
+        float[] normals = TerrainGenerator.computeNormals(
+            heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH);
+
+        int vertCount = TERRAIN_VERTS_X * TERRAIN_VERTS_Z;
+        float[] vertices = new float[vertCount * 10];
+
+        float cellW = TERRAIN_WIDTH / (TERRAIN_VERTS_X - 1);
+        float cellD = TERRAIN_DEPTH / (TERRAIN_VERTS_Z - 1);
+        float halfW = TERRAIN_WIDTH / 2f;
+        float halfD = TERRAIN_DEPTH / 2f;
+
+        float minH = Float.MAX_VALUE, maxH = -Float.MAX_VALUE;
+        for (float h : heightmap) {
+            minH = Math.min(minH, h);
+            maxH = Math.max(maxH, h);
+        }
+
+        for (int z = 0; z < TERRAIN_VERTS_Z; z++) {
+            for (int x = 0; x < TERRAIN_VERTS_X; x++) {
+                int idx = z * TERRAIN_VERTS_X + x;
+                int vi = idx * 10;
+                float h = heightmap[idx];
+
+                float wx = x * cellW - halfW;
+                float wz = z * cellD - halfD;
+
+                vertices[vi]     = wx;
+                vertices[vi + 1] = h;
+                vertices[vi + 2] = wz;
+
+                vertices[vi + 3] = normals[idx * 3];
+                vertices[vi + 4] = normals[idx * 3 + 1];
+                vertices[vi + 5] = normals[idx * 3 + 2];
+
+                float slope = 1f - normals[idx * 3 + 1];
+                float heightFrac = (h - minH) / (maxH - minH + 0.001f);
+
+                BiomeType biome = populatedWorld.biomeGrid[idx];
+                Color biomeCol = WorldPopulator.biomeColor(biome, heightFrac, slope,
+                    wx, wz, h, minH, maxH, populatedWorld.noisePerm,
+                    populatedWorld.biomeGrid, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, x, z);
+
+                vertices[vi + 6] = biomeCol.r;
+                vertices[vi + 7] = biomeCol.g;
+                vertices[vi + 8] = biomeCol.b;
+                vertices[vi + 9] = 1f;
+            }
+        }
+
+        int quadCount = (TERRAIN_VERTS_X - 1) * (TERRAIN_VERTS_Z - 1);
+        short[] indices = new short[quadCount * 6];
+        int ii = 0;
+        for (int z = 0; z < TERRAIN_VERTS_Z - 1; z++) {
+            for (int x = 0; x < TERRAIN_VERTS_X - 1; x++) {
+                short topLeft = (short) (z * TERRAIN_VERTS_X + x);
+                short topRight = (short) (topLeft + 1);
+                short botLeft = (short) ((z + 1) * TERRAIN_VERTS_X + x);
+                short botRight = (short) (botLeft + 1);
+
+                indices[ii++] = topLeft;
+                indices[ii++] = botLeft;
+                indices[ii++] = topRight;
+                indices[ii++] = topRight;
+                indices[ii++] = botLeft;
+                indices[ii++] = botRight;
+            }
+        }
+
+        terrainMesh = new Mesh(true, vertCount, indices.length,
+            new VertexAttribute(VertexAttributes.Usage.Position, 3, "a_position"),
+            new VertexAttribute(VertexAttributes.Usage.Normal, 3, "a_normal"),
+            new VertexAttribute(VertexAttributes.Usage.ColorUnpacked, 4, "a_color"));
+
+        terrainMesh.setVertices(vertices);
+        terrainMesh.setIndices(indices);
+    }
+
+    private void createTerrainPhysics() {
+        float cellW = TERRAIN_WIDTH / (TERRAIN_VERTS_X - 1);
+        float cellD = TERRAIN_DEPTH / (TERRAIN_VERTS_Z - 1);
+        float halfW = TERRAIN_WIDTH / 2f;
+        float halfD = TERRAIN_DEPTH / 2f;
+
+        btTriangleMesh triMesh = new btTriangleMesh();
+        disposables.add(triMesh);
+
+        Vector3 v0 = new Vector3(), v1 = new Vector3();
+        Vector3 v2 = new Vector3(), v3 = new Vector3();
+
+        for (int z = 0; z < TERRAIN_VERTS_Z - 1; z++) {
+            for (int x = 0; x < TERRAIN_VERTS_X - 1; x++) {
+                float x0 = x * cellW - halfW;
+                float x1 = (x + 1) * cellW - halfW;
+                float z0 = z * cellD - halfD;
+                float z1 = (z + 1) * cellD - halfD;
+
+                float h00 = heightmap[z * TERRAIN_VERTS_X + x];
+                float h10 = heightmap[z * TERRAIN_VERTS_X + x + 1];
+                float h01 = heightmap[(z + 1) * TERRAIN_VERTS_X + x];
+                float h11 = heightmap[(z + 1) * TERRAIN_VERTS_X + x + 1];
+
+                v0.set(x0, h00, z0);
+                v1.set(x0, h01, z1);
+                v2.set(x1, h10, z0);
+                v3.set(x1, h11, z1);
+
+                triMesh.addTriangle(v0, v1, v2);
+                triMesh.addTriangle(v2, v1, v3);
+            }
+        }
+
+        btBvhTriangleMeshShape terrainShape = new btBvhTriangleMeshShape(triMesh, true);
+        disposables.add(terrainShape);
+
+        btRigidBody.btRigidBodyConstructionInfo info =
+            new btRigidBody.btRigidBodyConstructionInfo(0f, null, terrainShape);
+        btRigidBody terrainBody = new btRigidBody(info);
+        terrainBody.setFriction(0.9f);
+        info.dispose();
+
+        gameWorld.addTerrainBody(terrainBody);
+    }
+
+    private void createScatterBoxes() {
+        Random rng = new Random(123L);
+        ModelBuilder modelBuilder = new ModelBuilder();
+        int attrs = VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal;
+
+        for (int i = 0; i < 15; i++) {
+            float halfExt = 0.5f + rng.nextFloat() * 1.0f;
+            float bx = (rng.nextFloat() - 0.5f) * TERRAIN_WIDTH * 0.6f;
+            float bz = (rng.nextFloat() - 0.5f) * TERRAIN_DEPTH * 0.6f;
+            float by = TerrainGenerator.getHeightAt(
+                heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, bx, bz)
+                + halfExt + 1f;
+            float mass = 50f + rng.nextFloat() * 150f;
+
+            Entity boxEntity = gameWorld.createDynamicBox(bx, by, bz, halfExt, mass);
+            boxEntities.add(boxEntity);
+
+            float r = 0.3f + rng.nextFloat() * 0.7f;
+            float g = 0.3f + rng.nextFloat() * 0.7f;
+            float b = 0.3f + rng.nextFloat() * 0.7f;
+
+            Model boxModel = modelBuilder.createBox(
+                halfExt * 2, halfExt * 2, halfExt * 2,
+                new Material(ColorAttribute.createDiffuse(new Color(r, g, b, 1f))), attrs);
+            disposables.add(boxModel);
+
+            ModelInstance instance = new ModelInstance(boxModel);
+            instance.transform.setToTranslation(bx, by, bz);
+            boxInstances.add(instance);
+        }
+    }
+
     private void buildShipMeshes() {
         for (int i = 0; i < shipEntities.size; i++) {
             Entity ship = shipEntities.get(i);
@@ -347,11 +533,14 @@ public class GameScreen implements Screen {
             "varying vec3 v_normal;\n" +
             "varying vec4 v_color;\n" +
             "varying float v_emissive;\n" +
+            "varying vec3 v_worldPos;\n" +
             "void main() {\n" +
+            "    vec4 worldPos = u_worldTrans * vec4(a_position, 1.0);\n" +
+            "    v_worldPos = worldPos.xyz;\n" +
             "    v_normal = normalize((u_worldTrans * vec4(a_normal, 0.0)).xyz);\n" +
             "    v_color = a_color;\n" +
             "    v_emissive = a_emissive;\n" +
-            "    gl_Position = u_projViewTrans * u_worldTrans * vec4(a_position, 1.0);\n" +
+            "    gl_Position = u_projViewTrans * worldPos;\n" +
             "}\n";
 
         String frag =
@@ -361,13 +550,21 @@ public class GameScreen implements Screen {
             "varying vec3 v_normal;\n" +
             "varying vec4 v_color;\n" +
             "varying float v_emissive;\n" +
+            "varying vec3 v_worldPos;\n" +
             "uniform vec3 u_lightDir;\n" +
             "uniform vec4 u_ambientColor;\n" +
+            "uniform vec3 u_cameraPos;\n" +
+            "uniform float u_fogDensity;\n" +
+            "uniform vec3 u_fogColor;\n" +
             "void main() {\n" +
             "    vec3 lightDir = normalize(-u_lightDir);\n" +
             "    float diff = max(dot(v_normal, lightDir), 0.0);\n" +
             "    vec3 lit = v_color.rgb * (u_ambientColor.rgb + diff * vec3(0.8, 0.8, 0.75));\n" +
-            "    vec3 color = mix(lit, v_color.rgb * 2.0, v_emissive);\n" +
+            "    vec3 baseColor = mix(lit, v_color.rgb * 2.0, v_emissive);\n" +
+            "    float dist = length(v_worldPos - u_cameraPos);\n" +
+            "    float fogFactor = exp(-u_fogDensity * dist * u_fogDensity * dist);\n" +
+            "    fogFactor = clamp(fogFactor, 0.0, 1.0);\n" +
+            "    vec3 color = mix(u_fogColor, baseColor, fogFactor);\n" +
             "    gl_FragColor = vec4(color, 1.0);\n" +
             "}\n";
 
@@ -382,11 +579,18 @@ public class GameScreen implements Screen {
     private final Vector3 shipRelPos = new Vector3();
 
     private void renderShips() {
+        Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
+        Gdx.gl.glDepthFunc(GL20.GL_LEQUAL);
+        Gdx.gl.glDepthMask(true);
+
         ShaderProgram shader = getShipShader();
         shader.bind();
         shader.setUniformMatrix("u_projViewTrans", terrainProjView);
         shader.setUniformf("u_lightDir", -0.4f, -0.8f, -0.3f);
         shader.setUniformf("u_ambientColor", 0.3f, 0.3f, 0.35f, 1f);
+        shader.setUniformf("u_cameraPos", camera.position);
+        shader.setUniformf("u_fogDensity", fogDensity);
+        shader.setUniformf("u_fogColor", horizonColor);
 
         for (int i = 0; i < shipEntities.size; i++) {
             Entity ship = shipEntities.get(i);
@@ -413,10 +617,13 @@ public class GameScreen implements Screen {
             "uniform mat4 u_worldTrans;\n" +
             "varying vec3 v_normal;\n" +
             "varying vec4 v_color;\n" +
+            "varying vec3 v_worldPos;\n" +
             "void main() {\n" +
+            "    vec4 worldPos = u_worldTrans * vec4(a_position, 1.0);\n" +
+            "    v_worldPos = worldPos.xyz;\n" +
             "    v_normal = normalize((u_worldTrans * vec4(a_normal, 0.0)).xyz);\n" +
             "    v_color = a_color;\n" +
-            "    gl_Position = u_projViewTrans * u_worldTrans * vec4(a_position, 1.0);\n" +
+            "    gl_Position = u_projViewTrans * worldPos;\n" +
             "}\n";
 
         String frag =
@@ -425,13 +632,21 @@ public class GameScreen implements Screen {
             "#endif\n" +
             "varying vec3 v_normal;\n" +
             "varying vec4 v_color;\n" +
+            "varying vec3 v_worldPos;\n" +
             "uniform vec3 u_lightDir;\n" +
             "uniform vec4 u_ambientColor;\n" +
+            "uniform vec3 u_cameraPos;\n" +
+            "uniform float u_fogDensity;\n" +
+            "uniform vec3 u_fogColor;\n" +
             "void main() {\n" +
             "    vec3 n = normalize(v_normal);\n" +
             "    vec3 lightDir = normalize(-u_lightDir);\n" +
             "    float diff = max(dot(n, lightDir), 0.0);\n" +
-            "    vec3 color = v_color.rgb * (u_ambientColor.rgb + diff * vec3(0.8, 0.8, 0.75));\n" +
+            "    vec3 lit = v_color.rgb * (u_ambientColor.rgb + diff * vec3(0.8, 0.8, 0.75));\n" +
+            "    float dist = length(v_worldPos - u_cameraPos);\n" +
+            "    float fogFactor = exp(-u_fogDensity * dist * u_fogDensity * dist);\n" +
+            "    fogFactor = clamp(fogFactor, 0.0, 1.0);\n" +
+            "    vec3 color = mix(u_fogColor, lit, fogFactor);\n" +
             "    gl_FragColor = vec4(color, 1.0);\n" +
             "}\n";
 
@@ -450,6 +665,8 @@ public class GameScreen implements Screen {
         updateCameraClipPlanes(altitude);
         updateSkyColor(altitude);
 
+        skyRenderer.render(camera, sunDirection);
+
         if (!paused) {
             float clampedDelta = Math.min(delta, 1f / 30f);
             gameWorld.getPlanetTerrainSystem().setCameraPosition(camera.position);
@@ -460,8 +677,18 @@ public class GameScreen implements Screen {
             }
         }
 
-        renderPlanetTerrain();
+        if (!paused) {
+            WorldPopulator.updateAnimals(populatedWorld, delta,
+                heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH);
+        }
+
+        syncBoxTransforms();
+        renderTerrain();
+        renderBoxes();
+        renderWorldObjects();
         renderShips();
+
+        gameWorld.getDebugHudSystem().render(delta);
 
         // Cockpit 3D interior — clears depth and renders over the scene
         gameWorld.getCockpitModelSystem().render(modelBatch, camera);
@@ -516,6 +743,8 @@ public class GameScreen implements Screen {
 
     private void renderPlanetTerrain() {
         Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
+        Gdx.gl.glDepthFunc(GL20.GL_LEQUAL);
+        Gdx.gl.glDepthMask(true);
 
         terrainWorldTrans.setToTranslation(
             -camera.position.x, -camera.position.y, -camera.position.z);
@@ -532,6 +761,9 @@ public class GameScreen implements Screen {
         shader.setUniformMatrix("u_worldTrans", terrainWorldTrans);
         shader.setUniformf("u_lightDir", -0.4f, -0.8f, -0.3f);
         shader.setUniformf("u_ambientColor", 0.3f, 0.3f, 0.35f, 1f);
+        shader.setUniformf("u_cameraPos", camera.position);
+        shader.setUniformf("u_fogDensity", fogDensity);
+        shader.setUniformf("u_fogColor", horizonColor);
 
         List<TerrainChunk> leaves = gameWorld.getVisibleTerrainLeaves();
         for (int i = 0; i < leaves.size(); i++) {
@@ -541,18 +773,44 @@ public class GameScreen implements Screen {
             }
         }
 
-        if (frameCount <= 3) {
-            int err = Gdx.gl.glGetError();
-            if (err != GL20.GL_NO_ERROR) {
-                Gdx.app.error("DIAG", "GL error after terrain render: 0x" + Integer.toHexString(err));
-            }
-            if (!leaves.isEmpty()) {
-                TerrainChunk first = leaves.get(0);
-                Gdx.app.log("DIAG", "chunk0: face=" + first.face + " depth=" + first.depth
-                    + " numVerts=" + first.mesh.getNumVertices()
-                    + " numIdx=" + first.mesh.getNumIndices()
-                    + " center=" + first.center);
-            }
+    private void renderBoxes() {
+        fogShaderProvider.setFogParams(fogDensity, horizonColor);
+        fogModelBatch.begin(camera);
+        for (int i = 0; i < boxInstances.size; i++) {
+            fogModelBatch.render(boxInstances.get(i), environment);
+        }
+        fogModelBatch.end();
+    }
+
+    private void renderWorldObjects() {
+        Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
+        Gdx.gl.glDepthMask(true);
+
+        fogShaderProvider.setFogParams(fogDensity, horizonColor);
+        fogModelBatch.begin(camera);
+        for (int i = 0; i < populatedWorld.treeInstances.size; i++) {
+            fogModelBatch.render(populatedWorld.treeInstances.get(i), environment);
+        }
+        for (int i = 0; i < populatedWorld.rockInstances.size; i++) {
+            fogModelBatch.render(populatedWorld.rockInstances.get(i), environment);
+        }
+        for (int i = 0; i < populatedWorld.grassInstances.size; i++) {
+            fogModelBatch.render(populatedWorld.grassInstances.get(i), environment);
+        }
+        for (int i = 0; i < populatedWorld.animalInstances.size; i++) {
+            fogModelBatch.render(populatedWorld.animalInstances.get(i), environment);
+        }
+        fogModelBatch.end();
+
+        if (populatedWorld.waterInstance != null) {
+            Gdx.gl.glEnable(GL20.GL_BLEND);
+            Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+            Gdx.gl.glDepthMask(false);
+            modelBatch.begin(camera);
+            modelBatch.render(populatedWorld.waterInstance, environment);
+            modelBatch.end();
+            Gdx.gl.glDepthMask(true);
+            Gdx.gl.glDisable(GL20.GL_BLEND);
         }
     }
 
@@ -589,6 +847,14 @@ public class GameScreen implements Screen {
             modelBatch.dispose();
             modelBatch = null;
         }
+        if (fogModelBatch != null) {
+            fogModelBatch.dispose();
+            fogModelBatch = null;
+        }
+        if (skyRenderer != null) {
+            skyRenderer.dispose();
+            skyRenderer = null;
+        }
         if (pauseStage != null) {
             pauseStage.dispose();
             pauseStage = null;
@@ -596,6 +862,10 @@ public class GameScreen implements Screen {
         if (overlayTexture != null) {
             overlayTexture.dispose();
             overlayTexture = null;
+        }
+        if (populatedWorld != null) {
+            populatedWorld.dispose();
+            populatedWorld = null;
         }
         for (int i = 0; i < shipEntities.size; i++) {
             ShipMeshComponent meshComp = shipEntities.get(i).getComponent(ShipMeshComponent.class);
