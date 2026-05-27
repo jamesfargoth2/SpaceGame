@@ -332,12 +332,31 @@ public class ShipFactory implements Disposable {
      * approximately every Nth vertex until {@value #MAX_CONVEX_POINTS} points are selected.
      */
     private btCollisionShape buildConvexHull(HullGeometry hull) {
-        Vector3 halfExtents = new Vector3();
-        hull.boundingBox.getDimensions(halfExtents).scl(0.5f);
-        if (halfExtents.x < 0.1f) halfExtents.x = 0.1f;
-        if (halfExtents.y < 0.1f) halfExtents.y = 0.1f;
-        if (halfExtents.z < 0.1f) halfExtents.z = 0.1f;
-        return new btBoxShape(halfExtents);
+        int totalVerts = hull.vertexCount();
+        int stride = hull.vertexStride;
+
+        if (totalVerts < 4) {
+            Vector3 halfExtents = new Vector3();
+            hull.boundingBox.getDimensions(halfExtents).scl(0.5f);
+            if (halfExtents.x < 0.1f) halfExtents.x = 0.1f;
+            if (halfExtents.y < 0.1f) halfExtents.y = 0.1f;
+            if (halfExtents.z < 0.1f) halfExtents.z = 0.1f;
+            return new btBoxShape(halfExtents);
+        }
+
+        btConvexHullShape convex = new btConvexHullShape();
+
+        int step = Math.max(1, totalVerts / MAX_CONVEX_POINTS);
+        for (int i = 0; i < totalVerts; i += step) {
+            int base = i * stride;
+            convex.addPoint(new Vector3(
+                hull.vertices[base],
+                hull.vertices[base + 1],
+                hull.vertices[base + 2]), false);
+        }
+        convex.recalcLocalAabb();
+
+        return convex;
     }
 
     // -------------------------------------------------------------------------
