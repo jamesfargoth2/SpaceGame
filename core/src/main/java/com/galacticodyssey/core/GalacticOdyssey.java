@@ -4,14 +4,18 @@ import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.physics.bullet.Bullet;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.galacticodyssey.persistence.SaveBackend;
+import com.galacticodyssey.persistence.LocalFileSaveBackend;
 import com.galacticodyssey.ui.MainMenuScreen;
 import com.galacticodyssey.ui.UiFactory;
+import java.io.File;
 
 public class GalacticOdyssey extends Game {
 
     private Skin skin;
     private AudioManager audioManager;
     private GamePreferences preferences;
+    private SaveBackend saveBackend;
 
     @Override
     public void create() {
@@ -21,6 +25,8 @@ public class GalacticOdyssey extends Game {
         preferences = new GamePreferences();
         preferences.load();
         audioManager = new AudioManager(preferences);
+        File savesDir = new File(System.getProperty("user.home"), ".galacticodyssey/saves");
+        saveBackend = new LocalFileSaveBackend(savesDir);
         setScreen(new MainMenuScreen(this));
     }
 
@@ -34,6 +40,10 @@ public class GalacticOdyssey extends Game {
 
     public GamePreferences getPreferences() {
         return preferences;
+    }
+
+    public SaveBackend getSaveBackend() {
+        return saveBackend;
     }
 
     @Override
