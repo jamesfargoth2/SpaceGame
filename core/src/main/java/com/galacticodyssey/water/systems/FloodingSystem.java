@@ -100,7 +100,7 @@ public class FloodingSystem extends IteratingSystem {
                         comp.waterVolume + flow * dt);
 
                 if (wasEmpty && comp.waterVolume > 0f) {
-                    eventBus.publish(new FloodingStartedEvent(entity, comp.id));
+                    eventBus.publish(new FloodingStartedEvent(entity, comp.id, true));
                 }
             }
         }
@@ -150,7 +150,10 @@ public class FloodingSystem extends IteratingSystem {
         // reduce stability
         float gzLoss = computeFreeSurfaceEffect(flooding, rho, hull);
         if (gzLoss > GZ_WARNING_THRESHOLD) {
-            eventBus.publish(new StabilityWarningEvent(entity, gzLoss));
+            // Compute roll from the physics body orientation
+            float rollDeg = computeRollDeg(physBody);
+            int severity = gzLoss >= 0.6f ? 2 : gzLoss >= 0.3f ? 1 : 0;
+            eventBus.publish(new StabilityWarningEvent(entity, gzLoss, rollDeg, severity));
         }
 
         // Phase 6: Capsize detection
@@ -280,10 +283,33 @@ public class FloodingSystem extends IteratingSystem {
         float angleDeg = (float) Math.toDegrees(Math.acos(MathUtils.clamp(dot, -1f, 1f)));
 
         if (angleDeg > CAPSIZE_ANGLE_DEG) {
-            eventBus.publish(new CapsizeEvent(entity));
+            FloodingComponent flood = floodingMapper.get(entity);
+            float floodedMass = flood != null ? flood.totalFloodedMass : 0f;
+            eventBus.publish(new CapsizeEvent(entity, angleDeg, floodedMass));
         }
 
         Pools.free(bodyUp);
         Pools.free(worldUp);
+    }
+
+    /**
+     * Computes the roll angle (deviation of body up from world up) in degrees.
+     */
+    private float computeRollDeg(PhysicsBodyComponent physBody) {
+        Vector3 bodyUp = Pools.obtain(Vector3.class);
+        Vector3 worldUp = Pools.obtain(Vector3.class).set(0f, 1f, 0f);
+
+        com.badlogic.gdx.math.Matrix4 tx = new com.badlogic.gdx.math.Matrix4();
+        physBody.body.getWorldTransform(tx);
+        bodyUp.set(tx.val[com.badlogic.gdx.math.Matrix4.M01],
+                   tx.val[com.badlogic.gdx.math.Matrix4.M11],
+                   tx.val[com.badlogic.gdx.math.Matrix4.M21]);
+
+        float dot = bodyUp.dot(worldUp);
+        float angleDeg = (float) Math.toDegrees(Math.acos(MathUtils.clamp(dot, -1f, 1f)));
+
+        Pools.free(bodyUp);
+        Pools.free(worldUp);
+        return angleDeg;
     }
 }

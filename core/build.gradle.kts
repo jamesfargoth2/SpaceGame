@@ -9,10 +9,7 @@ sourceSets {
     main {
         java {
             exclude(
-                "com/galacticodyssey/ship/flooding/**",
-                "com/galacticodyssey/water/SubmarineFactory.java",
-                "com/galacticodyssey/water/systems/HullIntegritySystem.java",
-                "com/galacticodyssey/water/systems/FloodingSystem.java"
+                "com/galacticodyssey/water/SubmarineFactory.java"
             )
         }
     }
