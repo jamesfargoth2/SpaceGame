@@ -12,16 +12,24 @@ import com.badlogic.gdx.graphics.Mesh;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.VertexAttribute;
+import com.badlogic.gdx.graphics.VertexAttributes;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.g3d.Environment;
+import com.badlogic.gdx.graphics.g3d.Material;
+import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
+import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
+import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.math.Interpolation;
-import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.physics.bullet.collision.btBvhTriangleMeshShape;
+import com.badlogic.gdx.physics.bullet.collision.btTriangleMesh;
+import com.badlogic.gdx.physics.bullet.dynamics.btRigidBody;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
@@ -51,31 +59,34 @@ import com.galacticodyssey.ship.ShipFactory;
 import com.galacticodyssey.ship.ShipSizeClass;
 import com.galacticodyssey.ship.components.ShipDataComponent;
 import com.galacticodyssey.ship.components.ShipMeshComponent;
-import com.badlogic.gdx.graphics.VertexAttribute;
-import com.badlogic.gdx.graphics.VertexAttributes;
 
-import java.util.List;
+import java.util.Random;
 
 public class GameScreen implements Screen {
 
-    private static final long PLANET_SEED = 42L;
-    private int frameCount;
+    private static final int TERRAIN_VERTS_X = 257;
+    private static final int TERRAIN_VERTS_Z = 257;
+    private static final float TERRAIN_WIDTH = 500f;
+    private static final float TERRAIN_DEPTH = 500f;
+    private static final long TERRAIN_SEED = 42L;
     private static final float PAUSE_WORLD_WIDTH = 1280f;
     private static final float PAUSE_WORLD_HEIGHT = 720f;
-    private static final float ATMOSPHERE_ALTITUDE = 100f;
 
     private final GalacticOdyssey game;
     private GameWorld gameWorld;
     private PerspectiveCamera camera;
-    private float planetRadius;
+    private float[] heightmap;
 
     private ShipFactory shipFactory;
     private final Array<Entity> shipEntities = new Array<>();
     private ShaderProgram shipShader;
 
+    private Mesh terrainMesh;
     private ShaderProgram terrainShader;
     private ModelBatch modelBatch;
     private Environment environment;
+    private final Array<ModelInstance> boxInstances = new Array<>();
+    private final Array<Entity> boxEntities = new Array<>();
     private final Array<Disposable> disposables = new Array<>();
 
     private WorldPopulator.PopulatedWorld populatedWorld;
@@ -94,9 +105,6 @@ public class GameScreen implements Screen {
     private Texture overlayTexture;
     private InputMultiplexer inputMultiplexer;
     private boolean initialized;
-
-    private BiomeMap biomeMap;
-    private TerrainNoiseStack terrainNoise;
 
     public GameScreen(GalacticOdyssey game) {
         this.game = game;
@@ -119,39 +127,16 @@ public class GameScreen implements Screen {
     private void initializeWorld() {
         camera = new PerspectiveCamera(75, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         camera.near = 0.1f;
-        camera.far = 500f;
+        camera.far = 5000f;
 
         EventBus eventBus = new EventBus();
         CoordinateManager coordinateManager = new CoordinateManager(eventBus);
         gameWorld = new GameWorld(eventBus, coordinateManager);
 
-        Planet planet = new Planet(PLANET_SEED, PlanetType.TERRAN, 1.0f, 1.0f, 24f, 23.4f, false);
-
-        StarSystem stubStar = new StarSystem(
-            1L, PLANET_SEED, SpectralClass.G, LuminosityClass.MAIN_SEQUENCE,
-            5778f, 1.0f, 1.0f, 1.0f, 4.6f, new Color(1f, 0.96f, 0.84f, 1f));
-        OrbitalSlot stubSlot = new OrbitalSlot(0, 1.0f, 0.017f, OrbitalZone.HABITABLE);
-        stubSlot.planet = planet;
-        stubStar.orbits.add(stubSlot);
-
-        AtmosphereGenerator atmoGen = new AtmosphereGenerator();
-        Atmosphere atmosphere = atmoGen.generate(planet, stubStar);
-        planet.atmosphere = atmosphere;
-
-        BiomeMapper biomeMapper = new BiomeMapper();
-        biomeMap = biomeMapper.generate(planet, atmosphere);
-
-        long terrainSeed = SeedDeriver.forId(
-            SeedDeriver.domain(planet.seed, SeedDeriver.TERRAIN_DOMAIN), 0);
-        terrainNoise = new TerrainNoiseStack(terrainSeed);
-        planetRadius = planet.radius * 6371f;
+        heightmap = TerrainGenerator.generateHeightmap(
+            TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, TERRAIN_SEED);
 
         gameWorld.initializeSystems(camera);
-        gameWorld.initAudio(game.getAudioManager());
-        gameWorld.loadPlanet(planet, biomeMap);
-
-        populatedWorld = WorldPopulator.populate(
-            heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, TERRAIN_SEED);
 
         populatedWorld = WorldPopulator.populate(
             heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, TERRAIN_SEED);
@@ -159,28 +144,31 @@ public class GameScreen implements Screen {
         createTerrainMesh();
         createTerrainPhysics();
         createScatterBoxes();
-        Vector3 spawnDir = findLandSpawnDirection();
-        float height = terrainNoise.heightAt(spawnDir, biomeMap, 0);
-        float spawnAlt = planetRadius + height * planetRadius * 0.01f + 2f;
-        Vector3 spawnPos = new Vector3(spawnDir).scl(spawnAlt);
 
-        camera.position.set(spawnPos);
-        camera.update();
-
-        gameWorld.createPlayerEntity(spawnPos.x, spawnPos.y, spawnPos.z);
+        float spawnHeight = TerrainGenerator.getHeightAt(
+            heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, 0, 0) + 2f;
+        gameWorld.createPlayerEntity(0, spawnHeight, 0);
 
         shipFactory = new ShipFactory(gameWorld.getEngine(), gameWorld.getBulletPhysicsSystem());
 
-        Vector3 ref = Math.abs(spawnDir.y) < 0.999f ? Vector3.Y : Vector3.Z;
-        Vector3 tangent = new Vector3(ref).crs(spawnDir).nor();
-        Vector3 shipDir = new Vector3(spawnDir).cpy();
-        shipDir.add(tangent.scl(0.002f)).nor();
-        float shipHeight = terrainNoise.heightAt(shipDir, biomeMap, 0);
-        float shipAlt = planetRadius + shipHeight * planetRadius * 0.01f + 3f;
-        Vector3 shipPos = new Vector3(shipDir).scl(shipAlt);
-        Entity ship = shipFactory.createShip(123L, ShipSizeClass.SMALL,
-            shipPos.x, shipPos.y, shipPos.z);
-        shipEntities.add(ship);
+        float smallX = 10f, smallZ = 10f;
+        float smallY = TerrainGenerator.getHeightAt(
+            heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, smallX, smallZ) + 2f;
+        Entity smallShip = shipFactory.createShip(42L, ShipSizeClass.SMALL, smallX, smallY, smallZ);
+        shipEntities.add(smallShip);
+
+        float medX = 40f, medZ = 40f;
+        float medY = TerrainGenerator.getHeightAt(
+            heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, medX, medZ) + 4f;
+        Entity medShip = shipFactory.createShip(123L, ShipSizeClass.MEDIUM, medX, medY, medZ);
+        shipEntities.add(medShip);
+
+        float lgX = -60f, lgZ = -60f;
+        float lgY = TerrainGenerator.getHeightAt(
+            heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, lgX, lgZ) + 6f;
+        Entity largeShip = shipFactory.createShip(999L, ShipSizeClass.LARGE, lgX, lgY, lgZ);
+        shipEntities.add(largeShip);
+
         buildShipMeshes();
 
         modelBatch = new ModelBatch();
@@ -544,9 +532,6 @@ public class GameScreen implements Screen {
         return shipShader;
     }
 
-    private final Matrix4 shipModelMat = new Matrix4();
-    private final Vector3 shipRelPos = new Vector3();
-
     private void renderShips() {
         Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
         Gdx.gl.glDepthFunc(GL20.GL_LEQUAL);
@@ -554,7 +539,7 @@ public class GameScreen implements Screen {
 
         ShaderProgram shader = getShipShader();
         shader.bind();
-        shader.setUniformMatrix("u_projViewTrans", terrainProjView);
+        shader.setUniformMatrix("u_projViewTrans", camera.combined);
         shader.setUniformf("u_lightDir", -0.4f, -0.8f, -0.3f);
         shader.setUniformf("u_ambientColor", 0.3f, 0.3f, 0.35f, 1f);
         shader.setUniformf("u_cameraPos", camera.position.x, camera.position.y, camera.position.z);
@@ -567,9 +552,9 @@ public class GameScreen implements Screen {
             ShipMeshComponent meshComp = ship.getComponent(ShipMeshComponent.class);
             if (meshComp == null || meshComp.hullMesh == null) continue;
 
-            shipRelPos.set(t.position).sub(camera.position);
-            shipModelMat.set(shipRelPos, t.rotation);
-            shader.setUniformMatrix("u_worldTrans", shipModelMat);
+            Matrix4 modelMat = new Matrix4();
+            modelMat.set(t.position, t.rotation);
+            shader.setUniformMatrix("u_worldTrans", modelMat);
 
             meshComp.hullMesh.render(shader, GL20.GL_TRIANGLES);
         }
@@ -619,7 +604,6 @@ public class GameScreen implements Screen {
             "    gl_FragColor = vec4(color, 1.0);\n" +
             "}\n";
 
-        ShaderProgram.pedantic = false;
         terrainShader = new ShaderProgram(vert, frag);
         if (!terrainShader.isCompiled()) {
             Gdx.app.error("Shader", terrainShader.getLog());
@@ -635,17 +619,7 @@ public class GameScreen implements Screen {
 
         if (!paused) {
             float clampedDelta = Math.min(delta, 1f / 30f);
-            gameWorld.getPlanetTerrainSystem().setCameraPosition(camera.position);
             gameWorld.update(clampedDelta);
-            game.getAudioManager().update(clampedDelta);
-            if (gameWorld.getAudioSystem() != null) {
-                gameWorld.getAudioSystem().updateListener(camera.position, camera.direction);
-            }
-        }
-
-        if (!paused) {
-            WorldPopulator.updateAnimals(populatedWorld, delta,
-                heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH);
         }
 
         if (!paused) {
@@ -667,57 +641,34 @@ public class GameScreen implements Screen {
         }
     }
 
-    private void updateCameraClipPlanes(float altitude) {
-        if (altitude < 10f) {
-            camera.near = 0.1f;
-            camera.far = 500f;
-        } else if (altitude < 500f) {
-            camera.near = 1f;
-            camera.far = altitude * 10f;
-        } else {
-            camera.near = 1f;
-            camera.far = planetRadius * 4f;
-        }
-        camera.update();
-    }
-
-    private void updateSkyColor(float altitude) {
-        if (altitude < ATMOSPHERE_ALTITUDE) {
-            float t = MathUtils.clamp(altitude / ATMOSPHERE_ALTITUDE, 0f, 1f);
-            float r = MathUtils.lerp(0.4f, 0.05f, t);
-            float g = MathUtils.lerp(0.6f, 0.05f, t);
-            float b = MathUtils.lerp(0.9f, 0.1f, t);
-            ScreenUtils.clear(r, g, b, 1f, true);
-        } else {
-            ScreenUtils.clear(0.02f, 0.02f, 0.04f, 1f, true);
+    private void syncBoxTransforms() {
+        for (int i = 0; i < boxEntities.size; i++) {
+            Entity entity = boxEntities.get(i);
+            TransformComponent t = entity.getComponent(TransformComponent.class);
+            boxInstances.get(i).transform.setToTranslation(t.position);
+            boxInstances.get(i).transform.rotate(t.rotation);
         }
     }
 
-    private final Matrix4 terrainWorldTrans = new Matrix4();
-    private final Matrix4 terrainProjView = new Matrix4();
-
-    private void renderPlanetTerrain() {
+    private void renderTerrain() {
         Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
         Gdx.gl.glDepthFunc(GL20.GL_LEQUAL);
         Gdx.gl.glDepthMask(true);
 
         ShaderProgram shader = getTerrainShader();
         shader.bind();
-        shader.setUniformMatrix("u_projViewTrans", terrainProjView);
-        shader.setUniformMatrix("u_worldTrans", terrainWorldTrans);
+        shader.setUniformMatrix("u_projViewTrans", camera.combined);
+
+        Matrix4 modelMat = new Matrix4();
+        shader.setUniformMatrix("u_worldTrans", modelMat);
         shader.setUniformf("u_lightDir", -0.4f, -0.8f, -0.3f);
         shader.setUniformf("u_ambientColor", 0.3f, 0.3f, 0.35f, 1f);
         shader.setUniformf("u_cameraPos", camera.position.x, camera.position.y, camera.position.z);
         shader.setUniformf("u_fogDensity", fogDensity);
         shader.setUniformf("u_fogColor", horizonColor.x, horizonColor.y, horizonColor.z);
 
-        List<TerrainChunk> leaves = gameWorld.getVisibleTerrainLeaves();
-        for (int i = 0; i < leaves.size(); i++) {
-            TerrainChunk chunk = leaves.get(i);
-            if (chunk.mesh != null) {
-                chunk.mesh.render(shader, GL20.GL_TRIANGLES);
-            }
-        }
+        terrainMesh.render(shader, GL20.GL_TRIANGLES);
+    }
 
     private void renderBoxes() {
         fogShaderProvider.setFogParams(fogDensity, horizonColor);
@@ -780,10 +731,16 @@ public class GameScreen implements Screen {
 
     @Override
     public void dispose() {
+        // ShipFactory must dispose before gameWorld, because it removes rigid bodies
+        // from the dynamics world that gameWorld owns.
         if (shipFactory != null) { shipFactory.dispose(); shipFactory = null; }
         if (gameWorld != null) {
             gameWorld.dispose();
             gameWorld = null;
+        }
+        if (terrainMesh != null) {
+            terrainMesh.dispose();
+            terrainMesh = null;
         }
         if (terrainShader != null) {
             terrainShader.dispose();
@@ -800,14 +757,6 @@ public class GameScreen implements Screen {
         if (modelBatch != null) {
             modelBatch.dispose();
             modelBatch = null;
-        }
-        if (fogModelBatch != null) {
-            fogModelBatch.dispose();
-            fogModelBatch = null;
-        }
-        if (skyRenderer != null) {
-            skyRenderer.dispose();
-            skyRenderer = null;
         }
         if (pauseStage != null) {
             pauseStage.dispose();
@@ -831,6 +780,8 @@ public class GameScreen implements Screen {
             disposables.get(i).dispose();
         }
         disposables.clear();
+        boxInstances.clear();
+        boxEntities.clear();
         initialized = false;
     }
 }
