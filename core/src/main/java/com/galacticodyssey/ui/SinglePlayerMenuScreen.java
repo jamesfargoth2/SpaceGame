@@ -62,9 +62,9 @@ public class SinglePlayerMenuScreen implements Screen {
         Label title = new Label("SINGLE PLAYER", skin, "title");
         root.add(title).padBottom(50).row();
 
-        // New Game — navigates to GameSetupScreen (Task 5, not yet implemented)
+        // New Game — navigates to GameSetupScreen
         addMenuButton(root, "New Game", skin, false,
-            () -> Gdx.app.log("SinglePlayerMenu", "New Game pressed — GameSetupScreen pending"));
+            () -> game.setScreen(new GameSetupScreen(game)));
 
         // Continue — disabled when no saves; loads the most-recent save (index 0, already
         // sorted descending by timestampMillis inside LocalFileSaveBackend.listSaves()).
