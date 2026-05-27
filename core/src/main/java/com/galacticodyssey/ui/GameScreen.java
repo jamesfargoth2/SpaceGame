@@ -280,6 +280,13 @@ public class GameScreen implements Screen {
         root.add(title).padBottom(40).row();
 
         addPauseButton(root, "Resume", skin, audio, this::togglePause);
+        addPauseButton(root, "Save Game", skin, audio, () -> {
+            game.setScreen(new SaveScreen(game, game.getSaveBackend(), GameScreen.this));
+        });
+        addPauseButton(root, "Load Game", skin, audio, () -> {
+            game.setScreen(new LoadScreen(game, game.getSaveBackend(),
+                GameScreen.this, LoadScreen.Origin.PAUSE_MENU, GameScreen.this));
+        });
         addPauseButton(root, "Settings", skin, audio, () -> {
             game.setScreen(new SettingsScreen(game, this));
         });
