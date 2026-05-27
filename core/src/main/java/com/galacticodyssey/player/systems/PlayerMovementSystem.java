@@ -257,6 +257,7 @@ public class PlayerMovementSystem extends IteratingSystem {
         rayTo.set(localUp).scl(-(CAPSULE_HALF_HEIGHT + GROUND_RAY_EXTRA)).add(bodyPos);
 
         ClosestRayResultCallback callback = new ClosestRayResultCallback(rayFrom, rayTo);
+        callback.setCollisionFilterMask((short) 2);
         dynamicsWorld.rayTest(rayFrom, rayTo, callback);
 
         if (callback.hasHit()) {

@@ -188,7 +188,7 @@ public class GameWorld implements Disposable {
         playerInputSystem = new PlayerInputSystem();
         playerMovementSystem = new PlayerMovementSystem(bulletPhysicsSystem.getDynamicsWorld());
         cameraSystem = new CameraSystem(eventBus);
-        debugHudSystem = new DebugHudSystem(coordinateManager);
+        debugHudSystem = new DebugHudSystem(coordinateManager, eventBus);
 
         planetTerrainSystem = new PlanetTerrainSystem(bulletPhysicsSystem.getDynamicsWorld());
         engine.addSystem(planetTerrainSystem);
@@ -619,6 +619,10 @@ public class GameWorld implements Disposable {
 
     public DebugHudSystem getDebugHudSystem() {
         return debugHudSystem;
+    }
+
+    public CockpitHUDSystem getCockpitHUDSystem() {
+        return cockpitHUDSystem;
     }
 
     @Override

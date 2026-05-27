@@ -2,6 +2,7 @@ package com.galacticodyssey.player.systems;
 
 import com.badlogic.ashley.core.*;
 import com.badlogic.ashley.utils.ImmutableArray;
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 import com.galacticodyssey.core.EventBus;
@@ -30,6 +31,7 @@ public class InteractionSystem extends EntitySystem {
     private final Vector3 tempVec = new Vector3();
     private final Vector3 worldPos = new Vector3();
     private final Matrix4 shipWorldMat = new Matrix4();
+    private int logTimer = 0;
 
     public InteractionSystem(EventBus eventBus) {
         super(0);
@@ -53,6 +55,8 @@ public class InteractionSystem extends EntitySystem {
         PlayerStateComponent state = stateMapper.get(player);
         PlayerInputComponent input = inputMapper.get(player);
 
+        eventBus.publish(new InteractionPromptEvent("", false));
+
         switch (state.currentMode) {
             case ON_FOOT_EXTERIOR: checkShipEntry(player, playerTransform, state, input); break;
             case ON_FOOT_INTERIOR:
@@ -73,33 +77,59 @@ public class InteractionSystem extends EntitySystem {
             Entity ship = shipEntities.get(i);
             ShipEntryPointComponent entry = entryMapper.get(ship);
             if (!entry.rampDeployed) continue;
-            float dist = tempVec.set(playerTransform.position).dst(entry.worldPosition);
-            if (dist < entry.triggerRadius && dist < nearestDist) {
+            TransformComponent shipTransformExt = transformMapper.get(ship);
+            toWorldSpace(shipTransformExt, entry.localExteriorPosition, worldPos);
+            float dist = tempVec.set(playerTransform.position).dst(worldPos);
+            if (dist < nearestDist) {
                 nearestDist = dist;
                 nearestShip = ship;
             }
         }
 
-        if (nearestShip != null) {
-            state.interactionTarget = nearestShip;
-            eventBus.publish(new InteractionPromptEvent("Press E to enter ship", true));
-            if (input.interactPressed) {
-                eventBus.publish(new PlayerEnterShipEvent(player, nearestShip));
-                state.currentMode = PlayerMode.ON_FOOT_INTERIOR;
-                state.currentShip = nearestShip;
-                ShipInteriorComponent interior = interiorMapper.get(nearestShip);
-                interior.active = true;
+        if (nearestShip == null) {
+            state.interactionTarget = null;
+            eventBus.publish(new InteractionPromptEvent("No ships detected", true));
+            return;
+        }
 
-                TransformComponent shipTransform = transformMapper.get(nearestShip);
-                ShipEntryPointComponent entry = entryMapper.get(nearestShip);
-                toWorldSpace(shipTransform, entry.interiorPosition, worldPos);
-                teleportPlayer(player, worldPos);
+        logTimer++;
+        if (logTimer % 120 == 1) {
+            TransformComponent st = transformMapper.get(nearestShip);
+            ShipEntryPointComponent entry = entryMapper.get(nearestShip);
+            Gdx.app.log("Interaction",
+                "ships=" + shipEntities.size()
+                + " shipPos=" + st.position
+                + " extLocal=" + entry.localExteriorPosition
+                + " extWorld=" + worldPos
+                + " playerPos=" + playerTransform.position
+                + " dist=" + nearestDist
+                + " trigger=" + entry.triggerRadius);
+        }
+
+        ShipEntryPointComponent entry = entryMapper.get(nearestShip);
+        if (nearestDist < entry.triggerRadius) {
+            state.interactionTarget = nearestShip;
+            eventBus.publish(new InteractionPromptEvent(
+                String.format("[E] Enter Ship (%.1fm)", nearestDist), true));
+            if (input.interactPressed) {
+                state.currentMode = PlayerMode.PILOTING;
+                state.currentShip = nearestShip;
+
+                PilotSeatComponent seat = seatMapper.get(nearestShip);
+                if (seat != null) {
+                    seat.occupied = true;
+                    seat.occupant = player;
+                }
+
+                freezePlayerBody(player);
+
+                eventBus.publish(new PlayerEnterShipEvent(player, nearestShip));
+                eventBus.publish(new PlayerStartPilotingEvent(player, nearestShip));
             }
         } else {
-            if (state.interactionTarget != null) {
-                eventBus.publish(new InteractionPromptEvent("", false));
-                state.interactionTarget = null;
-            }
+            state.interactionTarget = null;
+            eventBus.publish(new InteractionPromptEvent(
+                String.format("Ship: %.1fm away", nearestDist), true));
         }
     }
 
@@ -114,7 +144,7 @@ public class InteractionSystem extends EntitySystem {
         float dist = tempVec.set(playerTransform.position).dst(worldPos);
 
         if (dist < seat.triggerRadius) {
-            eventBus.publish(new InteractionPromptEvent("Press E to pilot", true));
+            eventBus.publish(new InteractionPromptEvent("[E] Pilot Ship", true));
             if (input.interactPressed) {
                 seat.occupied = true;
                 seat.occupant = player;
@@ -135,7 +165,7 @@ public class InteractionSystem extends EntitySystem {
         float dist = tempVec.set(playerTransform.position).dst(worldPos);
 
         if (dist < entry.triggerRadius) {
-            eventBus.publish(new InteractionPromptEvent("Press E to exit ship", true));
+            eventBus.publish(new InteractionPromptEvent("[E] Exit Ship", true));
             if (input.interactPressed) {
                 ShipInteriorComponent interior = interiorMapper.get(state.currentShip);
                 interior.active = false;
@@ -144,24 +174,49 @@ public class InteractionSystem extends EntitySystem {
                 state.currentShip = null;
                 eventBus.publish(new PlayerExitShipEvent(player, ship));
 
-                teleportPlayer(player, entry.worldPosition);
+                teleportPlayer(player, worldPos);
             }
         }
     }
 
     private void checkStopPiloting(Entity player, PlayerStateComponent state, PlayerInputComponent input) {
         if (input.interactPressed && state.currentShip != null) {
-            PilotSeatComponent seat = seatMapper.get(state.currentShip);
-            if (seat != null) { seat.occupied = false; seat.occupant = null; }
-            state.currentMode = PlayerMode.ON_FOOT_INTERIOR;
-            eventBus.publish(new PlayerStopPilotingEvent(player, state.currentShip));
+            Entity ship = state.currentShip;
 
-            TransformComponent shipTransform = transformMapper.get(state.currentShip);
-            ShipEntryPointComponent entry = entryMapper.get(state.currentShip);
+            PilotSeatComponent seat = seatMapper.get(ship);
+            if (seat != null) { seat.occupied = false; seat.occupant = null; }
+
+            state.currentMode = PlayerMode.ON_FOOT_EXTERIOR;
+            state.currentShip = null;
+
+            TransformComponent shipTransform = transformMapper.get(ship);
+            ShipEntryPointComponent entry = entryMapper.get(ship);
             if (entry != null) {
-                toWorldSpace(shipTransform, entry.interiorPosition, worldPos);
-                teleportPlayer(player, worldPos);
+                toWorldSpace(shipTransform, entry.localExteriorPosition, worldPos);
             }
+
+            unfreezePlayerBody(player);
+            teleportPlayer(player, worldPos);
+
+            eventBus.publish(new PlayerStopPilotingEvent(player, ship));
+            eventBus.publish(new PlayerExitShipEvent(player, ship));
+        }
+    }
+
+    private void freezePlayerBody(Entity player) {
+        PhysicsBodyComponent physics = physicsMapper.get(player);
+        if (physics != null && physics.body != null) {
+            physics.body.setGravity(new Vector3(0, 0, 0));
+            physics.body.setLinearVelocity(new Vector3(0, 0, 0));
+            physics.body.setAngularVelocity(new Vector3(0, 0, 0));
+        }
+    }
+
+    private void unfreezePlayerBody(Entity player) {
+        PhysicsBodyComponent physics = physicsMapper.get(player);
+        if (physics != null && physics.body != null) {
+            physics.body.setGravity(new Vector3(0, -9.81f, 0));
+            physics.body.activate();
         }
     }
 

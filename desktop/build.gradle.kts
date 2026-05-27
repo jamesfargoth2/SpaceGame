@@ -22,6 +22,8 @@ tasks.named<JavaExec>("run") {
     workingDir = project(":core").file("src/main/resources")
     isIgnoreExitValue = true
 
+    jvmArgs("--enable-native-access=ALL-UNNAMED")
+
     if (org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
         jvmArgs("-XstartOnFirstThread")
     }
