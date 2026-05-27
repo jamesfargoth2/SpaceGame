@@ -121,6 +121,7 @@ public class CameraSystem extends IteratingSystem {
             cam.landingDipAmount = Math.max(0, cam.landingDipAmount - LANDING_DIP_DECAY_SPEED * deltaTime);
         }
 
+        // Apply recoil offsets on top of the base camera angles.
         float effectivePitch = cam.pitchAngle + recoilPitch;
         float effectiveYaw = cam.yawAngle + recoilYaw;
 
@@ -130,8 +131,27 @@ public class CameraSystem extends IteratingSystem {
         float cosPitch = MathUtils.cos(pitchRad);
         float sinPitch = MathUtils.sin(pitchRad);
 
-        dir.set(localForward).scl(cosPitch).add(
-            up.x * sinPitch, up.y * sinPitch, up.z * sinPitch).nor();
+        float dirX = -MathUtils.sin(yawRad) * MathUtils.cos(pitchRad);
+        float dirY =  MathUtils.sin(pitchRad);
+        float dirZ = -MathUtils.cos(yawRad) * MathUtils.cos(pitchRad);
+
+        // 3rd-person zoom: scroll wheel adjusts target distance.
+        PlayerInputComponent inputComp = inputMapper.get(entity);
+        if (inputComp != null && inputComp.scrollDelta != 0) {
+            cam.targetCameraDistance = MathUtils.clamp(
+                cam.targetCameraDistance + inputComp.scrollDelta * cam.zoomStep,
+                0f, cam.maxCameraDistance);
+        }
+        cam.currentCameraDistance = MathUtils.lerp(
+            cam.currentCameraDistance, cam.targetCameraDistance, cam.zoomLerpSpeed * deltaTime);
+
+        // Pull camera back along negative look direction when in 3rd-person.
+        camX -= dirX * cam.currentCameraDistance;
+        camY -= dirY * cam.currentCameraDistance;
+        camZ -= dirZ * cam.currentCameraDistance;
+
+        camera.position.set(camX, camY, camZ);
+        camera.direction.set(dirX, dirY, dirZ).nor();
 
         if (firstPerson) {
             camera.position.set(pivot);
