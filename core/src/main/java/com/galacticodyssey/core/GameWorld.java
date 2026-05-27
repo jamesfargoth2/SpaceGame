@@ -193,10 +193,15 @@ public class GameWorld implements Disposable {
         planetTerrainSystem = new PlanetTerrainSystem(bulletPhysicsSystem.getDynamicsWorld());
         engine.addSystem(planetTerrainSystem);
 
+        // Planet center placed 50 km below terrain so radial gravity is effectively
+        // straight-down everywhere on the 500m×500m flat test map (<0.5° tilt at corners).
+        // Both systems must share the same center or movement/gravity will diverge.
+        Vector3 planetCenter = new Vector3(0, -50000f, 0);
         radialGravitySystem = new RadialGravitySystem(
             bulletPhysicsSystem.getDynamicsWorld(),
-            new Vector3(0, 0, 0), 9.81f);
+            planetCenter, 9.81f);
         engine.addSystem(radialGravitySystem);
+        playerMovementSystem.setPlanetCenter(planetCenter);
 
         realTimeSkillSystem = new RealTimeSkillSystem(eventBus);
         engine.addSystem(realTimeSkillSystem);
