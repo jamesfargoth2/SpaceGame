@@ -15,6 +15,8 @@ import com.galacticodyssey.player.components.PlayerStateComponent;
 import com.galacticodyssey.player.components.PlayerStateComponent.PlayerMode;
 import com.galacticodyssey.ship.components.EngineSpecComponent;
 import com.galacticodyssey.ship.components.FuelTankComponent;
+import com.galacticodyssey.core.RelativisticConstants;
+import com.galacticodyssey.core.RelativisticMath;
 import com.galacticodyssey.ship.components.ShipFlightComponent;
 import com.galacticodyssey.ship.components.ShipFlightInputComponent;
 
@@ -41,6 +43,7 @@ public class ShipFlightSystem extends EntitySystem {
     private final Vector3 localRight = new Vector3();
     private final Vector3 localUp = new Vector3();
     private final Matrix4 shipTransform = new Matrix4();
+    private final Vector3 currentVelocity = new Vector3();
 
     public ShipFlightSystem() {
         super(3);
@@ -102,7 +105,27 @@ public class ShipFlightSystem extends EntitySystem {
         force.mulAdd(localRight, input.strafe * flight.linearThrust * flight.strafeThrustFraction);
         force.mulAdd(localUp, input.verticalThrust * flight.linearThrust * flight.verticalThrustFraction);
 
-        physics.body.applyCentralForce(force);
+        currentVelocity.set(physics.body.getLinearVelocity());
+        final float speed = currentVelocity.len();
+        if (speed > RelativisticConstants.THRESHOLD) {
+            final float restMass = physics.mass;
+            final Vector3 velDir = currentVelocity.nor();
+            final float longComponent = force.dot(velDir);
+            final Vector3 longForce = new Vector3(velDir).scl(longComponent);
+            final Vector3 transForce = new Vector3(force).sub(longForce);
+            final float longAccel = RelativisticMath.longitudinalAcceleration(longComponent, restMass, speed);
+            final float transAccelMag = transForce.len();
+            final float transAccel = transAccelMag > 0f
+                ? RelativisticMath.transverseAcceleration(transAccelMag, restMass, speed)
+                : 0f;
+            final Vector3 relForce = new Vector3(velDir).scl(longAccel * restMass);
+            if (transAccelMag > 0f) {
+                relForce.add(new Vector3(transForce).nor().scl(transAccel * restMass));
+            }
+            physics.body.applyCentralForce(relForce);
+        } else {
+            physics.body.applyCentralForce(force);
+        }
 
         torque.setZero();
         torque.mulAdd(localRight, input.pitchInput * flight.pitchYawTorque);

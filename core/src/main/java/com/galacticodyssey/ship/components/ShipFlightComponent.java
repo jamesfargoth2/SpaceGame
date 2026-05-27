@@ -13,6 +13,8 @@ public class ShipFlightComponent implements Component, Snapshotable<ShipFlightSn
     public float linearDrag;
     public float angularDrag;
     public float currentThrottle;
+    public float timeDilationFactor = 1f;
+    public float gravitationalTimeDilation = 1f;
 
     @Override
     public ShipFlightSnapshot takeSnapshot() {

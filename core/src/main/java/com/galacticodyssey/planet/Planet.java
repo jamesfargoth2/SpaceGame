@@ -1,5 +1,6 @@
 package com.galacticodyssey.planet;
 
+import com.galacticodyssey.planet.rings.RingSystemData;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,6 +15,7 @@ public final class Planet {
     public final boolean tidallyLocked;
     public Atmosphere atmosphere;
     public final List<Moon> moons;
+    public RingSystemData rings;
 
     public Planet(long seed, PlanetType type, float radius, float mass,
                   float dayLength, float axialTilt, boolean tidallyLocked) {
