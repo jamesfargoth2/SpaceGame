@@ -57,8 +57,23 @@ public class MainMenuScreen implements Screen {
 
         addMenuButton(root, "New Game", skin, false,
             () -> game.setScreen(new GameScreen(game)));
-        addMenuButton(root, "Continue", skin, true,
-            () -> Gdx.app.log("Menu", "Continue pressed"));
+
+        boolean hasSaves = !game.getSaveBackend().listSaves().isEmpty();
+
+        addMenuButton(root, "Continue", skin, !hasSaves,
+            () -> {
+                java.util.List<com.galacticodyssey.persistence.ManifestData> saves =
+                    game.getSaveBackend().listSaves();
+                if (!saves.isEmpty()) {
+                    Gdx.app.log("Menu", "Loading most recent save: " + saves.get(0).saveName);
+                    game.setScreen(new GameScreen(game));
+                }
+            });
+
+        addMenuButton(root, "Load Game", skin, !hasSaves,
+            () -> game.setScreen(new LoadScreen(game, game.getSaveBackend(),
+                MainMenuScreen.this, LoadScreen.Origin.MAIN_MENU)));
+
         addMenuButton(root, "Multiplayer", skin, false,
             () -> Gdx.app.log("Menu", "Multiplayer pressed"));
         addMenuButton(root, "Settings", skin, false,
