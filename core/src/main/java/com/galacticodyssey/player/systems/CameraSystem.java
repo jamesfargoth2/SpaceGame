@@ -12,6 +12,7 @@ import com.galacticodyssey.core.EventBus;
 import com.galacticodyssey.core.components.TransformComponent;
 import com.galacticodyssey.player.components.FPSCameraComponent;
 import com.galacticodyssey.player.components.MovementStateComponent;
+import com.galacticodyssey.player.components.PlayerInputComponent;
 import com.galacticodyssey.player.components.PlayerStateComponent;
 
 public class CameraSystem extends IteratingSystem {
@@ -30,12 +31,19 @@ public class CameraSystem extends IteratingSystem {
         ComponentMapper.getFor(FPSCameraComponent.class);
     private final ComponentMapper<MovementStateComponent> stateMapper =
         ComponentMapper.getFor(MovementStateComponent.class);
+    private final ComponentMapper<PlayerInputComponent> inputMapper =
+        ComponentMapper.getFor(PlayerInputComponent.class);
 
     private PerspectiveCamera camera;
     private boolean wasGrounded;
 
     private float recoilPitch;
     private float recoilYaw;
+
+    private final Vector3 localForward = new Vector3();
+    private final Vector3 localRight = new Vector3();
+    private final Vector3 pivot = new Vector3();
+    private final Vector3 dir = new Vector3();
 
     public CameraSystem() {
         super(Family.all(TransformComponent.class, FPSCameraComponent.class, MovementStateComponent.class).get(), 4);
@@ -68,55 +76,77 @@ public class CameraSystem extends IteratingSystem {
         FPSCameraComponent cam = cameraMapper.get(entity);
         MovementStateComponent state = stateMapper.get(entity);
 
+        PlayerInputComponent input = inputMapper.get(entity);
+        if (input != null && input.scrollDelta != 0) {
+            cam.targetCameraDistance = MathUtils.clamp(
+                cam.targetCameraDistance + input.scrollDelta * cam.zoomStep,
+                0f, cam.maxCameraDistance);
+            input.scrollDelta = 0;
+        }
+
+        cam.currentCameraDistance = MathUtils.lerp(cam.currentCameraDistance,
+            cam.targetCameraDistance, cam.zoomLerpSpeed * deltaTime);
+        if (Math.abs(cam.currentCameraDistance - cam.targetCameraDistance) < 0.01f) {
+            cam.currentCameraDistance = cam.targetCameraDistance;
+        }
+
+        boolean firstPerson = cam.currentCameraDistance < 0.1f;
+
+        Vector3 up = cam.localUp;
+
+        buildTangentFrame(up, cam.yawAngle);
+
         float targetEyeHeight = state.isCrouching ? cam.crouchEyeHeight : cam.eyeHeight;
         cam.currentEyeHeight = MathUtils.lerp(cam.currentEyeHeight, targetEyeHeight,
             EYE_HEIGHT_LERP_SPEED * deltaTime);
 
-        float camX = transform.position.x;
-        float camY = transform.position.y + cam.currentEyeHeight;
-        float camZ = transform.position.z;
+        pivot.set(up).scl(cam.currentEyeHeight).add(transform.position);
 
-        if (state.isGrounded && state.currentSpeed > HEAD_BOB_MIN_SPEED) {
+        if (firstPerson && state.isGrounded && state.currentSpeed > HEAD_BOB_MIN_SPEED) {
             cam.headBobPhase += state.currentSpeed * cam.headBobFrequency * deltaTime;
             float speedRatio = state.currentSpeed / WALK_SPEED_REF;
             float vOffset = MathUtils.sin(cam.headBobPhase) * cam.headBobAmplitude * speedRatio;
             float hOffset = MathUtils.cos(cam.headBobPhase * 0.5f) * cam.headBobAmplitude * 0.5f;
-            camY += vOffset;
-
-            float yawRad = cam.yawAngle * MathUtils.degreesToRadians;
-            camX += MathUtils.cos(yawRad) * hOffset;
-            camZ += -MathUtils.sin(yawRad) * hOffset;
-        } else {
+            pivot.add(up.x * vOffset, up.y * vOffset, up.z * vOffset);
+            pivot.add(localRight.x * hOffset, localRight.y * hOffset, localRight.z * hOffset);
+        } else if (firstPerson) {
             cam.headBobPhase = 0;
         }
 
-        if (!wasGrounded && state.isGrounded) {
+        if (!wasGrounded && state.isGrounded && firstPerson) {
             cam.landingDipAmount = Math.min(MAX_LANDING_DIP, state.fallVelocity * LANDING_DIP_FACTOR);
         }
-        if (cam.landingDipAmount > 0) {
-            camY -= cam.landingDipAmount;
+        if (cam.landingDipAmount > 0 && firstPerson) {
+            pivot.add(-up.x * cam.landingDipAmount, -up.y * cam.landingDipAmount, -up.z * cam.landingDipAmount);
             cam.landingDipAmount = Math.max(0, cam.landingDipAmount - LANDING_DIP_DECAY_SPEED * deltaTime);
         }
 
-        camera.position.set(camX, camY, camZ);
-
-        // Apply recoil offsets on top of the base camera angles.
         float effectivePitch = cam.pitchAngle + recoilPitch;
         float effectiveYaw = cam.yawAngle + recoilYaw;
 
+        buildTangentFrame(up, effectiveYaw);
+
         float pitchRad = effectivePitch * MathUtils.degreesToRadians;
-        float yawRad = effectiveYaw * MathUtils.degreesToRadians;
+        float cosPitch = MathUtils.cos(pitchRad);
+        float sinPitch = MathUtils.sin(pitchRad);
 
-        camera.direction.set(
-            -MathUtils.sin(yawRad) * MathUtils.cos(pitchRad),
-            MathUtils.sin(pitchRad),
-            -MathUtils.cos(yawRad) * MathUtils.cos(pitchRad)
-        ).nor();
+        dir.set(localForward).scl(cosPitch).add(
+            up.x * sinPitch, up.y * sinPitch, up.z * sinPitch).nor();
 
-        camera.up.set(Vector3.Y);
+        if (firstPerson) {
+            camera.position.set(pivot);
+        } else {
+            float dist = cam.currentCameraDistance;
+            camera.position.set(
+                pivot.x - dir.x * dist + up.x * dist * 0.15f,
+                pivot.y - dir.y * dist + up.y * dist * 0.15f,
+                pivot.z - dir.z * dist + up.z * dist * 0.15f);
+        }
+
+        camera.direction.set(dir);
+        camera.up.set(up);
         camera.update();
 
-        // Decay recoil back toward zero.
         float decay = RECOIL_RECOVERY_SPEED * deltaTime;
         recoilPitch = recoilPitch > 0
             ? Math.max(0f, recoilPitch - decay)
@@ -126,5 +156,26 @@ public class CameraSystem extends IteratingSystem {
             : Math.min(0f, recoilYaw + decay);
 
         wasGrounded = state.isGrounded;
+    }
+
+    private void buildTangentFrame(Vector3 up, float yawAngle) {
+        Vector3 ref = Math.abs(up.y) < 0.999f ? Vector3.Y : Vector3.Z;
+        localRight.set(ref).crs(up).nor();
+        localForward.set(up).crs(localRight).nor();
+
+        float yawRad = yawAngle * MathUtils.degreesToRadians;
+        float cosYaw = MathUtils.cos(yawRad);
+        float sinYaw = MathUtils.sin(yawRad);
+
+        float fwdX = localForward.x * cosYaw + localRight.x * sinYaw;
+        float fwdY = localForward.y * cosYaw + localRight.y * sinYaw;
+        float fwdZ = localForward.z * cosYaw + localRight.z * sinYaw;
+
+        float rgtX = -localForward.x * sinYaw + localRight.x * cosYaw;
+        float rgtY = -localForward.y * sinYaw + localRight.y * cosYaw;
+        float rgtZ = -localForward.z * sinYaw + localRight.z * cosYaw;
+
+        localForward.set(fwdX, fwdY, fwdZ);
+        localRight.set(rgtX, rgtY, rgtZ);
     }
 }

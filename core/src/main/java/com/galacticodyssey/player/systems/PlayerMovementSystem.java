@@ -6,6 +6,7 @@ import com.badlogic.ashley.core.Family;
 import com.badlogic.ashley.systems.IteratingSystem;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Matrix4;
+import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.bullet.collision.ClosestRayResultCallback;
 import com.badlogic.gdx.physics.bullet.dynamics.btDiscreteDynamicsWorld;
@@ -34,7 +35,6 @@ public class PlayerMovementSystem extends IteratingSystem {
     private static final float EXHAUSTED_SPEED_MULTIPLIER = 0.4f;
     private static final float SLOPE_FORCE_BOOST = 2.5f;
     private static final float SLOPE_DAMPING_MIN = 0.4f;
-    private static final float GRAVITY = 9.81f;
 
     private final ComponentMapper<PlayerInputComponent> inputMapper =
         ComponentMapper.getFor(PlayerInputComponent.class);
@@ -48,13 +48,18 @@ public class PlayerMovementSystem extends IteratingSystem {
         ComponentMapper.getFor(FPSCameraComponent.class);
 
     private final btDiscreteDynamicsWorld dynamicsWorld;
+    private final Vector3 planetCenter = new Vector3(0, 0, 0);
 
     private final Vector3 tempVec = new Vector3();
     private final Vector3 tempVec2 = new Vector3();
     private final Vector3 tempVec3 = new Vector3();
+    private final Vector3 localUp = new Vector3();
+    private final Vector3 localForward = new Vector3();
+    private final Vector3 localRight = new Vector3();
     private final Vector3 rayFrom = new Vector3();
     private final Vector3 rayTo = new Vector3();
     private final Matrix4 tempMat = new Matrix4();
+    private final Quaternion tempQuat = new Quaternion();
 
     public PlayerMovementSystem(btDiscreteDynamicsWorld dynamicsWorld) {
         super(Family.all(
@@ -64,6 +69,10 @@ public class PlayerMovementSystem extends IteratingSystem {
             TransformComponent.class
         ).get(), 1);
         this.dynamicsWorld = dynamicsWorld;
+    }
+
+    public void setPlanetCenter(Vector3 center) {
+        planetCenter.set(center);
     }
 
     @Override
@@ -84,6 +93,14 @@ public class PlayerMovementSystem extends IteratingSystem {
         physics.body.getWorldTransform(tempMat);
         tempMat.getTranslation(tempVec);
 
+        localUp.set(tempVec).sub(planetCenter);
+        if (localUp.len2() < 0.001f) localUp.set(0, 1, 0);
+        else localUp.nor();
+
+        if (cam != null) {
+            cam.localUp.set(localUp);
+        }
+
         boolean wasGrounded = state.isGrounded;
         performGroundCheck(physics, state, tempVec);
 
@@ -91,36 +108,24 @@ public class PlayerMovementSystem extends IteratingSystem {
             cam.yawAngle += input.mouseDeltaX * cam.mouseSensitivity;
             cam.pitchAngle += input.mouseDeltaY * cam.mouseSensitivity;
             cam.pitchAngle = MathUtils.clamp(cam.pitchAngle, -85f, 85f);
-
-            tempMat.setToRotation(Vector3.Y, cam.yawAngle);
-            tempMat.setTranslation(tempVec);
-            physics.body.setWorldTransform(tempMat);
         }
 
-        float yawRad = cam != null ? cam.yawAngle * MathUtils.degreesToRadians : 0;
-        float forwardX = -MathUtils.sin(yawRad);
-        float forwardZ = -MathUtils.cos(yawRad);
-        float rightX = MathUtils.cos(yawRad);
-        float rightZ = -MathUtils.sin(yawRad);
+        buildTangentFrame(cam != null ? cam.yawAngle : 0f);
 
-        float dirX = forwardX * input.moveForward + rightX * input.moveStrafe;
-        float dirZ = forwardZ * input.moveForward + rightZ * input.moveStrafe;
-        float len = (float) Math.sqrt(dirX * dirX + dirZ * dirZ);
-        if (len > 0.001f) {
-            dirX /= len;
-            dirZ /= len;
-        }
+        float dirFwd = input.moveForward;
+        float dirRight = input.moveStrafe;
+        tempVec2.set(localForward).scl(dirFwd).add(tempVec3.set(localRight).scl(dirRight));
+        float len = tempVec2.len();
+        if (len > 0.001f) tempVec2.scl(1f / len);
+
+        orientCapsule(physics, cam != null ? cam.yawAngle : 0f);
 
         float slopeAngle = state.slopeAngle;
         boolean movingUphill = false;
         if (state.isGrounded && len > 0.001f && slopeAngle > 1f) {
-            float slopeHorizX = state.groundNormal.x;
-            float slopeHorizZ = state.groundNormal.z;
-            float slopeHorizLen = (float) Math.sqrt(slopeHorizX * slopeHorizX + slopeHorizZ * slopeHorizZ);
+            float slopeHorizLen = projectOnTangent(state.groundNormal);
             if (slopeHorizLen > 0.001f) {
-                float uphillDirX = slopeHorizX / slopeHorizLen;
-                float uphillDirZ = slopeHorizZ / slopeHorizLen;
-                float dot = dirX * uphillDirX + dirZ * uphillDirZ;
+                float dot = tempVec2.x * tempVec3.x + tempVec2.y * tempVec3.y + tempVec2.z * tempVec3.z;
                 movingUphill = dot > 0.1f;
             }
         }
@@ -148,32 +153,26 @@ public class PlayerMovementSystem extends IteratingSystem {
         if (state.isExhausted) targetSpeed *= EXHAUSTED_SPEED_MULTIPLIER;
 
         Vector3 currentVel = physics.body.getLinearVelocity();
-        float currentHorizSpeed = (float) Math.sqrt(currentVel.x * currentVel.x + currentVel.z * currentVel.z);
+        float upComponent = currentVel.dot(localUp);
+        float currentHorizSpeed = (float) Math.sqrt(
+            currentVel.len2() - upComponent * upComponent);
 
         if (len > 0.001f && currentHorizSpeed < targetSpeed) {
             if (state.isGrounded && slopeAngle > 1f) {
-                tempVec2.set(dirX, 0, dirZ);
                 projectOnPlane(tempVec2, state.groundNormal);
-                if (tempVec2.len2() > 0.001f) {
-                    tempVec2.nor();
-                }
+                if (tempVec2.len2() > 0.001f) tempVec2.nor();
                 float boost = movingUphill ? SLOPE_FORCE_BOOST : 1f;
                 tempVec2.scl(forceMult * physics.mass * boost);
             } else {
-                tempVec2.set(dirX * forceMult * physics.mass, 0, dirZ * forceMult * physics.mass);
+                tempVec2.scl(forceMult * physics.mass);
             }
             physics.body.applyCentralForce(tempVec2);
         }
 
         if (state.isGrounded && slopeAngle > 1f) {
-            float nx = state.groundNormal.x;
-            float ny = state.groundNormal.y;
-            float nz = state.groundNormal.z;
-            tempVec3.set(
-                -GRAVITY * ny * nx * physics.mass,
-                GRAVITY * (nx * nx + nz * nz) * physics.mass,
-                -GRAVITY * ny * nz * physics.mass
-            );
+            float nDotUp = state.groundNormal.dot(localUp);
+            float lateralScale = 1f - nDotUp * nDotUp;
+            tempVec3.set(localUp).scl(9.81f * lateralScale * physics.mass);
             physics.body.applyCentralForce(tempVec3);
         }
 
@@ -187,7 +186,7 @@ public class PlayerMovementSystem extends IteratingSystem {
             state.isGrounded ? groundDamp : AIR_DAMPING, 0f);
 
         if (input.jumpRequested && state.isGrounded) {
-            tempVec3.set(0, JUMP_IMPULSE * physics.mass, 0);
+            tempVec3.set(localUp).scl(JUMP_IMPULSE * physics.mass);
             physics.body.applyCentralImpulse(tempVec3);
             state.isGrounded = false;
         }
@@ -214,9 +213,9 @@ public class PlayerMovementSystem extends IteratingSystem {
         }
 
         if (!wasGrounded && state.isGrounded) {
-            state.fallVelocity = Math.abs(currentVel.y);
+            state.fallVelocity = Math.abs(currentVel.dot(localUp));
         } else if (!state.isGrounded) {
-            state.fallVelocity = Math.abs(currentVel.y);
+            state.fallVelocity = Math.abs(currentVel.dot(localUp));
         }
 
         state.currentSpeed = currentHorizSpeed;
@@ -224,9 +223,38 @@ public class PlayerMovementSystem extends IteratingSystem {
         physics.body.activate();
     }
 
+    private void buildTangentFrame(float yawAngle) {
+        Vector3 ref = Math.abs(localUp.y) < 0.999f ? Vector3.Y : Vector3.Z;
+        localRight.set(ref).crs(localUp).nor();
+        localForward.set(localUp).crs(localRight).nor();
+
+        float yawRad = yawAngle * MathUtils.degreesToRadians;
+        float cosYaw = MathUtils.cos(yawRad);
+        float sinYaw = MathUtils.sin(yawRad);
+
+        float fwdX = localForward.x * cosYaw + localRight.x * sinYaw;
+        float fwdY = localForward.y * cosYaw + localRight.y * sinYaw;
+        float fwdZ = localForward.z * cosYaw + localRight.z * sinYaw;
+
+        float rgtX = -localForward.x * sinYaw + localRight.x * cosYaw;
+        float rgtY = -localForward.y * sinYaw + localRight.y * cosYaw;
+        float rgtZ = -localForward.z * sinYaw + localRight.z * cosYaw;
+
+        localForward.set(fwdX, fwdY, fwdZ);
+        localRight.set(rgtX, rgtY, rgtZ);
+    }
+
+    private void orientCapsule(PhysicsBodyComponent physics, float yawAngle) {
+        tempQuat.setFromCross(Vector3.Y, localUp);
+        physics.body.getWorldTransform(tempMat);
+        tempMat.getTranslation(tempVec);
+        tempMat.set(tempVec, tempQuat);
+        physics.body.setWorldTransform(tempMat);
+    }
+
     private void performGroundCheck(PhysicsBodyComponent physics, MovementStateComponent state, Vector3 bodyPos) {
-        rayFrom.set(bodyPos.x, bodyPos.y, bodyPos.z);
-        rayTo.set(bodyPos.x, bodyPos.y - CAPSULE_HALF_HEIGHT - GROUND_RAY_EXTRA, bodyPos.z);
+        rayFrom.set(bodyPos);
+        rayTo.set(localUp).scl(-(CAPSULE_HALF_HEIGHT + GROUND_RAY_EXTRA)).add(bodyPos);
 
         ClosestRayResultCallback callback = new ClosestRayResultCallback(rayFrom, rayTo);
         dynamicsWorld.rayTest(rayFrom, rayTo, callback);
@@ -235,13 +263,13 @@ public class PlayerMovementSystem extends IteratingSystem {
             callback.getHitNormalWorld(tempVec2);
             state.groundNormal.set(tempVec2);
             float angle = (float) Math.toDegrees(Math.acos(
-                Math.min(1f, tempVec2.dot(Vector3.Y))));
+                Math.min(1f, tempVec2.dot(localUp))));
             state.slopeAngle = angle;
             state.isGrounded = angle <= MAX_SLOPE_ANGLE;
         } else {
             state.isGrounded = false;
             state.slopeAngle = 0;
-            state.groundNormal.set(0, 1, 0);
+            state.groundNormal.set(localUp);
         }
 
         callback.dispose();
@@ -252,5 +280,16 @@ public class PlayerMovementSystem extends IteratingSystem {
         vec.x -= normal.x * dot;
         vec.y -= normal.y * dot;
         vec.z -= normal.z * dot;
+    }
+
+    private float projectOnTangent(Vector3 groundNormal) {
+        tempVec3.set(groundNormal);
+        float dot = tempVec3.dot(localUp);
+        tempVec3.x -= localUp.x * dot;
+        tempVec3.y -= localUp.y * dot;
+        tempVec3.z -= localUp.z * dot;
+        float len = tempVec3.len();
+        if (len > 0.001f) tempVec3.scl(1f / len);
+        return len;
     }
 }
