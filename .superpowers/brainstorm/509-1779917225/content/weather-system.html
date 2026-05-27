@@ -1,0 +1,142 @@
+<h2>Weather & Dynamic Wave System</h2>
+<p class="subtitle">Storm state machine driving Gerstner wave parameters and ocean currents</p>
+
+<div style="max-width: 900px; margin: 0 auto;">
+
+  <div class="mockup">
+    <div class="mockup-header">Weather State Machine — Storm Lifecycle</div>
+    <div class="mockup-body" style="padding: 24px; background: #0a0a1a;">
+      <svg viewBox="0 0 800 280" style="width: 100%; font-family: system-ui, sans-serif;">
+        <defs>
+          <marker id="wa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 1 L 9 5 L 0 9 z" fill="#888"/></marker>
+        </defs>
+
+        <!-- CALM -->
+        <rect x="20" y="100" width="130" height="70" rx="12" fill="#0a2a1a" stroke="#22c55e" stroke-width="2"/>
+        <text x="85" y="128" text-anchor="middle" fill="#4ade80" font-size="13" font-weight="bold">CALM</text>
+        <text x="85" y="148" text-anchor="middle" fill="#6b8db5" font-size="9">amp: 0.3–0.8m</text>
+        <text x="85" y="160" text-anchor="middle" fill="#6b8db5" font-size="9">wind: 0–5 m/s</text>
+
+        <!-- BUILDING -->
+        <rect x="200" y="100" width="130" height="70" rx="12" fill="#1a2a10" stroke="#eab308" stroke-width="2"/>
+        <text x="265" y="128" text-anchor="middle" fill="#facc15" font-size="13" font-weight="bold">BUILDING</text>
+        <text x="265" y="148" text-anchor="middle" fill="#6b8db5" font-size="9">amp: 0.8→3m</text>
+        <text x="265" y="160" text-anchor="middle" fill="#6b8db5" font-size="9">wind: 5→15 m/s</text>
+
+        <!-- STORM -->
+        <rect x="380" y="100" width="130" height="70" rx="12" fill="#2a1010" stroke="#ef4444" stroke-width="2"/>
+        <text x="445" y="128" text-anchor="middle" fill="#f87171" font-size="13" font-weight="bold">STORM</text>
+        <text x="445" y="148" text-anchor="middle" fill="#6b8db5" font-size="9">amp: 3–6m</text>
+        <text x="445" y="160" text-anchor="middle" fill="#6b8db5" font-size="9">wind: 15–30 m/s</text>
+
+        <!-- SUBSIDING -->
+        <rect x="560" y="100" width="130" height="70" rx="12" fill="#1a1a2a" stroke="#8b5cf6" stroke-width="2"/>
+        <text x="625" y="128" text-anchor="middle" fill="#a78bfa" font-size="13" font-weight="bold">SUBSIDING</text>
+        <text x="625" y="148" text-anchor="middle" fill="#6b8db5" font-size="9">amp: 6→0.8m</text>
+        <text x="625" y="160" text-anchor="middle" fill="#6b8db5" font-size="9">wind: 30→5 m/s</text>
+
+        <!-- Transitions -->
+        <line x1="150" y1="130" x2="200" y2="130" stroke="#888" stroke-width="1.5" marker-end="url(#wa)"/>
+        <text x="175" y="122" text-anchor="middle" fill="#9ca3af" font-size="8">60–300s</text>
+
+        <line x1="330" y1="130" x2="380" y2="130" stroke="#888" stroke-width="1.5" marker-end="url(#wa)"/>
+        <text x="355" y="122" text-anchor="middle" fill="#9ca3af" font-size="8">30–120s</text>
+
+        <line x1="510" y1="130" x2="560" y2="130" stroke="#888" stroke-width="1.5" marker-end="url(#wa)"/>
+        <text x="535" y="122" text-anchor="middle" fill="#9ca3af" font-size="8">60–180s</text>
+
+        <!-- SUBSIDING → CALM (loop back) -->
+        <path d="M 625 170 L 625 220 Q 625 240 605 240 L 105 240 Q 85 240 85 220 L 85 170" fill="none" stroke="#888" stroke-width="1.5" marker-end="url(#wa)"/>
+        <text x="355" y="254" text-anchor="middle" fill="#9ca3af" font-size="8">60–120s cooldown</text>
+
+        <!-- STORM self-loop (can intensify) -->
+        <path d="M 445 100 Q 445 60 480 60 Q 510 60 510 100" fill="none" stroke="#ef4444" stroke-width="1" marker-end="url(#wa)" stroke-dasharray="3,3"/>
+        <text x="478" y="52" text-anchor="middle" fill="#f87171" font-size="8">intensify (rare)</text>
+
+        <!-- Wave visualization below -->
+        <text x="400" y="16" text-anchor="middle" fill="#555" font-size="10">Duration ranges are per-phase; total storm cycle: ~4–10 minutes</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="mockup" style="margin-top: 16px;">
+    <div class="mockup-header">Wave Profile Comparison — Calm vs Storm</div>
+    <div class="mockup-body" style="padding: 24px; background: #0a0a1a;">
+      <svg viewBox="0 0 800 200" style="width: 100%; font-family: system-ui, sans-serif;">
+        <!-- Calm waves -->
+        <text x="50" y="30" fill="#4ade80" font-size="11" font-weight="bold">CALM</text>
+        <text x="50" y="44" fill="#6b8db5" font-size="9">2 wave components, low amplitude</text>
+        <path d="M 120 60 Q 160 48 200 60 Q 240 72 280 60 Q 320 48 360 60 Q 400 72 440 60 Q 480 48 520 60 Q 560 72 600 60 Q 640 48 680 60 Q 720 72 760 60" fill="none" stroke="#22c55e" stroke-width="2"/>
+        <line x1="120" y1="60" x2="760" y2="60" stroke="#22c55e22" stroke-width="1" stroke-dasharray="2,4"/>
+
+        <!-- Storm waves -->
+        <text x="50" y="120" fill="#f87171" font-size="11" font-weight="bold">STORM</text>
+        <text x="50" y="134" fill="#6b8db5" font-size="9">6 wave components, high amplitude + chop</text>
+        <path d="M 120 150 Q 145 115 170 130 Q 190 142 210 120 Q 240 95 270 135 Q 285 155 310 140 Q 340 110 370 150 Q 385 162 410 125 Q 440 100 465 145 Q 480 160 505 130 Q 530 108 560 150 Q 575 165 600 128 Q 625 102 650 145 Q 670 158 695 132 Q 720 105 760 150" fill="none" stroke="#ef4444" stroke-width="2"/>
+        <line x1="120" y1="150" x2="760" y2="150" stroke="#ef444422" stroke-width="1" stroke-dasharray="2,4"/>
+
+        <!-- Amplitude labels -->
+        <text x="770" y="54" fill="#22c55e88" font-size="9">±0.5m</text>
+        <text x="770" y="108" fill="#ef444488" font-size="9">±4m</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="section" style="margin-top: 20px;">
+    <h3>How Weather Drives Waves</h3>
+    <p style="color: #9ca3af; line-height: 1.7;">
+      The WeatherSystem doesn't create waves directly — it modifies the existing <code style="color:#facc15;">WaterBodyComponent.waves</code> array by interpolating wave parameters toward a target profile. Each weather state defines a <strong style="color:#fff;">wave profile</strong> in <code style="color:#4ade80;">weather_profiles.json</code>:
+    </p>
+    <ul style="color: #9ca3af; line-height: 2; margin-top: 8px;">
+      <li><strong style="color:#fff;">Wave count</strong> — calm uses 2 components (gentle swell); storm uses 5–6 (swell + chop + cross-waves)</li>
+      <li><strong style="color:#fff;">Amplitude envelope</strong> — lerped smoothly over the phase transition duration</li>
+      <li><strong style="color:#fff;">Steepness (Gerstner Q)</strong> — calm: 0.1 (sine-like); storm: 0.6–0.8 (peaked, near-breaking)</li>
+      <li><strong style="color:#fff;">Direction spread</strong> — calm: waves mostly aligned; storm: multi-directional for chaotic surface</li>
+      <li><strong style="color:#fff;">Current velocity</strong> — wind drives <code style="color:#22d3ee;">WaterBodyComponent.currentVelocity</code>, affecting swim drag and ship drift</li>
+    </ul>
+  </div>
+
+  <div class="section" style="margin-top: 20px;">
+    <h3>Storm Cells — Spatial Model</h3>
+    <p style="color: #9ca3af; line-height: 1.7;">
+      Storms are <strong style="color:#fff;">localized regions</strong>, not global state. Each storm is an entity with a <code style="color:#facc15;">StormCellComponent</code> containing a center position (galaxy-space), radius (1–5 km), and its own weather state. Wave parameters blend based on distance to the nearest storm cell:
+    </p>
+    <ul style="color: #9ca3af; line-height: 2; margin-top: 8px;">
+      <li><strong style="color:#fff;">Inside radius</strong> — full storm wave profile</li>
+      <li><strong style="color:#fff;">Edge band (outer 30%)</strong> — lerp between storm and ambient profile. This creates the "wall of rain" sailing-into-a-storm feel.</li>
+      <li><strong style="color:#fff;">Outside</strong> — ambient calm profile</li>
+      <li><strong style="color:#fff;">Movement</strong> — storm cells drift with wind direction at 5–20 m/s. A storm can chase you.</li>
+    </ul>
+  </div>
+
+  <div class="section" style="margin-top: 20px;">
+    <h3>Impact on Swimming & Ships</h3>
+    <table style="width:100%; border-collapse: collapse; color: #d1d5db; font-size: 12px;">
+      <tr style="border-bottom: 1px solid #333; background: #111;">
+        <th style="padding: 8px; text-align: left; color: #888;">Weather</th>
+        <th style="padding: 8px; text-align: left; color: #888;">Swimming Effect</th>
+        <th style="padding: 8px; text-align: left; color: #888;">Ship Effect</th>
+      </tr>
+      <tr style="border-bottom: 1px solid #222;">
+        <td style="padding: 8px; color: #4ade80;">Calm</td>
+        <td style="padding: 8px;">Gentle bobbing, easy surface swimming</td>
+        <td style="padding: 8px;">Smooth sailing, minimal roll</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #222;">
+        <td style="padding: 8px; color: #facc15;">Building</td>
+        <td style="padding: 8px;">Stronger bobbing, current starts pushing</td>
+        <td style="padding: 8px;">Noticeable sway, waves lap deck</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #222;">
+        <td style="padding: 8px; color: #f87171;">Storm</td>
+        <td style="padding: 8px;">Waves can submerge swimmer, strong currents, stamina drains 2x, visibility drops at surface</td>
+        <td style="padding: 8px;">Heavy roll/pitch, waves crash over deck, water ingress, risk of capsize</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; color: #a78bfa;">Subsiding</td>
+        <td style="padding: 8px;">Large swells but less chop, currents fading</td>
+        <td style="padding: 8px;">Long rolling waves, gradually calming</td>
+      </tr>
+    </table>
+  </div>
+</div>

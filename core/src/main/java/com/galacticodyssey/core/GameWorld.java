@@ -91,15 +91,24 @@ import com.galacticodyssey.ui.CockpitHUDSystem;
 import com.galacticodyssey.ship.flooding.systems.FloodingHudSystem;
 import com.galacticodyssey.ship.flooding.systems.ShipFloodingSystem;
 import com.galacticodyssey.ui.systems.DebugHudSystem;
+import com.galacticodyssey.water.DepthZoneComponent;
 import com.galacticodyssey.water.OceanSpawner;
+import com.galacticodyssey.water.SwimmingStateComponent;
 import com.galacticodyssey.water.systems.BallastSystem;
 import com.galacticodyssey.water.systems.BoatBuoyancySystem;
 import com.galacticodyssey.water.systems.BoatMotorSystem;
+import com.galacticodyssey.water.systems.DeckWashSystem;
+import com.galacticodyssey.water.systems.HatchFloodingSystem;
 import com.galacticodyssey.water.systems.HullIntegritySystem;
 import com.galacticodyssey.water.systems.HydrodynamicDragSystem;
+import com.galacticodyssey.water.systems.SwimCameraSystem;
+import com.galacticodyssey.water.systems.SwimmingSystem;
+import com.galacticodyssey.water.systems.UnderwaterSystem;
 import com.galacticodyssey.water.systems.WakeTrailSystem;
 import com.galacticodyssey.water.systems.WaveSystem;
+import com.galacticodyssey.water.systems.WeatherSystem;
 import com.galacticodyssey.water.data.VesselRegistry;
+import com.galacticodyssey.water.data.WaterDataRegistry;
 import com.galacticodyssey.water.VesselFactory;
 import com.galacticodyssey.vfx.components.ParticlePoolComponent;
 import com.galacticodyssey.vfx.data.VFXEventBindings;
@@ -180,6 +189,7 @@ public class GameWorld implements Disposable {
     private AudioSystem audioSystem;
     private RealTimeSkillSystem realTimeSkillSystem;
     private WaveSystem waveSystem;
+    private WaterDataRegistry waterDataRegistry;
     private OceanSpawner oceanSpawner;
     private VesselRegistry vesselRegistry;
     private VesselFactory vesselFactory;
@@ -343,6 +353,35 @@ public class GameWorld implements Disposable {
         engine.addSystem(new ShipFloodingSystem(eventBus));
         engine.addSystem(new FloodingHudSystem(eventBus));
 
+        // Swimming & water mechanics
+        waterDataRegistry = new WaterDataRegistry();
+        if (com.badlogic.gdx.Gdx.files != null) {
+            waterDataRegistry.loadFromFiles();
+        } else {
+            waterDataRegistry.setSwimConfig(new com.galacticodyssey.water.data.SwimConfigData());
+        }
+
+        WeatherSystem weatherSystem = new WeatherSystem(5, eventBus, waterDataRegistry);
+        engine.addSystem(weatherSystem);
+
+        DeckWashSystem deckWashSystem = new DeckWashSystem(17, eventBus);
+        deckWashSystem.setWaveSystem(waveSystem);
+        engine.addSystem(deckWashSystem);
+
+        HatchFloodingSystem hatchFloodingSystem = new HatchFloodingSystem(18, eventBus);
+        engine.addSystem(hatchFloodingSystem);
+
+        SwimmingSystem swimmingSystem = new SwimmingSystem(20, eventBus, waterDataRegistry);
+        swimmingSystem.setWaveSystem(waveSystem);
+        engine.addSystem(swimmingSystem);
+
+        UnderwaterSystem underwaterSystem = new UnderwaterSystem(21, eventBus, waterDataRegistry);
+        engine.addSystem(underwaterSystem);
+
+        SwimCameraSystem swimCameraSystem = new SwimCameraSystem(90, waterDataRegistry);
+        swimCameraSystem.setWaveSystem(waveSystem);
+        engine.addSystem(swimCameraSystem);
+
         oceanSpawner = new OceanSpawner(engine);
 
         vesselRegistry = new VesselRegistry();
@@ -428,6 +467,8 @@ public class GameWorld implements Disposable {
         player.add(new FPSCameraComponent());
         player.add(new PlayerStateComponent());
         player.add(new PlayerModelComponent());
+        player.add(new SwimmingStateComponent());
+        player.add(new DepthZoneComponent());
 
         PhysicsBodyComponent physics = new PhysicsBodyComponent();
         physics.shape = new btCapsuleShape(0.3f, 1.2f);

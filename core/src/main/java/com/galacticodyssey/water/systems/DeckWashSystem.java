@@ -1,0 +1,155 @@
+package com.galacticodyssey.water.systems;
+
+import com.badlogic.ashley.core.ComponentMapper;
+import com.badlogic.ashley.core.Entity;
+import com.badlogic.ashley.core.Family;
+import com.badlogic.ashley.systems.IteratingSystem;
+import com.badlogic.gdx.math.Matrix4;
+import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.utils.Pools;
+import com.galacticodyssey.core.EventBus;
+import com.galacticodyssey.core.components.PhysicsBodyComponent;
+import com.galacticodyssey.water.*;
+import com.galacticodyssey.water.events.BilgeAlarmEvent;
+import com.galacticodyssey.water.events.DeckAwashEvent;
+import com.galacticodyssey.water.events.DeckWashEvent;
+import com.galacticodyssey.water.events.ShipSinkingEvent;
+
+public class DeckWashSystem extends IteratingSystem {
+
+    private final ComponentMapper<HullComponent> hullMapper =
+        ComponentMapper.getFor(HullComponent.class);
+    private final ComponentMapper<FloodingComponent> floodMapper =
+        ComponentMapper.getFor(FloodingComponent.class);
+    private final ComponentMapper<DeckWashComponent> washMapper =
+        ComponentMapper.getFor(DeckWashComponent.class);
+    private final ComponentMapper<PhysicsBodyComponent> physicsMapper =
+        ComponentMapper.getFor(PhysicsBodyComponent.class);
+
+    private final EventBus eventBus;
+    private WaveSystem waveSystem;
+    private float testWaterSurfaceHeight = Float.NaN;
+    private final Matrix4 tmpMatrix = new Matrix4();
+
+    private static final float GRAVITY = 9.81f;
+    private static final float ALARM_COOLDOWN = 5.0f;
+
+    private float alarmCooldownTimer;
+    private boolean sinkingEventFired;
+
+    public DeckWashSystem(int priority, EventBus eventBus) {
+        super(Family.all(
+            DeckWashComponent.class,
+            HullComponent.class,
+            FloodingComponent.class,
+            PhysicsBodyComponent.class
+        ).get(), priority);
+        this.eventBus = eventBus;
+    }
+
+    public void setWaveSystem(WaveSystem waveSystem) { this.waveSystem = waveSystem; }
+    public void setTestWaterSurfaceHeight(float h) { this.testWaterSurfaceHeight = h; }
+
+    @Override
+    protected void processEntity(Entity entity, float dt) {
+        HullComponent hull = hullMapper.get(entity);
+        FloodingComponent flooding = floodMapper.get(entity);
+        DeckWashComponent wash = washMapper.get(entity);
+        PhysicsBodyComponent physics = physicsMapper.get(entity);
+
+        tmpMatrix.idt();
+        if (physics.body != null) {
+            physics.body.getWorldTransform(tmpMatrix);
+        }
+
+        float totalFlow = 0f;
+        Vector3 worldPt = Pools.obtain(Vector3.class);
+
+        for (int i = 0; i < wash.gunwaleSampleIndices.size; i++) {
+            int idx = wash.gunwaleSampleIndices.get(i);
+            if (idx >= hull.samplePoints.size) continue;
+
+            BuoyancySamplePoint sp = hull.samplePoints.get(idx);
+            worldPt.set(sp.localOffset).mul(tmpMatrix);
+
+            float waterHeight = getWaterHeight(worldPt);
+            float overtoppingDepth = waterHeight - worldPt.y;
+
+            if (overtoppingDepth > 0f) {
+                float flow = wash.dischargeCd * wash.gunwaleSegmentLength
+                    * (float) Math.sqrt(2f * GRAVITY * overtoppingDepth);
+                totalFlow += flow * dt;
+            }
+        }
+
+        Pools.free(worldPt);
+
+        if (totalFlow > 0f) {
+            Compartment target = findCompartment(flooding, wash.topCompartmentId);
+            if (target != null) {
+                target.waterVolume = Math.min(target.volume, target.waterVolume + totalFlow);
+            }
+            eventBus.publish(new DeckWashEvent(entity, totalFlow / dt));
+
+            wash.deckAwashTimer += dt;
+            if (!wash.deckAwash && wash.deckAwashTimer > DeckWashComponent.DECK_AWASH_THRESHOLD) {
+                wash.deckAwash = true;
+                eventBus.publish(new DeckAwashEvent(entity));
+            }
+        } else {
+            wash.deckAwashTimer = Math.max(0f, wash.deckAwashTimer - dt);
+            if (wash.deckAwashTimer <= 0f) {
+                wash.deckAwash = false;
+            }
+        }
+
+        checkFloodingAlarms(entity, flooding, dt);
+    }
+
+    private void checkFloodingAlarms(Entity entity, FloodingComponent flooding, float dt) {
+        if (alarmCooldownTimer > 0f) {
+            alarmCooldownTimer -= dt;
+            return;
+        }
+
+        float totalFloodedMass = 0f;
+        boolean allFull = true;
+        boolean alarmFired = false;
+        for (int i = 0; i < flooding.compartments.size; i++) {
+            Compartment comp = flooding.compartments.get(i);
+            totalFloodedMass += comp.waterVolume * 1025f;
+            if (comp.fillFraction() > 0.3f && !alarmFired) {
+                eventBus.publish(new BilgeAlarmEvent(entity, comp.id, comp.fillFraction()));
+                alarmFired = true;
+            }
+            if (comp.fillFraction() < 1.0f) {
+                allFull = false;
+            }
+        }
+        if (allFull && flooding.compartments.size > 0 && !sinkingEventFired) {
+            eventBus.publish(new ShipSinkingEvent(entity, totalFloodedMass));
+            sinkingEventFired = true;
+        }
+        if (alarmFired) {
+            alarmCooldownTimer = ALARM_COOLDOWN;
+        }
+    }
+
+    private float getWaterHeight(Vector3 worldPos) {
+        if (!Float.isNaN(testWaterSurfaceHeight)) {
+            return testWaterSurfaceHeight;
+        }
+        if (waveSystem != null) {
+            return waveSystem.getHeight(worldPos.x, worldPos.z);
+        }
+        return 0f;
+    }
+
+    private Compartment findCompartment(FloodingComponent flooding, String id) {
+        for (int i = 0; i < flooding.compartments.size; i++) {
+            Compartment c = flooding.compartments.get(i);
+            if (id.equals(c.id)) return c;
+        }
+        return null;
+    }
+}

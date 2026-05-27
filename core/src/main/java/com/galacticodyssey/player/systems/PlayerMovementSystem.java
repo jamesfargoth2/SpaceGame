@@ -16,6 +16,8 @@ import com.galacticodyssey.player.components.FPSCameraComponent;
 import com.galacticodyssey.player.components.MovementStateComponent;
 import com.galacticodyssey.player.components.PlayerInputComponent;
 import com.galacticodyssey.player.components.PlayerStateComponent;
+import com.galacticodyssey.water.SwimState;
+import com.galacticodyssey.water.SwimmingStateComponent;
 
 public class PlayerMovementSystem extends IteratingSystem {
 
@@ -79,6 +81,11 @@ public class PlayerMovementSystem extends IteratingSystem {
     protected void processEntity(Entity entity, float deltaTime) {
         PlayerStateComponent playerState = entity.getComponent(PlayerStateComponent.class);
         if (playerState != null && playerState.currentMode == PlayerStateComponent.PlayerMode.PILOTING) {
+            return;
+        }
+
+        SwimmingStateComponent swimState = entity.getComponent(SwimmingStateComponent.class);
+        if (swimState != null && swimState.swimState != SwimState.DRY) {
             return;
         }
 
