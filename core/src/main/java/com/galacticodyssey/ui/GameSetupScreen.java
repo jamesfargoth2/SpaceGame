@@ -308,7 +308,6 @@ public class GameSetupScreen implements Screen {
 
     @Override
     public void hide() {
-        audioManager.stopMusic();
         dispose();
     }
 

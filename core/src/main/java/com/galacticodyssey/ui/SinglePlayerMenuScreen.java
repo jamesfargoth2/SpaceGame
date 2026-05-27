@@ -175,7 +175,6 @@ public class SinglePlayerMenuScreen implements Screen {
 
     @Override
     public void hide() {
-        audioManager.stopMusic();
         dispose();
     }
 

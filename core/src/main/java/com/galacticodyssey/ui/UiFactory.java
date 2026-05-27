@@ -12,6 +12,7 @@ import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.FreeTypeFont
 import com.badlogic.gdx.scenes.scene2d.ui.CheckBox;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.List;
+import com.badlogic.gdx.scenes.scene2d.ui.ProgressBar;
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
 import com.badlogic.gdx.scenes.scene2d.ui.SelectBox;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
@@ -132,6 +133,11 @@ public class UiFactory {
         smallRedButtonStyle.over = createButtonDrawable(new Color(0f, 0f, 0f, 0.3f), new Color(0.8f, 0.2f, 0.2f, 1f));
         skin.add("small-red", smallRedButtonStyle);
 
+        Label.LabelStyle defaultLabelStyle = new Label.LabelStyle();
+        defaultLabelStyle.font = settingFont;
+        defaultLabelStyle.fontColor = Color.WHITE;
+        skin.add("default", defaultLabelStyle);
+
         Label.LabelStyle titleStyle = new Label.LabelStyle();
         titleStyle.font = titleFont;
         titleStyle.fontColor = Color.WHITE;
@@ -176,6 +182,11 @@ public class UiFactory {
         sliderStyle.background = createSliderBackground();
         sliderStyle.knob = createSliderKnob();
         skin.add("default-horizontal", sliderStyle);
+
+        ProgressBar.ProgressBarStyle progressBarStyle = new ProgressBar.ProgressBarStyle();
+        progressBarStyle.background = createSliderBackground();
+        progressBarStyle.knob = createSliderKnob();
+        skin.add("default-horizontal", progressBarStyle);
 
         CheckBox.CheckBoxStyle checkBoxStyle = new CheckBox.CheckBoxStyle();
         checkBoxStyle.checkboxOff = createCheckboxDrawable(false);
