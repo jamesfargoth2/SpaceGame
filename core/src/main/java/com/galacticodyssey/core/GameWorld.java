@@ -69,6 +69,10 @@ import com.galacticodyssey.player.systems.RealTimeSkillSystem;
 import com.galacticodyssey.player.systems.RecoilSystem;
 import com.galacticodyssey.player.systems.ScreenShakeSystem;
 import com.galacticodyssey.player.systems.WeaponSwaySystem;
+import com.galacticodyssey.player.systems.PilotTransitionSystem;
+import com.galacticodyssey.ship.data.ShipClassRegistry;
+import com.galacticodyssey.ship.systems.AtmosphericFlightSystem;
+import com.galacticodyssey.ship.systems.CockpitModelSystem;
 import com.galacticodyssey.ship.systems.ShipCameraSystem;
 import com.galacticodyssey.ship.systems.ShipFlightSystem;
 import com.galacticodyssey.ship.systems.ShipInteriorPhysicsSystem;
@@ -76,8 +80,11 @@ import com.galacticodyssey.ship.weapons.data.ShipWeaponRegistry;
 import com.galacticodyssey.ship.weapons.systems.PointDefenseSystem;
 import com.galacticodyssey.ship.weapons.systems.ShipHeatSystem;
 import com.galacticodyssey.ship.weapons.systems.ShipProjectileSystem;
+import com.galacticodyssey.ship.weapons.systems.ShipWeaponPilotSystem;
 import com.galacticodyssey.ship.weapons.systems.ShipWeaponSystem;
+import com.galacticodyssey.ship.weapons.systems.TargetingSystem;
 import com.galacticodyssey.ship.weapons.systems.TurretTrackingSystem;
+import com.galacticodyssey.ui.CockpitHUDSystem;
 import com.galacticodyssey.ship.flooding.systems.FloodingHudSystem;
 import com.galacticodyssey.ship.flooding.systems.ShipFloodingSystem;
 import com.galacticodyssey.ui.systems.DebugHudSystem;
@@ -89,6 +96,8 @@ import com.galacticodyssey.water.systems.HullIntegritySystem;
 import com.galacticodyssey.water.systems.HydrodynamicDragSystem;
 import com.galacticodyssey.water.systems.WakeTrailSystem;
 import com.galacticodyssey.water.systems.WaveSystem;
+import com.galacticodyssey.water.data.VesselRegistry;
+import com.galacticodyssey.water.VesselFactory;
 import com.galacticodyssey.vfx.components.ParticlePoolComponent;
 import com.galacticodyssey.vfx.data.VFXEventBindings;
 import com.galacticodyssey.vfx.data.VFXRegistry;
@@ -145,6 +154,9 @@ public class GameWorld implements Disposable {
     private WeaponSwaySystem weaponSwaySystem;
     private LootTableRegistry lootTableRegistry;
     private ShipWeaponRegistry shipWeaponRegistry;
+    private ShipClassRegistry shipClassRegistry;
+    private CockpitModelSystem cockpitModelSystem;
+    private CockpitHUDSystem cockpitHUDSystem;
     private VFXRegistry vfxRegistry;
     private ParticlePoolComponent particlePool;
     private CommodityRegistry commodityRegistry;
@@ -157,6 +169,8 @@ public class GameWorld implements Disposable {
     private RealTimeSkillSystem realTimeSkillSystem;
     private WaveSystem waveSystem;
     private OceanSpawner oceanSpawner;
+    private VesselRegistry vesselRegistry;
+    private VesselFactory vesselFactory;
     private UUID playerEntityId;
     private SaveCoordinator saveCoordinator;
 
@@ -199,6 +213,12 @@ public class GameWorld implements Disposable {
 
         ShipFlightSystem shipFlightSystem = new ShipFlightSystem();
         engine.addSystem(shipFlightSystem);
+
+        PilotTransitionSystem pilotTransitionSystem = new PilotTransitionSystem(eventBus);
+        engine.addSystem(pilotTransitionSystem);
+
+        AtmosphericFlightSystem atmosphericFlightSystem = new AtmosphericFlightSystem(eventBus);
+        engine.addSystem(atmosphericFlightSystem);
 
         ShipInteriorPhysicsSystem interiorPhysicsSystem = new ShipInteriorPhysicsSystem();
         engine.addSystem(interiorPhysicsSystem);
@@ -262,6 +282,21 @@ public class GameWorld implements Disposable {
         engine.addSystem(pointDefenseSystem);
         engine.addSystem(shipHeatSystem);
 
+        ShipWeaponPilotSystem shipWeaponPilotSystem = new ShipWeaponPilotSystem(shipWeaponSystem);
+        engine.addSystem(shipWeaponPilotSystem);
+
+        cockpitModelSystem = new CockpitModelSystem(eventBus);
+        engine.addSystem(cockpitModelSystem);
+
+        cockpitHUDSystem = new CockpitHUDSystem(eventBus);
+        engine.addSystem(cockpitHUDSystem);
+
+        shipClassRegistry = new ShipClassRegistry();
+        if (com.badlogic.gdx.Gdx.files != null) {
+            shipClassRegistry.loadShipClasses("data/ships/ship_classes.json");
+            shipClassRegistry.loadAtmosphereProfiles("data/planets/atmosphere_profiles.json");
+        }
+
         // Water / Hydrodynamics
         waveSystem = new WaveSystem(10);
         engine.addSystem(waveSystem);
@@ -276,6 +311,13 @@ public class GameWorld implements Disposable {
         engine.addSystem(new FloodingHudSystem(eventBus));
 
         oceanSpawner = new OceanSpawner(engine);
+
+        vesselRegistry = new VesselRegistry();
+        if (com.badlogic.gdx.Gdx.files != null) {
+            vesselRegistry.loadVessels("data/vessels/vessel_hulls.json");
+        }
+        vesselFactory = new VesselFactory(engine, bulletPhysicsSystem,
+                radialGravitySystem != null ? radialGravitySystem.getGravityMagnitude() : 9.81f);
 
         // VFX
         // NOTE: VFX effect definitions are loaded from JSON via the asset pipeline
@@ -327,6 +369,10 @@ public class GameWorld implements Disposable {
         cameraSystem.setCamera(camera);
         debugHudSystem.initialize();
         shipCameraSystem.setCamera(camera);
+        cockpitHUDSystem.initialize();
+
+        TargetingSystem targetingSystem = new TargetingSystem(eventBus, camera);
+        engine.addSystem(targetingSystem);
 
         particleRenderSystem = new ParticleRenderSystem(particlePool, camera);
         engine.addSystem(particleRenderSystem);
@@ -522,6 +568,7 @@ public class GameWorld implements Disposable {
 
     public void resize(int width, int height) {
         debugHudSystem.resize(width, height);
+        cockpitHUDSystem.resize(width, height);
     }
 
     /** Wire up the audio system. Call after GameWorld construction, before the first update(). */
@@ -555,6 +602,10 @@ public class GameWorld implements Disposable {
 
     public OceanSpawner getOceanSpawner() { return oceanSpawner; }
 
+    public VesselRegistry getVesselRegistry() { return vesselRegistry; }
+
+    public VesselFactory getVesselFactory() { return vesselFactory; }
+
     public Engine getEngine() { return engine; }
     public EventBus getEventBus() { return eventBus; }
 
@@ -569,6 +620,11 @@ public class GameWorld implements Disposable {
     public RealTimeSkillSystem getRealTimeSkillSystem() {
         return realTimeSkillSystem;
     }
+
+    public CockpitModelSystem getCockpitModelSystem() { return cockpitModelSystem; }
+    public CockpitHUDSystem getCockpitHUDSystem() { return cockpitHUDSystem; }
+    public ShipClassRegistry getShipClassRegistry() { return shipClassRegistry; }
+    public ShipCameraSystem getShipCameraSystem() { return shipCameraSystem; }
 
     public void loadPlanet(Planet planet, BiomeMap biomeMap) {
         planetTerrainSystem.loadPlanet(planet, biomeMap);
@@ -624,6 +680,8 @@ public class GameWorld implements Disposable {
             planetTerrainSystem.dispose();
         }
         debugHudSystem.dispose();
+        if (cockpitHUDSystem != null) cockpitHUDSystem.dispose();
+        if (cockpitModelSystem != null) cockpitModelSystem.dispose();
         bulletPhysicsSystem.dispose();
     }
 }
