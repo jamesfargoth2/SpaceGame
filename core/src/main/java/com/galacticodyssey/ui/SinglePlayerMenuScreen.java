@@ -20,23 +20,31 @@ import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.galacticodyssey.core.AudioManager;
 import com.galacticodyssey.core.GalacticOdyssey;
-public class MainMenuScreen implements Screen {
+import com.galacticodyssey.persistence.ManifestData;
 
-    private static final float WORLD_WIDTH = 1280f;
+import java.util.List;
+
+/**
+ * Screen shown when the player selects "Single Player" from the main menu.
+ * Offers New Game, Continue (disabled when no saves exist), Load Game, and Back.
+ */
+public class SinglePlayerMenuScreen implements Screen {
+
+    private static final float WORLD_WIDTH  = 1280f;
     private static final float WORLD_HEIGHT = 720f;
 
     private final GalacticOdyssey game;
-    private final Skin skin;
-    private final AudioManager audioManager;
-    private final Stage stage;
+    private final Skin             skin;
+    private final AudioManager     audioManager;
+    private final Stage            stage;
     private final StarfieldBackground starfield;
-    private final OrthographicCamera backgroundCamera;
+    private final OrthographicCamera  backgroundCamera;
 
-    public MainMenuScreen(GalacticOdyssey game) {
-        this.game = game;
-        this.skin = game.getSkin();
-        this.audioManager = game.getAudioManager();
-        this.stage = new Stage(new FitViewport(WORLD_WIDTH, WORLD_HEIGHT));
+    public SinglePlayerMenuScreen(GalacticOdyssey game) {
+        this.game            = game;
+        this.skin            = game.getSkin();
+        this.audioManager    = game.getAudioManager();
+        this.stage           = new Stage(new FitViewport(WORLD_WIDTH, WORLD_HEIGHT));
         this.backgroundCamera = new OrthographicCamera();
 
         float screenW = Gdx.graphics.getWidth();
@@ -47,51 +55,46 @@ public class MainMenuScreen implements Screen {
     }
 
     private void buildUi() {
-
         Table root = new Table();
         root.setFillParent(true);
         root.center();
 
-        Label title = new Label("GALACTIC ODYSSEY", skin, "title");
+        Label title = new Label("SINGLE PLAYER", skin, "title");
         root.add(title).padBottom(50).row();
 
-        addMenuButton(root, "Single Player", skin, false,
-            () -> game.setScreen(new SinglePlayerMenuScreen(game)));
+        // New Game — navigates to GameSetupScreen
+        addMenuButton(root, "New Game", skin, false,
+            () -> game.setScreen(new GameSetupScreen(game)));
 
-        boolean hasSaves = !game.getSaveBackend().listSaves().isEmpty();
+        // Continue — disabled when no saves; loads the most-recent save (index 0, already
+        // sorted descending by timestampMillis inside LocalFileSaveBackend.listSaves()).
+        List<ManifestData> saves = game.getSaveBackend().listSaves();
+        boolean hasSaves = !saves.isEmpty();
 
         addMenuButton(root, "Continue", skin, !hasSaves,
             () -> {
-                java.util.List<com.galacticodyssey.persistence.ManifestData> saves =
-                    game.getSaveBackend().listSaves();
-                if (!saves.isEmpty()) {
-                    Gdx.app.log("Menu", "Loading most recent save: " + saves.get(0).saveName);
+                List<ManifestData> current = game.getSaveBackend().listSaves();
+                if (!current.isEmpty()) {
+                    ManifestData mostRecent = current.get(0);
+                    Gdx.app.log("SinglePlayerMenu",
+                        "Continuing most recent save: " + mostRecent.saveName);
                     game.setScreen(new GameScreen(game));
                 }
             });
 
-        addMenuButton(root, "Load Game", skin, !hasSaves,
-            () -> game.setScreen(new LoadScreen(game, game.getSaveBackend(),
-                MainMenuScreen.this, LoadScreen.Origin.MAIN_MENU)));
+        // Load Game — opens the save-list screen, returning here on Back
+        addMenuButton(root, "Load Game", skin, false,
+            () -> game.setScreen(new LoadScreen(
+                game,
+                game.getSaveBackend(),
+                SinglePlayerMenuScreen.this,
+                LoadScreen.Origin.MAIN_MENU)));
 
-        addMenuButton(root, "Multiplayer", skin, false,
-            () -> Gdx.app.log("Menu", "Multiplayer pressed"));
-        addMenuButton(root, "Settings", skin, false,
-            () -> game.setScreen(new SettingsScreen(game)));
-        addMenuButton(root, "Encyclopedia", skin, false,
-            () -> game.setScreen(new EncyclopediaScreen(game, MainMenuScreen.this)));
-        addMenuButton(root, "Credits", skin, false,
-            () -> Gdx.app.log("Menu", "Credits pressed"));
-        addMenuButton(root, "Exit", skin, false,
-            () -> Gdx.app.exit());
+        // Back — return to the main menu
+        addMenuButton(root, "Back", skin, false,
+            () -> game.setScreen(new MainMenuScreen(game)));
 
         stage.addActor(root);
-
-        Table versionTable = new Table();
-        versionTable.setFillParent(true);
-        versionTable.bottom().right();
-        versionTable.add(new Label("v0.1.0", skin, "version")).pad(10);
-        stage.addActor(versionTable);
     }
 
     private void addMenuButton(Table table, String text, Skin skin, boolean disabled, Runnable action) {
