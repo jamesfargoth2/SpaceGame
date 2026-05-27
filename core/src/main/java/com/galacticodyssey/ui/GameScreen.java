@@ -73,6 +73,7 @@ import java.util.List;
 public class GameScreen implements Screen {
 
     private static final long PLANET_SEED = 42L;
+    private int frameCount;
     private static final float PAUSE_WORLD_WIDTH = 1280f;
     private static final float PAUSE_WORLD_HEIGHT = 720f;
     private static final float ATMOSPHERE_ALTITUDE = 100f;
@@ -149,12 +150,16 @@ public class GameScreen implements Screen {
         planetRadius = planet.radius * 6371f;
 
         gameWorld.initializeSystems(camera);
+        gameWorld.initAudio(game.getAudioManager());
         gameWorld.loadPlanet(planet, biomeMap);
 
         Vector3 spawnDir = findLandSpawnDirection();
         float height = terrainNoise.heightAt(spawnDir, biomeMap, 0);
         float spawnAlt = planetRadius + height * planetRadius * 0.01f + 2f;
         Vector3 spawnPos = new Vector3(spawnDir).scl(spawnAlt);
+
+        camera.position.set(spawnPos);
+        camera.update();
 
         gameWorld.createPlayerEntity(spawnPos.x, spawnPos.y, spawnPos.z);
 
@@ -178,16 +183,17 @@ public class GameScreen implements Screen {
         environment.add(new DirectionalLight().set(0.8f, 0.8f, 0.75f, -0.4f, -0.8f, -0.3f));
 
         buildPauseMenu();
+
+        Gdx.app.log("DIAG", "initializeWorld complete: planetRadius=" + planetRadius
+            + " spawnPos=" + camera.position
+            + " spawnAlt=" + (camera.position.len() - planetRadius));
     }
 
     private Vector3 findLandSpawnDirection() {
         Vector3 dir = CubeSphere.toSphere(CubeFace.POS_Z, 0.5f, 0.5f);
         for (int attempt = 0; attempt < 20; attempt++) {
-            float lat = CubeSphere.latitudeOf(dir);
-            float lon = CubeSphere.longitudeOf(dir);
-            float h = terrainNoise.heightAt(dir, biomeMap, 0);
-            BiomeType biome = biomeMap.getBiome(lat, lon, h);
-            if (biome != BiomeType.OCEAN && biome != BiomeType.ICE_SHEET) {
+            TerrainNoiseStack.Sample sample = terrainNoise.sampleAt(dir, biomeMap, 0);
+            if (sample.biome != BiomeType.OCEAN && sample.biome != BiomeType.ICE_SHEET) {
                 return dir;
             }
             float offsetU = 0.5f + (attempt + 1) * 0.03f;
@@ -372,10 +378,13 @@ public class GameScreen implements Screen {
         return shipShader;
     }
 
+    private final Matrix4 shipModelMat = new Matrix4();
+    private final Vector3 shipRelPos = new Vector3();
+
     private void renderShips() {
         ShaderProgram shader = getShipShader();
         shader.bind();
-        shader.setUniformMatrix("u_projViewTrans", camera.combined);
+        shader.setUniformMatrix("u_projViewTrans", terrainProjView);
         shader.setUniformf("u_lightDir", -0.4f, -0.8f, -0.3f);
         shader.setUniformf("u_ambientColor", 0.3f, 0.3f, 0.35f, 1f);
 
@@ -385,9 +394,9 @@ public class GameScreen implements Screen {
             ShipMeshComponent meshComp = ship.getComponent(ShipMeshComponent.class);
             if (meshComp == null || meshComp.hullMesh == null) continue;
 
-            Matrix4 modelMat = new Matrix4();
-            modelMat.set(t.position, t.rotation);
-            shader.setUniformMatrix("u_worldTrans", modelMat);
+            shipRelPos.set(t.position).sub(camera.position);
+            shipModelMat.set(shipRelPos, t.rotation);
+            shader.setUniformMatrix("u_worldTrans", shipModelMat);
 
             meshComp.hullMesh.render(shader, GL20.GL_TRIANGLES);
         }
@@ -419,12 +428,14 @@ public class GameScreen implements Screen {
             "uniform vec3 u_lightDir;\n" +
             "uniform vec4 u_ambientColor;\n" +
             "void main() {\n" +
+            "    vec3 n = normalize(v_normal);\n" +
             "    vec3 lightDir = normalize(-u_lightDir);\n" +
-            "    float diff = max(dot(v_normal, lightDir), 0.0);\n" +
+            "    float diff = max(dot(n, lightDir), 0.0);\n" +
             "    vec3 color = v_color.rgb * (u_ambientColor.rgb + diff * vec3(0.8, 0.8, 0.75));\n" +
             "    gl_FragColor = vec4(color, 1.0);\n" +
             "}\n";
 
+        ShaderProgram.pedantic = false;
         terrainShader = new ShaderProgram(vert, frag);
         if (!terrainShader.isCompiled()) {
             Gdx.app.error("Shader", terrainShader.getLog());
@@ -434,6 +445,7 @@ public class GameScreen implements Screen {
 
     @Override
     public void render(float delta) {
+        frameCount++;
         float altitude = camera.position.len() - planetRadius;
         updateCameraClipPlanes(altitude);
         updateSkyColor(altitude);
@@ -442,10 +454,30 @@ public class GameScreen implements Screen {
             float clampedDelta = Math.min(delta, 1f / 30f);
             gameWorld.getPlanetTerrainSystem().setCameraPosition(camera.position);
             gameWorld.update(clampedDelta);
+            game.getAudioManager().update(clampedDelta);
+            if (gameWorld.getAudioSystem() != null) {
+                gameWorld.getAudioSystem().updateListener(camera.position, camera.direction);
+            }
         }
 
         renderPlanetTerrain();
         renderShips();
+
+        // Cockpit 3D interior — clears depth and renders over the scene
+        gameWorld.getCockpitModelSystem().render(modelBatch, camera);
+
+        if (frameCount <= 5) {
+            List<TerrainChunk> leaves = gameWorld.getVisibleTerrainLeaves();
+            int meshCount = 0;
+            for (TerrainChunk c : leaves) { if (c.mesh != null) meshCount++; }
+            com.badlogic.gdx.Gdx.app.log("DIAG", "frame=" + frameCount
+                + " cam=" + camera.position
+                + " alt=" + altitude
+                + " leaves=" + leaves.size()
+                + " withMesh=" + meshCount
+                + " shaderOK=" + (terrainShader != null && terrainShader.isCompiled())
+                + " near=" + camera.near + " far=" + camera.far);
+        }
 
         if (paused) {
             pauseStage.act(delta);
@@ -479,15 +511,25 @@ public class GameScreen implements Screen {
         }
     }
 
+    private final Matrix4 terrainWorldTrans = new Matrix4();
+    private final Matrix4 terrainProjView = new Matrix4();
+
     private void renderPlanetTerrain() {
         Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
 
+        terrainWorldTrans.setToTranslation(
+            -camera.position.x, -camera.position.y, -camera.position.z);
+
+        terrainProjView.set(camera.view);
+        terrainProjView.val[Matrix4.M03] = 0;
+        terrainProjView.val[Matrix4.M13] = 0;
+        terrainProjView.val[Matrix4.M23] = 0;
+        terrainProjView.mulLeft(camera.projection);
+
         ShaderProgram shader = getTerrainShader();
         shader.bind();
-        shader.setUniformMatrix("u_projViewTrans", camera.combined);
-
-        Matrix4 identity = new Matrix4();
-        shader.setUniformMatrix("u_worldTrans", identity);
+        shader.setUniformMatrix("u_projViewTrans", terrainProjView);
+        shader.setUniformMatrix("u_worldTrans", terrainWorldTrans);
         shader.setUniformf("u_lightDir", -0.4f, -0.8f, -0.3f);
         shader.setUniformf("u_ambientColor", 0.3f, 0.3f, 0.35f, 1f);
 
@@ -496,6 +538,20 @@ public class GameScreen implements Screen {
             TerrainChunk chunk = leaves.get(i);
             if (chunk.mesh != null) {
                 chunk.mesh.render(shader, GL20.GL_TRIANGLES);
+            }
+        }
+
+        if (frameCount <= 3) {
+            int err = Gdx.gl.glGetError();
+            if (err != GL20.GL_NO_ERROR) {
+                Gdx.app.error("DIAG", "GL error after terrain render: 0x" + Integer.toHexString(err));
+            }
+            if (!leaves.isEmpty()) {
+                TerrainChunk first = leaves.get(0);
+                Gdx.app.log("DIAG", "chunk0: face=" + first.face + " depth=" + first.depth
+                    + " numVerts=" + first.mesh.getNumVertices()
+                    + " numIdx=" + first.mesh.getNumIndices()
+                    + " center=" + first.center);
             }
         }
     }
