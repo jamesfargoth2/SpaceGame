@@ -74,12 +74,12 @@ public class NpcGenerator {
 
     private int pickIndex(long seed, int slot, int listSize) {
         long derived = SeedDeriver.forId(seed, slot);
-        return (int) (Math.abs(derived) % listSize);
+        return (int) ((derived & Long.MAX_VALUE) % listSize);
     }
 
     private float rollBase(long seed, int slot) {
         long derived = SeedDeriver.forId(seed, slot);
-        float normalized = (Math.abs(derived) % 10000) / 10000f;
+        float normalized = ((derived & Long.MAX_VALUE) % 10000) / 10000f;
         return normalized * 60f + 20f;
     }
 

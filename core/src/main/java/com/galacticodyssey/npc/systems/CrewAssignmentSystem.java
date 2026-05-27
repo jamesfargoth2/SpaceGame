@@ -10,6 +10,7 @@ import com.galacticodyssey.core.EventBus;
 import com.galacticodyssey.npc.components.NpcStatsComponent;
 import com.galacticodyssey.npc.crew.CrewAssignmentComponent;
 import com.galacticodyssey.npc.crew.CrewMemberComponent;
+import com.galacticodyssey.npc.crew.MoraleState;
 
 public class CrewAssignmentSystem extends EntitySystem {
 
@@ -71,7 +72,7 @@ public class CrewAssignmentSystem extends EntitySystem {
 
             float baseStat = crew.role.getRelevantStat(stats) / 100f;
             float rankBonus = crew.rank.ordinal() * 0.05f;
-            float moraleMod = crew.moraleState.effectivenessModifier();
+            float moraleMod = MoraleState.fromMorale(crew.morale).effectivenessModifier();
             assignment.effectivenessMultiplier = (baseStat + rankBonus) * moraleMod;
         }
     }
