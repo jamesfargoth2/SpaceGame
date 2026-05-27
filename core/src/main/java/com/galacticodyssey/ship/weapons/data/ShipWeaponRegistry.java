@@ -1,7 +1,7 @@
 package com.galacticodyssey.ship.weapons.data;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.utils.Json;
+import com.badlogic.gdx.utils.JsonReader;
 import com.badlogic.gdx.utils.JsonValue;
 import com.galacticodyssey.combat.CombatEnums.DamageType;
 import com.galacticodyssey.ship.weapons.ShipWeaponEnums.*;
@@ -16,8 +16,7 @@ public class ShipWeaponRegistry {
     private final Map<String, List<HardpointTemplate>> hardpointTemplates = new HashMap<>();
 
     public void loadWeapons(String path) {
-        Json json = new Json();
-        JsonValue root = json.fromJson(null, Gdx.files.internal(path));
+        JsonValue root = new JsonReader().parse(Gdx.files.internal(path));
         for (JsonValue entry = root.child; entry != null; entry = entry.next) {
             ShipWeaponData data = new ShipWeaponData();
             data.id = entry.getString("id");
@@ -42,8 +41,7 @@ public class ShipWeaponRegistry {
     }
 
     public void loadHardpointTemplates(String path) {
-        Json json = new Json();
-        JsonValue root = json.fromJson(null, Gdx.files.internal(path));
+        JsonValue root = new JsonReader().parse(Gdx.files.internal(path));
         for (JsonValue ship = root.child; ship != null; ship = ship.next) {
             String shipId = ship.getString("shipClass");
             List<HardpointTemplate> templates = new ArrayList<>();

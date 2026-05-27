@@ -20,6 +20,7 @@ public final class SeedDeriver {
     public static final long ENCOUNTER_DOMAIN      = 0x9C49FBD688E6BF6DL;
     public static final long ECONOMY_DOMAIN        = 0x3F56B0C4FCA1AF8BL;
     public static final long CRATER_DOMAIN         = 0xAB54A98CEB1C3F47L;
+    public static final long NPC_DOMAIN            = 0xF2A84C39E71B5D06L;
 
     private SeedDeriver() {}
 
@@ -33,6 +34,10 @@ public final class SeedDeriver {
 
     public static long nebulaDomain(long galaxySeed) {
         return domain(galaxySeed, NEBULA_DOMAIN);
+    }
+
+    public static long npcDomain(long parentSeed) {
+        return domain(parentSeed, NPC_DOMAIN);
     }
 
     public static long forId(long domainSeed, long id) {
