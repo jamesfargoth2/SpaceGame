@@ -79,14 +79,38 @@ public class NpcGenerator {
         entity.add(identity);
 
         NpcStatsComponent stats = new NpcStatsComponent();
-        stats.accuracy   = clampStat(rollBase(npcSeed, 10) + species.accuracyMod   + background.accuracyMod);
-        stats.repair     = clampStat(rollBase(npcSeed, 11) + species.repairMod     + background.repairMod);
-        stats.medical    = clampStat(rollBase(npcSeed, 12) + species.medicalMod    + background.medicalMod);
-        stats.piloting   = clampStat(rollBase(npcSeed, 13) + species.pilotingMod   + background.pilotingMod);
-        stats.science    = clampStat(rollBase(npcSeed, 14) + species.scienceMod    + background.scienceMod);
-        stats.combat     = clampStat(rollBase(npcSeed, 15) + species.combatMod     + background.combatMod);
-        stats.persuasion = clampStat(rollBase(npcSeed, 16) + species.persuasionMod + background.persuasionMod);
-        stats.stealth    = clampStat(rollBase(npcSeed, 17) + species.stealthMod    + background.stealthMod);
+        float[] baseStats = new float[] {
+            rollBase(npcSeed, 10), // accuracy
+            rollBase(npcSeed, 11), // repair
+            rollBase(npcSeed, 12), // medical
+            rollBase(npcSeed, 13), // piloting
+            rollBase(npcSeed, 14), // science
+            rollBase(npcSeed, 15), // combat
+            rollBase(npcSeed, 16), // persuasion
+            rollBase(npcSeed, 17), // stealth
+        };
+        float[] weights = roleStatWeights(role);
+        float[] speciesMods = {
+            species.accuracyMod, species.repairMod, species.medicalMod,
+            species.pilotingMod, species.scienceMod, species.combatMod,
+            species.persuasionMod, species.stealthMod
+        };
+        float[] bgMods = {
+            background.accuracyMod, background.repairMod, background.medicalMod,
+            background.pilotingMod, background.scienceMod, background.combatMod,
+            background.persuasionMod, background.stealthMod
+        };
+        for (int i = 0; i < 8; i++) {
+            baseStats[i] = clampStat(baseStats[i] * weights[i] + speciesMods[i] + bgMods[i]);
+        }
+        stats.accuracy   = baseStats[0];
+        stats.repair     = baseStats[1];
+        stats.medical    = baseStats[2];
+        stats.piloting   = baseStats[3];
+        stats.science    = baseStats[4];
+        stats.combat     = baseStats[5];
+        stats.persuasion = baseStats[6];
+        stats.stealth    = baseStats[7];
         entity.add(stats);
 
         NpcPersonalityComponent personality = generatePersonality(npcSeed);
@@ -190,6 +214,32 @@ public class NpcGenerator {
         long derived = SeedDeriver.forId(npcSeed, 20);
         float normalized = ((derived & Long.MAX_VALUE) % 10000) / 10000f;
         return normalized * 52f + 18f; // 18-70
+    }
+
+    private float[] roleStatWeights(NPCRole role) {
+        float[] w = {1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f};
+        if (role == null) return w;
+        switch (role) {
+            case PILOT:              w[3] = 1.4f; w[0] = 1.15f; break; // piloting primary, accuracy secondary
+            case ENGINEER:           w[1] = 1.4f; w[4] = 1.15f; break; // repair primary, science secondary
+            case GUNNER:             w[0] = 1.4f; w[5] = 1.15f; break; // accuracy primary, combat secondary
+            case MEDIC:              w[2] = 1.4f; w[4] = 1.15f; break; // medical primary, science secondary
+            case NAVIGATOR:          w[3] = 1.4f; w[4] = 1.15f; break; // piloting primary, science secondary
+            case SCIENCE_OFFICER:    w[4] = 1.4f; w[2] = 1.15f; break; // science primary, medical secondary
+            case MARINE:             w[5] = 1.4f; w[0] = 1.15f; break; // combat primary, accuracy secondary
+            case MERCHANT:           w[6] = 1.4f; w[7] = 1.15f; break; // persuasion primary, stealth secondary
+            case BARTENDER:          w[6] = 1.4f; w[2] = 1.15f; break; // persuasion primary, medical secondary
+            case INFORMATION_BROKER: w[6] = 1.4f; w[7] = 1.15f; break; // persuasion primary, stealth secondary
+            case MECHANIC:           w[1] = 1.4f; w[0] = 1.15f; break; // repair primary, accuracy secondary
+            case PIRATE_CAPTAIN:     w[5] = 1.4f; w[6] = 1.15f; break; // combat primary, persuasion secondary
+            case BOUNTY_HUNTER:      w[5] = 1.4f; w[7] = 1.15f; break; // combat primary, stealth secondary
+            case MERCENARY:          w[5] = 1.4f; w[0] = 1.15f; break; // combat primary, accuracy secondary
+            case SMUGGLER:           w[7] = 1.4f; w[6] = 1.15f; break; // stealth primary, persuasion secondary
+            case COLONIST:           w[1] = 1.4f; w[2] = 1.15f; break; // repair primary, medical secondary
+            case SCIENTIST:          w[4] = 1.4f; w[2] = 1.15f; break; // science primary, medical secondary
+            default: break;
+        }
+        return w;
     }
 
     private float clampStat(float value) {
