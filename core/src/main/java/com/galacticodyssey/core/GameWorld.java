@@ -53,6 +53,7 @@ import com.galacticodyssey.player.components.CrosshairComponent;
 import com.galacticodyssey.player.components.FPSCameraComponent;
 import com.galacticodyssey.player.components.MovementStateComponent;
 import com.galacticodyssey.player.components.PlayerInputComponent;
+import com.galacticodyssey.player.components.PlayerModelComponent;
 import com.galacticodyssey.player.components.PlayerStateComponent;
 import com.galacticodyssey.player.components.RecoilComponent;
 import com.galacticodyssey.player.components.ScreenShakeComponent;
@@ -60,6 +61,7 @@ import com.galacticodyssey.player.systems.ADSSystem;
 import com.galacticodyssey.player.systems.CameraSystem;
 import com.galacticodyssey.player.systems.CrosshairSystem;
 import com.galacticodyssey.player.systems.InteractionSystem;
+import com.galacticodyssey.player.systems.PlayerAnimationSystem;
 import com.galacticodyssey.player.systems.PlayerInputSystem;
 import com.galacticodyssey.player.systems.PlayerMovementSystem;
 import com.galacticodyssey.player.systems.RecoilSystem;
@@ -78,15 +80,21 @@ import com.galacticodyssey.ui.systems.DebugHudSystem;
 import com.galacticodyssey.vfx.components.ParticlePoolComponent;
 import com.galacticodyssey.vfx.data.VFXEventBindings;
 import com.galacticodyssey.vfx.data.VFXRegistry;
+import com.galacticodyssey.core.systems.RadialGravitySystem;
 import com.galacticodyssey.economy.data.CommodityRegistry;
 import com.galacticodyssey.economy.data.PlanetEconomyRegistry;
 import com.galacticodyssey.economy.service.TransactionService;
 import com.galacticodyssey.economy.simulation.PlanetaryEconomyManager;
 import com.galacticodyssey.economy.systems.PlanetaryStockSystem;
 import com.galacticodyssey.economy.systems.PricingSystem;
+import com.galacticodyssey.planet.BiomeMap;
+import com.galacticodyssey.planet.Planet;
+import com.galacticodyssey.planet.terrain.PlanetTerrainSystem;
+import com.galacticodyssey.planet.terrain.TerrainChunk;
 import com.galacticodyssey.vfx.systems.ParticleRenderSystem;
 import com.galacticodyssey.vfx.systems.ParticleSpawnSystem;
 import com.galacticodyssey.vfx.systems.ParticleUpdateSystem;
+import java.util.List;
 
 public class GameWorld implements Disposable {
 
@@ -125,6 +133,8 @@ public class GameWorld implements Disposable {
     private PlanetEconomyRegistry planetEconomyRegistry;
     private TransactionService transactionService;
     private PlanetaryEconomyManager planetaryEconomyManager;
+    private PlanetTerrainSystem planetTerrainSystem;
+    private RadialGravitySystem radialGravitySystem;
 
     private final Array<Disposable> disposables = new Array<>();
 
@@ -142,11 +152,20 @@ public class GameWorld implements Disposable {
         cameraSystem = new CameraSystem(eventBus);
         debugHudSystem = new DebugHudSystem(coordinateManager);
 
+        planetTerrainSystem = new PlanetTerrainSystem(bulletPhysicsSystem.getDynamicsWorld());
+        engine.addSystem(planetTerrainSystem);
+
+        radialGravitySystem = new RadialGravitySystem(
+            bulletPhysicsSystem.getDynamicsWorld(),
+            new Vector3(0, 0, 0), 9.81f);
+        engine.addSystem(radialGravitySystem);
+
         engine.addSystem(playerInputSystem);
         engine.addSystem(playerMovementSystem);
         engine.addSystem(bulletPhysicsSystem);
         engine.addSystem(physicsBodySystem);
         engine.addSystem(cameraSystem);
+        engine.addSystem(new PlayerAnimationSystem());
         engine.addSystem(debugHudSystem);
 
         InteractionSystem interactionSystem = new InteractionSystem(eventBus);
@@ -284,6 +303,7 @@ public class GameWorld implements Disposable {
         player.add(new MovementStateComponent());
         player.add(new FPSCameraComponent());
         player.add(new PlayerStateComponent());
+        player.add(new PlayerModelComponent());
 
         PhysicsBodyComponent physics = new PhysicsBodyComponent();
         physics.shape = new btCapsuleShape(0.3f, 1.2f);
@@ -461,6 +481,22 @@ public class GameWorld implements Disposable {
         return playerInputSystem;
     }
 
+    public void loadPlanet(Planet planet, BiomeMap biomeMap) {
+        planetTerrainSystem.loadPlanet(planet, biomeMap);
+    }
+
+    public PlanetTerrainSystem getPlanetTerrainSystem() {
+        return planetTerrainSystem;
+    }
+
+    public List<TerrainChunk> getVisibleTerrainLeaves() {
+        return planetTerrainSystem.getVisibleLeaves();
+    }
+
+    public float getPlanetRadius() {
+        return planetTerrainSystem.getPlanetRadius();
+    }
+
     @Override
     public void dispose() {
         for (int i = disposables.size - 1; i >= 0; i--) {
@@ -472,6 +508,9 @@ public class GameWorld implements Disposable {
         }
         if (particlePool != null) {
             particlePool.freeAll();
+        }
+        if (planetTerrainSystem != null) {
+            planetTerrainSystem.dispose();
         }
         debugHudSystem.dispose();
         bulletPhysicsSystem.dispose();
