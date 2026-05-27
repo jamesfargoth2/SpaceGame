@@ -19,7 +19,6 @@ import com.galacticodyssey.player.components.PlayerStateComponent;
 import com.galacticodyssey.player.components.PlayerTargetComponent;
 import com.galacticodyssey.ship.components.FuelTankComponent;
 import com.galacticodyssey.ship.components.ShipFlightComponent;
-import com.galacticodyssey.ship.components.ShipFlightInputComponent;
 import com.galacticodyssey.ship.components.ShipThermalComponent;
 import com.galacticodyssey.ship.events.ReentryHeatingEvent;
 import com.galacticodyssey.ship.events.StallWarningEvent;
