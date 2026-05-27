@@ -2,6 +2,10 @@ package com.galacticodyssey.planet.terrain;
 
 import com.badlogic.gdx.graphics.Mesh;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.physics.bullet.collision.btBvhTriangleMeshShape;
+import com.badlogic.gdx.physics.bullet.collision.btTriangleMesh;
+import com.badlogic.gdx.physics.bullet.dynamics.btDiscreteDynamicsWorld;
+import com.badlogic.gdx.physics.bullet.dynamics.btRigidBody;
 import com.badlogic.gdx.utils.Disposable;
 
 public final class TerrainChunk implements Disposable {
@@ -17,6 +21,9 @@ public final class TerrainChunk implements Disposable {
     public TerrainChunk[] children;
     public Mesh mesh;
     public boolean meshReady;
+    public btRigidBody collisionBody;
+    public btTriangleMesh triangleMesh;
+    public btBvhTriangleMeshShape collisionShape;
 
     public TerrainChunk(CubeFace face, int depth, float u0, float v0, float u1, float v1, float planetRadius) {
         this.face = face;
@@ -48,10 +55,23 @@ public final class TerrainChunk implements Disposable {
 
     @Override
     public void dispose() {
+        disposeCollision(null);
         if (mesh != null) { mesh.dispose(); mesh = null; }
         if (children != null) {
             for (TerrainChunk child : children) child.dispose();
             children = null;
         }
+    }
+
+    public void disposeCollision(btDiscreteDynamicsWorld dynamicsWorld) {
+        if (collisionBody != null) {
+            if (dynamicsWorld != null) {
+                dynamicsWorld.removeRigidBody(collisionBody);
+            }
+            collisionBody.dispose();
+            collisionBody = null;
+        }
+        if (collisionShape != null) { collisionShape.dispose(); collisionShape = null; }
+        if (triangleMesh != null) { triangleMesh.dispose(); triangleMesh = null; }
     }
 }

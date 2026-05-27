@@ -21,7 +21,7 @@ public final class TerrainMeshBuilder {
                                   TerrainNoiseStack noise, BiomeMap biomeMap,
                                   float planetRadius, int lod, int[] neighborLods) {
         float[] vertices = new float[GRID_SIZE * GRID_SIZE * VERTEX_STRIDE];
-        float[] heights = new float[GRID_SIZE * GRID_SIZE];
+        BiomeType[] biomes = new BiomeType[GRID_SIZE * GRID_SIZE];
         Vector3[] positions = new Vector3[GRID_SIZE * GRID_SIZE];
 
         for (int gy = 0; gy < GRID_SIZE; gy++) {
@@ -29,9 +29,9 @@ public final class TerrainMeshBuilder {
                 float u = u0 + (u1 - u0) * gx / (GRID_SIZE - 1f);
                 float v = v0 + (v1 - v0) * gy / (GRID_SIZE - 1f);
                 Vector3 dir = CubeSphere.toSphere(face, u, v);
-                float h = noise.heightAt(dir, biomeMap, lod);
-                heights[gy * GRID_SIZE + gx] = h;
-                positions[gy * GRID_SIZE + gx] = dir.scl(planetRadius + h * planetRadius * 0.01f);
+                TerrainNoiseStack.Sample sample = noise.sampleAt(dir, biomeMap, lod);
+                biomes[gy * GRID_SIZE + gx] = sample.biome;
+                positions[gy * GRID_SIZE + gx] = dir.scl(planetRadius + sample.height * planetRadius * 0.01f);
             }
         }
 
@@ -41,9 +41,7 @@ public final class TerrainMeshBuilder {
                 Vector3 pos = positions[idx];
                 Vector3 normal = computeNormal(positions, gx, gy);
 
-                float lat = CubeSphere.latitudeOf(pos.cpy().nor());
-                float lon = CubeSphere.longitudeOf(pos.cpy().nor());
-                BiomeType biome = biomeMap.getBiome(lat, lon, heights[idx]);
+                BiomeType biome = biomes[idx];
                 float[] color = biomeColor(biome);
 
                 int vi = idx * VERTEX_STRIDE;
@@ -88,11 +86,11 @@ public final class TerrainMeshBuilder {
                 short bl = (short)((gy + 1) * GRID_SIZE + gx);
                 short br = (short)((gy + 1) * GRID_SIZE + gx + 1);
                 indices[i++] = tl;
-                indices[i++] = bl;
-                indices[i++] = tr;
                 indices[i++] = tr;
                 indices[i++] = bl;
+                indices[i++] = tr;
                 indices[i++] = br;
+                indices[i++] = bl;
             }
         }
         return indices;

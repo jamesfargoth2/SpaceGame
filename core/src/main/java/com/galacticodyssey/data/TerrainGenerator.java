@@ -1,6 +1,10 @@
 // core/src/main/java/com/galacticodyssey/data/TerrainGenerator.java
 package com.galacticodyssey.data;
 
+import com.galacticodyssey.planet.BiomeType;
+import com.galacticodyssey.planet.CraterCarver;
+import com.galacticodyssey.planet.CraterSpec;
+import java.util.List;
 import java.util.Random;
 
 public final class TerrainGenerator {
@@ -21,8 +25,19 @@ public final class TerrainGenerator {
             for (int x = 0; x < vertsX; x++) {
                 float wx = x * cellWidth - halfWidth;
                 float wz = z * cellDepth - halfDepth;
-                float h = noise2D(perm, wx * 0.005f, wz * 0.005f) * 30f
-                        + noise2D(perm, wx * 0.02f + 100f, wz * 0.02f + 100f) * 5f;
+
+                float continent = noise2D(perm, wx * 0.002f, wz * 0.002f) * 40f;
+                float hills = noise2D(perm, wx * 0.005f, wz * 0.005f) * 30f;
+                float detail = noise2D(perm, wx * 0.02f + 100f, wz * 0.02f + 100f) * 5f;
+                float fine = noise2D(perm, wx * 0.05f + 200f, wz * 0.05f + 200f) * 1.5f;
+
+                float ridgeNoise = Math.abs(noise2D(perm, wx * 0.008f + 50f, wz * 0.008f + 50f));
+                float mountains = ridgeNoise * ridgeNoise * 80f;
+
+                float river = noise2D(perm, wx * 0.003f + 300f, wz * 0.003f + 300f);
+                float riverCarve = Math.abs(river) < 0.04f ? -8f * (1f - Math.abs(river) / 0.04f) : 0f;
+
+                float h = continent + hills + detail + fine + mountains + riverCarve;
                 heights[z * vertsX + x] = h;
             }
         }
@@ -77,6 +92,77 @@ public final class TerrainGenerator {
             }
         }
         return normals;
+    }
+
+    /**
+     * Applies biome-specific terrain variation to an existing heightmap.
+     * Uses the biome's amplitude to scale height variation and ridgeMix
+     * to blend between smooth simplex noise and ridged noise.
+     */
+    public static void applyBiomeVariation(float[] heights, int vertsX, int vertsZ,
+                                           float worldWidth, float worldDepth,
+                                           BiomeType biome, long seed) {
+        Random rng = new Random(seed);
+        int[] perm = createPermutation(rng);
+
+        float cellWidth = worldWidth / (vertsX - 1);
+        float cellDepth = worldDepth / (vertsZ - 1);
+        float halfWidth = worldWidth / 2f;
+        float halfDepth = worldDepth / 2f;
+
+        float amp = biome.amplitude;
+        float ridge = biome.ridgeMix;
+
+        for (int z = 0; z < vertsZ; z++) {
+            for (int x = 0; x < vertsX; x++) {
+                float wx = x * cellWidth - halfWidth;
+                float wz = z * cellDepth - halfDepth;
+
+                // Smooth simplex noise layer
+                float smooth = noise2D(perm, wx * 0.01f, wz * 0.01f);
+
+                // Ridged noise: absolute value of simplex inverted to create ridges
+                float ridged = 1.0f - Math.abs(noise2D(perm, wx * 0.015f + 500f, wz * 0.015f + 500f));
+                ridged = ridged * ridged; // sharpen ridges
+
+                // Blend between smooth and ridged based on ridgeMix
+                float blended = smooth * (1.0f - ridge) + ridged * ridge;
+
+                // Scale by amplitude and apply
+                heights[z * vertsX + x] += blended * amp * 50f;
+            }
+        }
+    }
+
+    /**
+     * Stamps a list of craters onto the heightmap at seeded positions.
+     * Each crater is placed deterministically based on the seed.
+     */
+    public static void stampCraters(float[] heights, int vertsX, int vertsZ,
+                                    float worldWidth, float worldDepth,
+                                    List<CraterSpec> craters, long seed) {
+        Random rng = new Random(seed);
+
+        // heightScale: convert km to heightmap units.
+        // Assume worldWidth represents ~1000 km of surface by default;
+        // scale crater depth relative to the heightmap's coordinate range.
+        float kmPerVertex = worldWidth / (vertsX - 1);
+        float heightScale = 1.0f; // 1 km = 1 heightmap unit
+
+        for (CraterSpec crater : craters) {
+            // Place crater at a seeded random position within the heightmap
+            int cx = rng.nextInt(vertsX);
+            int cz = rng.nextInt(vertsZ);
+
+            // Rim radius in vertex units
+            float rimRadiusKm = crater.diameterKm * 0.5f;
+            float rimR = rimRadiusKm / kmPerVertex;
+
+            // Skip craters too small to represent on this grid
+            if (rimR < 0.5f) continue;
+
+            CraterCarver.carve(heights, vertsX, vertsZ, cx, cz, rimR, crater, heightScale);
+        }
     }
 
     private static int[] createPermutation(Random rng) {

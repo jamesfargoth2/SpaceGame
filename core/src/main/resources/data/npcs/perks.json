@@ -1,0 +1,44 @@
+[
+  {
+    "id": "quick_hands",
+    "name": "Quick Hands",
+    "description": "Repair speed increased by 20%.",
+    "minRank": "SPECIALIST",
+    "applicableRole": "ENGINEER"
+  },
+  {
+    "id": "steady_aim",
+    "name": "Steady Aim",
+    "description": "Turret accuracy increased by 15%.",
+    "minRank": "SPECIALIST",
+    "applicableRole": "GUNNER"
+  },
+  {
+    "id": "field_medic",
+    "name": "Field Medic",
+    "description": "Can heal crew during combat without penalty.",
+    "minRank": "VETERAN",
+    "applicableRole": "MEDIC"
+  },
+  {
+    "id": "iron_will",
+    "name": "Iron Will",
+    "description": "Morale cannot drop below 30.",
+    "minRank": "VETERAN",
+    "applicableRole": null
+  },
+  {
+    "id": "tactical_command",
+    "name": "Tactical Command",
+    "description": "Squad members gain +10% accuracy.",
+    "minRank": "OFFICER",
+    "applicableRole": "MARINE"
+  },
+  {
+    "id": "fleet_captain",
+    "name": "Fleet Captain",
+    "description": "Can captain a secondary ship in your fleet.",
+    "minRank": "COMMANDER",
+    "applicableRole": null
+  }
+]

@@ -1,0 +1,44 @@
+Flooding and Damage System - File Manifest
+===========================================
+Scenario: Torpedo strikes cargo ship engine room; water floods through
+compartments causing listing and capsize unless breach is sealed.
+
+All files live under: core/src/main/java/com/galacticodyssey/ship/flooding/
+
+DATA MODEL
+-----------
+Compartment.java                - Watertight compartment: volume, water level, breach state, centroid position.
+DoorwayConnection.java          - Passage between two compartments: area, discharge coefficient, sealable flag.
+
+ECS COMPONENTS
+--------------
+FloodingComponent.java          - Ashley component tracking all compartments, doorways, flooded mass/CoM, roll/pitch, GZ loss, capsize state.
+BreachRepairableComponent.java  - Marker component enabling player repair interaction on breached compartments.
+ShipStabilityComponent.java     - Auxiliary component with detailed stability parameters (metacentric height, righting arm, displacement).
+
+EVENTS (event-bus driven, per CLAUDE.md rule 3)
+------
+FloodingStartedEvent.java       - Published when a compartment begins taking on water (breach or cross-flow).
+HullBreachEvent.java            - Published when a new hull breach is created (torpedo impact, collision).
+BreachSealedEvent.java          - Published when a breach is sealed by the player or damage control.
+StabilityWarningEvent.java      - Published when free-surface GZ loss exceeds warning thresholds (caution/warning/critical).
+CapsizeEvent.java               - Published when roll exceeds 60 deg for 2+ seconds (ship capsized).
+CompartmentFloodedEvent.java    - Published when a compartment reaches 100% flood level.
+
+ECS SYSTEMS
+-----------
+FloodingSystem.java             - Core simulation: Torricelli breach ingress, orifice cross-flow, mass/CoM update, Bullet force application, free-surface stability, capsize detection.
+FloodingHudSystem.java          - Scene2D HUD overlay: per-compartment fill bars, stability warning banner, roll/pitch display, GZ loss, capsize alert.
+
+FACTORY
+-------
+FloodableShipFactory.java       - Configures 3-compartment layout (engine room / cargo hold / crew quarters) with doorway connections. Convenience methods for torpedo breach and seal operations.
+
+PHYSICS NOTES
+-------------
+- External ingress: Torricelli's theorem Q = Cd * A * sqrt(2*g*h), Cd = 0.6
+- Cross-flow: Orifice flow Q = Cd * A * sqrt(2*g*|dh|) through doorways
+- Free surface effect: GZ_loss = rho * I_free / displacement (partially filled compartments more dangerous than full)
+- Forces applied via btRigidBody.applyCentralForce() and applyTorque() per skill integration points
+- Compartments in ship interior body frame; forces on parent hull rigid body (CLAUDE.md rule 6)
+- All temp vectors from libGDX Pools to minimize GC pressure

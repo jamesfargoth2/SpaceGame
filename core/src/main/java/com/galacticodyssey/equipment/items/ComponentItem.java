@@ -2,6 +2,7 @@ package com.galacticodyssey.equipment.items;
 
 import com.galacticodyssey.combat.CombatEnums.QualityTier;
 import com.galacticodyssey.equipment.EquipmentEnums.ItemType;
+import java.util.Map;
 
 public class ComponentItem extends Item {
     public final String componentId;
@@ -19,5 +20,11 @@ public class ComponentItem extends Item {
     @Override
     public ItemType getType() {
         return ItemType.COMPONENT;
+    }
+
+    @Override
+    protected void populateCustomData(Map<String, Object> customData) {
+        customData.put("componentId",   componentId);
+        customData.put("componentType", componentType);
     }
 }

@@ -1,0 +1,50 @@
+{
+  "expectations": [
+    {
+      "text": "BallastComponent has PID gains (Kp, Ki, Kd) and BallastTanks with capacity/fill/rates",
+      "passed": true,
+      "evidence": "PID gains (kP, kI, kD) are in DepthControlComponent (lines 32-39: kP=0.02f, kI=0.001f, kD=0.05f). BallastTankComponent has a Tank inner class with capacity, currentVolume (fill), and flowRate fields (lines 22-26). The ballast and PID components are separate but both exist. The assertion asks about 'BallastComponent' which maps to the BallastTankComponent (tanks with capacity/fill/rates) plus DepthControlComponent (PID gains). All required fields are present."
+    },
+    {
+      "text": "BallastSystem implements PID controller: proportional + integral + derivative terms for depth error",
+      "passed": true,
+      "evidence": "DepthControlSystem.processEntity() computes: error = effectiveTarget - depth.currentDepth (line 62), pTerm = depth.kP * error (line 73), integralError += error * deltaTime with anti-windup clamp (lines 76-78), iTerm = depth.kI * depth.integralError (line 79), dError = (error - depth.previousError) / deltaTime (line 82), dTerm = depth.kD * dError (line 83), output = clamp(pTerm + iTerm + dTerm, -1, 1) (line 87). All three PID terms are correctly implemented."
+    },
+    {
+      "text": "Ballast mass changes update rigid body via setMassProps()",
+      "passed": false,
+      "evidence": "No call to setMassProps() exists anywhere in the codebase. The SubmarineBuoyancySystem computes effectiveMass = hull.dryMass + ballastWaterMass + floodWaterMass (line 115) and uses it to calculate weight force (line 122: weightForce = buoyancy.effectiveMass * buoyancy.gravity), then applies this as a central force (line 130: physics.body.applyCentralForce). However, the Bullet rigid body's actual mass property is never updated via setMassProps(). The mass is only set once during construction in SubmarineFactory (line 118). The system uses force-based buoyancy compensation instead of updating the rigid body mass directly."
+    },
+    {
+      "text": "Hull crush depth triggers a HullBreachEvent via EventBus",
+      "passed": true,
+      "evidence": "HullIntegritySystem.checkForNewBreach() (line 147): eventBus.publish(new HullBreachEvent(entity, targetCompartment, targetComp.compartmentId, depth.currentDepth, hull.integrity)). This is triggered when currentDepth > hull.crushDepth (line 85 check) causes integrity loss, and integrity drops below discrete thresholds (line 122: expectedBreaches = (int)((1f - hull.integrity) / BREACH_THRESHOLD_STEP)). HullBreachEvent is published via the EventBus."
+    },
+    {
+      "text": "FloodingSystem uses Torricelli's theorem (flow proportional to sqrt of head) for breach ingress",
+      "passed": false,
+      "evidence": "FloodingSystem uses a linear pressure multiplier for breach ingress: pressureMultiplier = 1f + (currentDepth / 100f) * PRESSURE_SCALE_PER_100M (line 66), then flowRate = comp.baseBreachFlowRate * pressureMultiplier (line 75). There is no sqrt() call anywhere in the flooding code. Torricelli's theorem states flow velocity is proportional to sqrt(2*g*h), but this implementation uses a linear depth scaling instead. No square root of head is computed."
+    },
+    {
+      "text": "Cross-compartment flow equalizes based on water head difference between connected compartments",
+      "passed": true,
+      "evidence": "FloodingSystem Phase 2 (lines 89-141): For each connected compartment pair, the system computes levelDiff = comp.getFloodFraction() - neighbor.getFloodFraction() (line 121). Flow only occurs when levelDiff > 0 (line 122), and spreadRate = comp.bulkheadFlowRate * damageOpening * levelDiff * pressureMultiplier (lines 123-124). Water transfers from higher-level to lower-level compartments, equalizing based on water level (head) difference."
+    },
+    {
+      "text": "Free surface effect is computed for partially-flooded compartments",
+      "passed": false,
+      "evidence": "No free surface effect computation exists in any file. Free surface effect (the reduction in metacentric height due to liquid sloshing in partially-filled tanks/compartments) is not calculated. The BuoyancyComponent has a metacentricHeight field (line 44) but it is a static value (1.5f) that is never modified by flooding state. The FloodingSystem computes weight asymmetry (floodInducedRoll/Pitch) but does not compute free surface moment of inertia or its impact on stability. No code references 'free surface' in any form."
+    },
+    {
+      "text": "Flooding shifts the rigid body's centre of mass, not just its total mass",
+      "passed": false,
+      "evidence": "The FloodingSystem computes weight moments (momentX, momentZ from waterMass * lateralOffset/forwardOffset in lines 164-166) and converts them to floodInducedRoll/Pitch angles (lines 179-180). The SubmarineBuoyancySystem then applies stability torques using these angles (applyStabilityTorques, lines 147-173). However, the rigid body's center of mass is never directly shifted — there is no call to setCenterOfMassTransform() or equivalent Bullet method to move the CoM. Instead, the system simulates the effect of shifted CoM through applied torques, which is a workaround rather than actually shifting the rigid body's centre of mass."
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 4,
+    "total": 8,
+    "pass_rate": 0.50
+  }
+}

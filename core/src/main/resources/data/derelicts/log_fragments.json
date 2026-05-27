@@ -1,0 +1,44 @@
+{
+  "PIRATE_ATTACK": [
+    "Mayday! Multiple hostiles on approach vector—",
+    "Hull breach on deck {deck}. Weapons offline.",
+    "Captain's log: We tried to outrun them near {location}. We couldn't.",
+    "Last entry. If anyone finds this... the pirates came from the {direction} belt."
+  ],
+  "REACTOR_FAILURE": [
+    "Engineering report: containment field fluctuation in reactor {number}.",
+    "Emergency shutdown failed. Radiation levels critical on decks {deck} through {deck2}.",
+    "All hands abandon ship. Repeat: abandon ship. Reactor cascade imminent.",
+    "Final log: coolant system failed at {time}. Crew evacuation at {percent}%."
+  ],
+  "ALIEN_ENCOUNTER": [
+    "Contact! Unknown vessel. No transponder. No known configuration.",
+    "They're inside the ship. Deck {deck} is... changing.",
+    "It doesn't respond to any frequency. Crew reporting hallucinations.",
+    "I don't think they wanted to hurt us. I think they just didn't notice us."
+  ],
+  "MUTINY": [
+    "Security alert: unauthorized access to armory on deck {deck}.",
+    "First Mate's log: The captain has gone too far. We have no choice.",
+    "Gunfire in the corridors. Both sides have sealed their sections.",
+    "It's over. Half the crew is gone. The other half won't last without supplies."
+  ],
+  "COLLISION": [
+    "Navigation error. Object on collision course. Brace for—",
+    "Sensors didn't pick it up. Too small for the array, too big to survive.",
+    "Structural integrity at {percent}%. Main spine fractured in three places.",
+    "Emergency beacon activated. We are adrift. Life support on backup."
+  ],
+  "PLAGUE": [
+    "Medical log: Unidentified pathogen. Quarantine on deck {deck}.",
+    "Day {number}: Infection rate now {percent}%. No treatment effective.",
+    "The medbay is overrun. We're sealing the ship and transmitting a warning.",
+    "If you're reading this, do NOT board. The pathogen is airborne."
+  ],
+  "UNKNOWN": [
+    "Systems nominal. All readings green. Crew complement: 0.",
+    "There's no damage. No struggle. They're just... gone.",
+    "Automated systems running. Ship in perfect condition. Date stamp: {years} years ago.",
+    "Every personal item is in place. Every meal half-eaten. No bodies."
+  ]
+}

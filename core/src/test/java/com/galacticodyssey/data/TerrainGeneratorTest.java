@@ -17,8 +17,8 @@ class TerrainGeneratorTest {
     void heightmapValuesAreInRange() {
         float[] heights = TerrainGenerator.generateHeightmap(257, 257, 500f, 500f, 42L);
         for (float h : heights) {
-            assertTrue(h >= -50f && h <= 50f,
-                "Height " + h + " is outside expected range [-50, 50]");
+            assertTrue(h >= -150f && h <= 200f,
+                "Height " + h + " is outside expected range [-150, 200]");
         }
     }
 

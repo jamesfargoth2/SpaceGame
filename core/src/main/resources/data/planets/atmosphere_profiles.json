@@ -1,0 +1,29 @@
+[
+  {
+    "id": "earth_like",
+    "name": "Earth-Like",
+    "surfaceDensity": 1.225,
+    "scaleHeight": 8500,
+    "speedOfSound": 343,
+    "machThreshold": 3.0,
+    "composition": "N2/O2"
+  },
+  {
+    "id": "thin_mars",
+    "name": "Thin Mars",
+    "surfaceDensity": 0.02,
+    "scaleHeight": 11100,
+    "speedOfSound": 240,
+    "machThreshold": 5.0,
+    "composition": "CO2"
+  },
+  {
+    "id": "dense_venus",
+    "name": "Dense Venus",
+    "surfaceDensity": 65.0,
+    "scaleHeight": 15900,
+    "speedOfSound": 410,
+    "machThreshold": 2.0,
+    "composition": "CO2/SO2"
+  }
+]
