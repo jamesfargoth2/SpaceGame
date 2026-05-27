@@ -13,6 +13,7 @@ public final class SeedDeriver {
     public static final long FACTION_DOMAIN    = 0x4F6CDD1CB33DA28DL;
     public static final long NAME_DOMAIN       = 0x8C4F9B29D25B9E63L;
     public static final long NEBULA_DOMAIN     = 0xA2F9836E4E441529L;
+    public static final long NPC_DOMAIN        = 0xF2A84C39E71B5D06L;
 
     private SeedDeriver() {}
 
@@ -26,6 +27,10 @@ public final class SeedDeriver {
 
     public static long nebulaDomain(long galaxySeed) {
         return domain(galaxySeed, NEBULA_DOMAIN);
+    }
+
+    public static long npcDomain(long parentSeed) {
+        return domain(parentSeed, NPC_DOMAIN);
     }
 
     public static long forId(long domainSeed, long id) {
