@@ -10,6 +10,7 @@ import com.badlogic.gdx.physics.bullet.dynamics.btDiscreteDynamicsWorld;
 import com.galacticodyssey.core.components.PhysicsBodyComponent;
 import com.galacticodyssey.core.components.TransformComponent;
 import com.galacticodyssey.player.components.PlayerStateComponent;
+import com.galacticodyssey.ship.components.ShipDataComponent;
 
 public class RadialGravitySystem extends IteratingSystem {
 
@@ -19,6 +20,8 @@ public class RadialGravitySystem extends IteratingSystem {
         ComponentMapper.getFor(TransformComponent.class);
     private final ComponentMapper<PlayerStateComponent> playerStateMapper =
         ComponentMapper.getFor(PlayerStateComponent.class);
+    private final ComponentMapper<ShipDataComponent> shipDataMapper =
+        ComponentMapper.getFor(ShipDataComponent.class);
 
     private final Vector3 planetCenter = new Vector3();
     private final float gravity;
@@ -37,6 +40,8 @@ public class RadialGravitySystem extends IteratingSystem {
 
     @Override
     protected void processEntity(Entity entity, float deltaTime) {
+        if (shipDataMapper.has(entity)) return;
+
         PlayerStateComponent playerState = playerStateMapper.get(entity);
         if (playerState != null
             && playerState.currentMode == PlayerStateComponent.PlayerMode.PILOTING) {

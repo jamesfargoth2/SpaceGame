@@ -57,8 +57,8 @@ public class ShipFactory implements Disposable {
     private static final float[] VERTICAL_FRACTION   = { 0.60f,    0.40f,    0.25f };
     private static final float[] PITCH_YAW_TORQUE    = { 20_000f,  50_000f,  100_000f };
     private static final float[] ROLL_TORQUE         = { 15_000f,  30_000f,   60_000f };
-    private static final float[] LINEAR_DRAG         = { 0.3f,     0.5f,     0.7f };
-    private static final float[] ANGULAR_DRAG        = { 2.0f,     3.0f,     5.0f };
+    private static final float[] LINEAR_DRAG         = { 0.6f,     0.7f,     0.85f };
+    private static final float[] ANGULAR_DRAG        = { 3.0f,     4.0f,     6.0f };
 
     /**
      * Maximum number of hull vertices sampled when building the exterior
@@ -317,11 +317,15 @@ public class ShipFactory implements Disposable {
         worldTransform.setToTranslation(x, y, z);
         body.setWorldTransform(worldTransform);
         body.setGravity(new Vector3(0, 0, 0));
-        body.setDamping(0.8f, 0.9f);
+        body.setFriction(0.9f);
+        body.setRestitution(0.02f);
+        body.setDamping(0.85f, 0.92f);
+        body.setCcdMotionThreshold(0.5f);
+        body.setCcdSweptSphereRadius(1.0f);
         body.setActivationState(4); // DISABLE_DEACTIVATION
 
         short shipGroup = 4;
-        short shipMask = (short)(0xFFFF & ~1);
+        short shipMask = (short) 0xFFFF;
         physics.getDynamicsWorld().addRigidBody(body, shipGroup, shipMask);
         physics.addManagedBody(body);
 

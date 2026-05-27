@@ -60,6 +60,9 @@ import com.galacticodyssey.ship.ShipFactory;
 import com.galacticodyssey.ship.ShipSizeClass;
 import com.galacticodyssey.ship.components.ShipDataComponent;
 import com.galacticodyssey.ship.components.ShipMeshComponent;
+import com.galacticodyssey.player.components.PlayerStateComponent;
+import com.galacticodyssey.core.components.PlayerTagComponent;
+import com.badlogic.ashley.core.Family;
 
 import java.util.Random;
 
@@ -558,10 +561,23 @@ public class GameScreen implements Screen {
         return shipShader;
     }
 
+    private Entity getPilotedShip() {
+        var players = gameWorld.getEngine().getEntitiesFor(
+            Family.all(PlayerTagComponent.class, PlayerStateComponent.class).get());
+        if (players.size() == 0) return null;
+        PlayerStateComponent state = players.first().getComponent(PlayerStateComponent.class);
+        if (state.currentMode == PlayerStateComponent.PlayerMode.PILOTING) {
+            return state.currentShip;
+        }
+        return null;
+    }
+
     private void renderShips() {
         Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
         Gdx.gl.glDepthFunc(GL20.GL_LEQUAL);
         Gdx.gl.glDepthMask(true);
+
+        Entity pilotedShip = getPilotedShip();
 
         ShaderProgram shader = getShipShader();
         shader.bind();
@@ -574,6 +590,8 @@ public class GameScreen implements Screen {
 
         for (int i = 0; i < shipEntities.size; i++) {
             Entity ship = shipEntities.get(i);
+            if (ship == pilotedShip) continue;
+
             TransformComponent t = ship.getComponent(TransformComponent.class);
             ShipMeshComponent meshComp = ship.getComponent(ShipMeshComponent.class);
             if (meshComp == null || meshComp.hullMesh == null) continue;
@@ -658,6 +676,10 @@ public class GameScreen implements Screen {
         renderBoxes();
         renderWorldObjects();
         renderShips();
+
+        if (gameWorld.getCockpitModelSystem() != null) {
+            gameWorld.getCockpitModelSystem().render(modelBatch, camera);
+        }
 
         gameWorld.getCockpitHUDSystem().render(delta);
         gameWorld.getDebugHudSystem().render(delta);

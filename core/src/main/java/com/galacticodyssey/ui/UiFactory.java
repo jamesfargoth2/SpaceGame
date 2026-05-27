@@ -185,7 +185,7 @@ public class UiFactory {
 
         ProgressBar.ProgressBarStyle progressBarStyle = new ProgressBar.ProgressBarStyle();
         progressBarStyle.background = createSliderBackground();
-        progressBarStyle.knob = createSliderKnob();
+        progressBarStyle.knobBefore = createProgressKnobBefore();
         skin.add("default-horizontal", progressBarStyle);
 
         CheckBox.CheckBoxStyle checkBoxStyle = new CheckBox.CheckBoxStyle();
@@ -252,6 +252,18 @@ public class UiFactory {
         pixmap.fill();
         pixmap.setColor(BORDER_DEFAULT);
         pixmap.drawRectangle(0, 0, 20, 4);
+        Texture texture = new Texture(pixmap);
+        pixmap.dispose();
+        NinePatch ninePatch = new NinePatch(new TextureRegion(texture), 2, 2, 0, 0);
+        NinePatchDrawable drawable = new NinePatchDrawable(ninePatch);
+        drawable.setMinHeight(4);
+        return drawable;
+    }
+
+    private static Drawable createProgressKnobBefore() {
+        Pixmap pixmap = new Pixmap(20, 4, Pixmap.Format.RGBA8888);
+        pixmap.setColor(CYAN);
+        pixmap.fill();
         Texture texture = new Texture(pixmap);
         pixmap.dispose();
         NinePatch ninePatch = new NinePatch(new TextureRegion(texture), 2, 2, 0, 0);

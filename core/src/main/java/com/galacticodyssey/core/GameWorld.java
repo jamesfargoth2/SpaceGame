@@ -658,6 +658,10 @@ public class GameWorld implements Disposable {
         return cockpitHUDSystem;
     }
 
+    public CockpitModelSystem getCockpitModelSystem() {
+        return cockpitModelSystem;
+    }
+
     public KeplerianOrbitSystem getKeplerianOrbitSystem() {
         return keplerianOrbitSystem;
     }

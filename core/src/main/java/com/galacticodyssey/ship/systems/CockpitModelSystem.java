@@ -149,9 +149,14 @@ public class CockpitModelSystem extends EntitySystem implements Disposable {
             .setToTranslation(camera.position)
             .translate(0, -1.2f, 0);
 
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+
         modelBatch.begin(camera);
         modelBatch.render(render.cockpitInstance, render.cockpitEnvironment);
         modelBatch.end();
+
+        Gdx.gl.glDisable(GL20.GL_BLEND);
     }
 
     // -------------------------------------------------------------------------
