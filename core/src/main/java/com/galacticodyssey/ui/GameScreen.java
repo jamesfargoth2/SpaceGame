@@ -96,6 +96,15 @@ public class GameScreen implements Screen {
 
     private WorldPopulator.PopulatedWorld populatedWorld;
 
+    private static final float FOG_DENSITY = 0.004f;
+    private float fogDensity = FOG_DENSITY;
+    private final Vector3 horizonColor = new Vector3(0.6f, 0.55f, 0.45f);
+    private final Vector3 sunDirection = new Vector3(-0.4f, -0.8f, -0.3f).nor();
+
+    private SkyRenderer skyRenderer;
+    private FogShaderProvider fogShaderProvider;
+    private ModelBatch fogModelBatch;
+
     private boolean paused;
     private Stage pauseStage;
     private Texture overlayTexture;
@@ -193,6 +202,10 @@ public class GameScreen implements Screen {
         environment.add(new DirectionalLight().set(0.8f, 0.8f, 0.75f, -0.4f, -0.8f, -0.3f));
 
         buildPauseMenu();
+
+        skyRenderer = new SkyRenderer();
+        fogShaderProvider = new FogShaderProvider();
+        fogModelBatch = new ModelBatch(fogShaderProvider);
 
         Gdx.app.log("DIAG", "initializeWorld complete: planetRadius=" + planetRadius
             + " spawnPos=" + camera.position
@@ -520,11 +533,14 @@ public class GameScreen implements Screen {
             "varying vec3 v_normal;\n" +
             "varying vec4 v_color;\n" +
             "varying float v_emissive;\n" +
+            "varying vec3 v_worldPos;\n" +
             "void main() {\n" +
+            "    vec4 worldPos = u_worldTrans * vec4(a_position, 1.0);\n" +
+            "    v_worldPos = worldPos.xyz;\n" +
             "    v_normal = normalize((u_worldTrans * vec4(a_normal, 0.0)).xyz);\n" +
             "    v_color = a_color;\n" +
             "    v_emissive = a_emissive;\n" +
-            "    gl_Position = u_projViewTrans * u_worldTrans * vec4(a_position, 1.0);\n" +
+            "    gl_Position = u_projViewTrans * worldPos;\n" +
             "}\n";
 
         String frag =
@@ -534,13 +550,21 @@ public class GameScreen implements Screen {
             "varying vec3 v_normal;\n" +
             "varying vec4 v_color;\n" +
             "varying float v_emissive;\n" +
+            "varying vec3 v_worldPos;\n" +
             "uniform vec3 u_lightDir;\n" +
             "uniform vec4 u_ambientColor;\n" +
+            "uniform vec3 u_cameraPos;\n" +
+            "uniform float u_fogDensity;\n" +
+            "uniform vec3 u_fogColor;\n" +
             "void main() {\n" +
             "    vec3 lightDir = normalize(-u_lightDir);\n" +
             "    float diff = max(dot(v_normal, lightDir), 0.0);\n" +
             "    vec3 lit = v_color.rgb * (u_ambientColor.rgb + diff * vec3(0.8, 0.8, 0.75));\n" +
-            "    vec3 color = mix(lit, v_color.rgb * 2.0, v_emissive);\n" +
+            "    vec3 baseColor = mix(lit, v_color.rgb * 2.0, v_emissive);\n" +
+            "    float dist = length(v_worldPos - u_cameraPos);\n" +
+            "    float fogFactor = exp(-u_fogDensity * dist * u_fogDensity * dist);\n" +
+            "    fogFactor = clamp(fogFactor, 0.0, 1.0);\n" +
+            "    vec3 color = mix(u_fogColor, baseColor, fogFactor);\n" +
             "    gl_FragColor = vec4(color, 1.0);\n" +
             "}\n";
 
@@ -564,6 +588,9 @@ public class GameScreen implements Screen {
         shader.setUniformMatrix("u_projViewTrans", terrainProjView);
         shader.setUniformf("u_lightDir", -0.4f, -0.8f, -0.3f);
         shader.setUniformf("u_ambientColor", 0.3f, 0.3f, 0.35f, 1f);
+        shader.setUniformf("u_cameraPos", camera.position);
+        shader.setUniformf("u_fogDensity", fogDensity);
+        shader.setUniformf("u_fogColor", horizonColor);
 
         for (int i = 0; i < shipEntities.size; i++) {
             Entity ship = shipEntities.get(i);
@@ -590,10 +617,13 @@ public class GameScreen implements Screen {
             "uniform mat4 u_worldTrans;\n" +
             "varying vec3 v_normal;\n" +
             "varying vec4 v_color;\n" +
+            "varying vec3 v_worldPos;\n" +
             "void main() {\n" +
+            "    vec4 worldPos = u_worldTrans * vec4(a_position, 1.0);\n" +
+            "    v_worldPos = worldPos.xyz;\n" +
             "    v_normal = normalize((u_worldTrans * vec4(a_normal, 0.0)).xyz);\n" +
             "    v_color = a_color;\n" +
-            "    gl_Position = u_projViewTrans * u_worldTrans * vec4(a_position, 1.0);\n" +
+            "    gl_Position = u_projViewTrans * worldPos;\n" +
             "}\n";
 
         String frag =
@@ -602,13 +632,21 @@ public class GameScreen implements Screen {
             "#endif\n" +
             "varying vec3 v_normal;\n" +
             "varying vec4 v_color;\n" +
+            "varying vec3 v_worldPos;\n" +
             "uniform vec3 u_lightDir;\n" +
             "uniform vec4 u_ambientColor;\n" +
+            "uniform vec3 u_cameraPos;\n" +
+            "uniform float u_fogDensity;\n" +
+            "uniform vec3 u_fogColor;\n" +
             "void main() {\n" +
             "    vec3 n = normalize(v_normal);\n" +
             "    vec3 lightDir = normalize(-u_lightDir);\n" +
             "    float diff = max(dot(n, lightDir), 0.0);\n" +
-            "    vec3 color = v_color.rgb * (u_ambientColor.rgb + diff * vec3(0.8, 0.8, 0.75));\n" +
+            "    vec3 lit = v_color.rgb * (u_ambientColor.rgb + diff * vec3(0.8, 0.8, 0.75));\n" +
+            "    float dist = length(v_worldPos - u_cameraPos);\n" +
+            "    float fogFactor = exp(-u_fogDensity * dist * u_fogDensity * dist);\n" +
+            "    fogFactor = clamp(fogFactor, 0.0, 1.0);\n" +
+            "    vec3 color = mix(u_fogColor, lit, fogFactor);\n" +
             "    gl_FragColor = vec4(color, 1.0);\n" +
             "}\n";
 
@@ -626,6 +664,8 @@ public class GameScreen implements Screen {
         float altitude = camera.position.len() - planetRadius;
         updateCameraClipPlanes(altitude);
         updateSkyColor(altitude);
+
+        skyRenderer.render(camera, sunDirection);
 
         if (!paused) {
             float clampedDelta = Math.min(delta, 1f / 30f);
@@ -721,6 +761,9 @@ public class GameScreen implements Screen {
         shader.setUniformMatrix("u_worldTrans", terrainWorldTrans);
         shader.setUniformf("u_lightDir", -0.4f, -0.8f, -0.3f);
         shader.setUniformf("u_ambientColor", 0.3f, 0.3f, 0.35f, 1f);
+        shader.setUniformf("u_cameraPos", camera.position);
+        shader.setUniformf("u_fogDensity", fogDensity);
+        shader.setUniformf("u_fogColor", horizonColor);
 
         List<TerrainChunk> leaves = gameWorld.getVisibleTerrainLeaves();
         for (int i = 0; i < leaves.size(); i++) {
@@ -730,39 +773,34 @@ public class GameScreen implements Screen {
             }
         }
 
-        if (frameCount <= 3) {
-            int err = Gdx.gl.glGetError();
-            if (err != GL20.GL_NO_ERROR) {
-                Gdx.app.error("DIAG", "GL error after terrain render: 0x" + Integer.toHexString(err));
-            }
-            if (!leaves.isEmpty()) {
-                TerrainChunk first = leaves.get(0);
-                Gdx.app.log("DIAG", "chunk0: face=" + first.face + " depth=" + first.depth
-                    + " numVerts=" + first.mesh.getNumVertices()
-                    + " numIdx=" + first.mesh.getNumIndices()
-                    + " center=" + first.center);
-            }
+    private void renderBoxes() {
+        fogShaderProvider.setFogParams(fogDensity, horizonColor);
+        fogModelBatch.begin(camera);
+        for (int i = 0; i < boxInstances.size; i++) {
+            fogModelBatch.render(boxInstances.get(i), environment);
         }
+        fogModelBatch.end();
     }
 
     private void renderWorldObjects() {
         Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
         Gdx.gl.glDepthMask(true);
 
-        modelBatch.begin(camera);
+        fogShaderProvider.setFogParams(fogDensity, horizonColor);
+        fogModelBatch.begin(camera);
         for (int i = 0; i < populatedWorld.treeInstances.size; i++) {
-            modelBatch.render(populatedWorld.treeInstances.get(i), environment);
+            fogModelBatch.render(populatedWorld.treeInstances.get(i), environment);
         }
         for (int i = 0; i < populatedWorld.rockInstances.size; i++) {
-            modelBatch.render(populatedWorld.rockInstances.get(i), environment);
+            fogModelBatch.render(populatedWorld.rockInstances.get(i), environment);
         }
         for (int i = 0; i < populatedWorld.grassInstances.size; i++) {
-            modelBatch.render(populatedWorld.grassInstances.get(i), environment);
+            fogModelBatch.render(populatedWorld.grassInstances.get(i), environment);
         }
         for (int i = 0; i < populatedWorld.animalInstances.size; i++) {
-            modelBatch.render(populatedWorld.animalInstances.get(i), environment);
+            fogModelBatch.render(populatedWorld.animalInstances.get(i), environment);
         }
-        modelBatch.end();
+        fogModelBatch.end();
 
         if (populatedWorld.waterInstance != null) {
             Gdx.gl.glEnable(GL20.GL_BLEND);
@@ -808,6 +846,14 @@ public class GameScreen implements Screen {
         if (modelBatch != null) {
             modelBatch.dispose();
             modelBatch = null;
+        }
+        if (fogModelBatch != null) {
+            fogModelBatch.dispose();
+            fogModelBatch = null;
+        }
+        if (skyRenderer != null) {
+            skyRenderer.dispose();
+            skyRenderer = null;
         }
         if (pauseStage != null) {
             pauseStage.dispose();
