@@ -124,7 +124,7 @@ public class CockpitHUDSystem extends EntitySystem implements Disposable {
         // Decrement alert timers
         if (stallWarningTimer > 0f) {
             stallWarningTimer -= deltaTime;
-            if (stallWarningTimer <= 0f) {
+            if (stallWarningTimer <= 0f && reentryTimer <= 0f) {
                 alertLabel.setText("");
                 alertLabel.setVisible(false);
             }
@@ -348,7 +348,9 @@ public class CockpitHUDSystem extends EntitySystem implements Disposable {
             font.dispose();
             font = null;
         }
-        // batch is owned by stage; stage.dispose() handles it
-        batch = null;
+        if (batch != null) {
+            batch.dispose();
+            batch = null;
+        }
     }
 }
