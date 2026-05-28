@@ -83,6 +83,7 @@ public class HackingOverlay implements Disposable {
 
     private void refreshGrid() {
         if (activeController == null) return;
+        if (tileTable == null) return;
         PuzzleGrid grid = activeController.getGrid();
         int rows = grid.getRows();
         int cols = grid.getCols();
@@ -110,6 +111,7 @@ public class HackingOverlay implements Disposable {
     public void hide() {
         activeController = null;
         stage.clear();
+        Gdx.input.setInputProcessor(null);
     }
 
     public void render(float dt) {
