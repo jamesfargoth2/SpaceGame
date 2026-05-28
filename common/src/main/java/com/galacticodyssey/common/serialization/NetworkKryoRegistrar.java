@@ -50,5 +50,12 @@ public final class NetworkKryoRegistrar {
         if (kryo.getClassResolver().getRegistration(String.class) == null) {
             kryo.register(String.class, 126);
         }
+
+        // --- Zone protocol messages (127–131) ---
+        kryo.register(ZoneJoinRequest.class, 127);
+        kryo.register(ZoneJoinResponse.class, 128);
+        kryo.register(ZoneRedirect.class, 129);
+        kryo.register(HandoffPrepare.class, 130);
+        kryo.register(HandoffTransferAck.class, 131);
     }
 }
