@@ -156,6 +156,10 @@ import com.galacticodyssey.mission.discovery.QuestDiscoverySystem;
 import com.galacticodyssey.npc.components.NpcDialogComponent;
 import com.galacticodyssey.npc.components.NpcIdentityComponent;
 import com.galacticodyssey.npc.data.DialogDataRegistry;
+import com.galacticodyssey.npc.data.NpcDataRegistry;
+import com.galacticodyssey.npc.data.NpcGenerator;
+import com.galacticodyssey.npc.data.RecruitmentDataRegistry;
+import com.galacticodyssey.npc.systems.CandidatePoolSystem;
 import com.galacticodyssey.npc.systems.DialogSystem;
 import com.galacticodyssey.ship.power.PowerPenaltySystem;
 import com.galacticodyssey.ship.power.PowerSystem;
@@ -246,6 +250,7 @@ public class GameWorld implements Disposable {
     private com.badlogic.gdx.graphics.PerspectiveCamera camera;
     private DialogDataRegistry dialogDataRegistry;
     private DialogSystem dialogSystem;
+    private CandidatePoolSystem candidatePoolSystem;
     private NpcAwarenessSystem npcAwarenessSystem;
     private ShipDetectionSystem shipDetectionSystem;
     private ShipSignatureSystem shipSignatureSystem;
@@ -566,6 +571,25 @@ public class GameWorld implements Disposable {
         }
         dialogSystem = new DialogSystem(eventBus, dialogDataRegistry);
         engine.addSystem(dialogSystem);
+
+        // Recruitment systems
+        NpcDataRegistry npcDataRegistry = new NpcDataRegistry();
+        RecruitmentDataRegistry recruitmentDataRegistry = new RecruitmentDataRegistry();
+        if (com.badlogic.gdx.Gdx.files != null) {
+            try {
+                npcDataRegistry.loadFromFiles();
+            } catch (Exception e) {
+                com.badlogic.gdx.Gdx.app.error("GameWorld", "Failed to load NPC data", e);
+            }
+            try {
+                recruitmentDataRegistry.loadFromFiles();
+            } catch (Exception e) {
+                com.badlogic.gdx.Gdx.app.error("GameWorld", "Failed to load recruitment data", e);
+            }
+        }
+        candidatePoolSystem = new CandidatePoolSystem(
+            eventBus, new NpcGenerator(npcDataRegistry), recruitmentDataRegistry);
+        engine.addSystem(candidatePoolSystem);
 
         // Hacking systems
         hackableTypeRegistry = new HackableTypeRegistry();
@@ -895,6 +919,7 @@ public class GameWorld implements Disposable {
     public QuestJournal getQuestJournal() { return questJournal; }
     public JobRegistry getJobRegistry() { return jobRegistry; }
     public SagaRegistry getSagaRegistry() { return sagaRegistry; }
+    public CandidatePoolSystem getCandidatePoolSystem() { return candidatePoolSystem; }
 
     /** Wire up the audio system. Call after GameWorld construction, before the first update(). */
     public void initAudio(AudioManager audioManager) {
