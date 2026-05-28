@@ -7,6 +7,8 @@ import com.galacticodyssey.mission.events.ObjectiveUpdatedEvent;
 import com.galacticodyssey.mission.events.QuestCompletedEvent;
 import com.galacticodyssey.mission.job.JobInstance;
 import com.galacticodyssey.mission.job.JobState;
+import com.galacticodyssey.mission.saga.SagaInstance;
+import com.galacticodyssey.mission.saga.SagaState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -56,9 +58,6 @@ class ObjectiveTrackingSystemTest {
         return job;
     }
 
-    // -------------------------------------------------------------------------
-    // Test 1: kill matching entity increments count
-    // -------------------------------------------------------------------------
     @Test
     void killMatchingTarget_incrementsCount() {
         JobInstance job = makeDestroyJob("job-1", "pirate-boss", 3);
@@ -76,9 +75,6 @@ class ObjectiveTrackingSystemTest {
         assertTrue(completedEvents.isEmpty(), "Objective should not be complete yet");
     }
 
-    // -------------------------------------------------------------------------
-    // Test 2: kill non-matching entity does NOT increment
-    // -------------------------------------------------------------------------
     @Test
     void killNonMatchingTarget_doesNotIncrement() {
         JobInstance job = makeDestroyJob("job-2", "pirate-boss", 3);
@@ -91,9 +87,6 @@ class ObjectiveTrackingSystemTest {
         assertTrue(completedEvents.isEmpty());
     }
 
-    // -------------------------------------------------------------------------
-    // Test 3: three kills on 3-kill objective completes it AND fires QuestCompletedEvent
-    // -------------------------------------------------------------------------
     @Test
     void threeKillsOnThreeKillObjective_completesObjectiveAndQuest() {
         JobInstance job = makeDestroyJob("job-3", "pirate-boss", 3);
@@ -116,9 +109,6 @@ class ObjectiveTrackingSystemTest {
         assertEquals("job-3", questCompletedEvents.get(0).missionId);
     }
 
-    // -------------------------------------------------------------------------
-    // Test 4: LocationEnteredEvent with matching locationId completes REACH_LOCATION objective
-    // -------------------------------------------------------------------------
     @Test
     void locationEntered_matchingId_completesReachLocationObjective() {
         JobInstance job = new JobInstance();
@@ -146,5 +136,58 @@ class ObjectiveTrackingSystemTest {
         assertEquals("job-4", completedEvents.get(0).missionId);
         assertEquals(1, questCompletedEvents.size());
         assertEquals("job-4", questCompletedEvents.get(0).missionId);
+    }
+
+    @Test
+    void sagaObjective_incrementedOnMatchingEvent() {
+        SagaInstance saga = new SagaInstance();
+        saga.sagaDataId = "saga-1";
+        saga.state = SagaState.ACTIVE;
+
+        Objective obj = new Objective();
+        obj.id = "obj-saga";
+        obj.type = ObjectiveType.DESTROY_TARGET;
+        obj.targetId = "bandit-leader";
+        obj.requiredCount = 1;
+        obj.currentCount = 0;
+        obj.optional = false;
+        obj.completed = false;
+        saga.activeObjectives.add(obj);
+
+        journal.setMainStory(saga);
+
+        system.onEntityKilled("bandit-leader");
+
+        assertTrue(obj.completed);
+        assertEquals(1, completedEvents.size());
+        assertEquals("saga-1", completedEvents.get(0).missionId);
+    }
+
+    @Test
+    void surviveTimeObjective_completesAfterEnoughDeltaTime() {
+        JobInstance job = new JobInstance();
+        job.instanceId = "job-timer";
+        job.state = JobState.ACTIVE;
+
+        Objective obj = new Objective();
+        obj.id = "obj-timer";
+        obj.type = ObjectiveType.SURVIVE_TIME;
+        obj.targetId = "";
+        obj.requiredCount = 10;
+        obj.currentCount = 0;
+        obj.optional = false;
+        obj.completed = false;
+        job.objectives.add(obj);
+        job.reward = new MissionReward();
+
+        journal.addJob(job);
+
+        system.update(5.0f);
+        assertFalse(obj.completed);
+
+        system.update(5.0f);
+        assertTrue(obj.completed);
+        assertEquals(JobState.COMPLETE, job.state);
+        assertEquals(1, questCompletedEvents.size());
     }
 }

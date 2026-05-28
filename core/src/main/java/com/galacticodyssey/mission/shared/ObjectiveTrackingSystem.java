@@ -36,18 +36,10 @@ public class ObjectiveTrackingSystem extends EntitySystem {
         subscribeAll();
     }
 
-    // -------------------------------------------------------------------------
-    // Subscriptions
-    // -------------------------------------------------------------------------
-
     private void subscribeAll() {
-        // EntityKilledEvent: extract a "targetId" string from the killed entity.
-        // Ashley Entity has no built-in string id field; we use the entity's
-        // identity hash code as a stable string key within a session.
-        // Objectives that use entity-based kill targeting should store
-        // Integer.toHexString(System.identityHashCode(entity)) as their targetId.
-        // The public onEntityKilled() method is also callable directly from tests
-        // or from code that already has the string id.
+        // TODO: EntityKilledEvent.target is an Ashley Entity with no string id.
+        // Until a MissionTargetComponent or targetId field is added to EntityKilledEvent,
+        // kill-based objectives must be triggered via onEntityKilled(String) directly.
         eventBus.subscribe(EntityKilledEvent.class, e -> {
             if (e.target != null) {
                 onEntityKilled(Integer.toHexString(System.identityHashCode(e.target)));
@@ -69,16 +61,9 @@ public class ObjectiveTrackingSystem extends EntitySystem {
         eventBus.subscribe(NpcDialogueEvent.class,
                 e -> increment(ObjectiveType.TALK_TO_NPC, e.npcId));
 
-        eventBus.subscribe(ResourceCollectedEvent.class, e -> {
-            for (int i = 0; i < e.amount; i++) {
-                increment(ObjectiveType.COLLECT_RESOURCE, e.resourceType);
-            }
-        });
+        eventBus.subscribe(ResourceCollectedEvent.class,
+                e -> incrementBy(ObjectiveType.COLLECT_RESOURCE, e.resourceType, e.amount));
     }
-
-    // -------------------------------------------------------------------------
-    // Public API
-    // -------------------------------------------------------------------------
 
     /**
      * Called when an entity is killed.  The {@code targetId} string must match
@@ -90,10 +75,6 @@ public class ObjectiveTrackingSystem extends EntitySystem {
     public void onEntityKilled(String targetId) {
         increment(ObjectiveType.DESTROY_TARGET, targetId);
     }
-
-    // -------------------------------------------------------------------------
-    // ECS update loop — handles time-based objectives
-    // -------------------------------------------------------------------------
 
     @Override
     public void update(float dt) {
@@ -117,10 +98,6 @@ public class ObjectiveTrackingSystem extends EntitySystem {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Internal helpers
-    // -------------------------------------------------------------------------
-
     private void increment(ObjectiveType type, String targetId) {
         for (JobInstance job : journal.getActiveJobs()) {
             if (job.state != JobState.ACTIVE) continue;
@@ -132,10 +109,11 @@ public class ObjectiveTrackingSystem extends EntitySystem {
                     if (obj.currentCount >= obj.requiredCount) {
                         obj.completed = true;
                         eventBus.publish(new ObjectiveCompletedEvent(job.instanceId, obj.id));
-                    }
-                    if (job.allRequiredComplete()) {
-                        job.state = JobState.COMPLETE;
-                        eventBus.publish(new QuestCompletedEvent(job.instanceId, job.reward));
+                        if (job.allRequiredComplete()) {
+                            job.state = JobState.COMPLETE;
+                            eventBus.publish(new QuestCompletedEvent(job.instanceId, job.reward));
+                            break;
+                        }
                     }
                 }
             }
@@ -146,6 +124,43 @@ public class ObjectiveTrackingSystem extends EntitySystem {
             for (Objective obj : saga.activeObjectives) {
                 if (!obj.completed && obj.type == type && targetId.equals(obj.targetId)) {
                     obj.currentCount++;
+                    eventBus.publish(new ObjectiveUpdatedEvent(
+                            saga.sagaDataId, obj.id, obj.currentCount, obj.requiredCount));
+                    if (obj.currentCount >= obj.requiredCount) {
+                        obj.completed = true;
+                        eventBus.publish(new ObjectiveCompletedEvent(saga.sagaDataId, obj.id));
+                    }
+                }
+            }
+        }
+    }
+
+    private void incrementBy(ObjectiveType type, String targetId, int amount) {
+        for (JobInstance job : journal.getActiveJobs()) {
+            if (job.state != JobState.ACTIVE) continue;
+            for (Objective obj : job.objectives) {
+                if (!obj.completed && obj.type == type && targetId.equals(obj.targetId)) {
+                    obj.currentCount = Math.min(obj.currentCount + amount, obj.requiredCount);
+                    eventBus.publish(new ObjectiveUpdatedEvent(
+                            job.instanceId, obj.id, obj.currentCount, obj.requiredCount));
+                    if (obj.currentCount >= obj.requiredCount) {
+                        obj.completed = true;
+                        eventBus.publish(new ObjectiveCompletedEvent(job.instanceId, obj.id));
+                        if (job.allRequiredComplete()) {
+                            job.state = JobState.COMPLETE;
+                            eventBus.publish(new QuestCompletedEvent(job.instanceId, job.reward));
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        for (SagaInstance saga : journal.getAllActiveSagas()) {
+            if (saga.state != SagaState.ACTIVE) continue;
+            for (Objective obj : saga.activeObjectives) {
+                if (!obj.completed && obj.type == type && targetId.equals(obj.targetId)) {
+                    obj.currentCount = Math.min(obj.currentCount + amount, obj.requiredCount);
                     eventBus.publish(new ObjectiveUpdatedEvent(
                             saga.sagaDataId, obj.id, obj.currentCount, obj.requiredCount));
                     if (obj.currentCount >= obj.requiredCount) {
