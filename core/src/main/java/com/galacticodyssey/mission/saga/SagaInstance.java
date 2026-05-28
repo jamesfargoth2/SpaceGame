@@ -1,15 +1,19 @@
 package com.galacticodyssey.mission.saga;
 
+import com.galacticodyssey.mission.shared.Objective;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 public class SagaInstance {
-    public String sagaId;
     public String sagaDataId;
-    public String templateId;
+    public String currentNodeId;
+    public SagaState state = SagaState.LOCKED;
+    public Map<String, String> choicesMade = new HashMap<>();
+    public List<Objective> activeObjectives = new ArrayList<>();
 
-    public SagaInstance() {}
-
-    public SagaInstance(String sagaId, String sagaDataId, String templateId) {
-        this.sagaId = sagaId;
-        this.sagaDataId = sagaDataId;
-        this.templateId = templateId;
+    public boolean allRequiredObjectivesComplete() {
+        return activeObjectives.stream().filter(o -> !o.optional).allMatch(o -> o.completed);
     }
 }

@@ -699,6 +699,8 @@ git commit -m "feat(assets): add AssetManifest with JSON parsing for characters 
 
 - [ ] **Step 6.2: Create asset_budgets.json**
 
+> Budget enforcement (evicting LRU assets when a category hits `maxResidentAssets`) is **not implemented in Phase 1** — the file is created now so the format is established, but enforcement logic is added in Phase 4 once there are enough prop assets to make it measurable.
+
 ```json
 {
   "categories": {
