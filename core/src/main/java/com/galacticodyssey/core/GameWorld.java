@@ -67,7 +67,11 @@ import com.galacticodyssey.player.systems.InteractionSystem;
 import com.galacticodyssey.player.systems.PlayerAnimationSystem;
 import com.galacticodyssey.player.systems.PlayerInputSystem;
 import com.galacticodyssey.player.systems.PlayerMovementSystem;
+import com.galacticodyssey.player.systems.PerkSystem;
 import com.galacticodyssey.player.systems.RealTimeSkillSystem;
+import com.galacticodyssey.player.systems.SkillXpAwardSystem;
+import com.galacticodyssey.player.stats.PerkRegistry;
+import com.galacticodyssey.player.stats.PlayerStatQuery;
 import com.galacticodyssey.player.systems.RecoilSystem;
 import com.galacticodyssey.player.systems.ScreenShakeSystem;
 import com.galacticodyssey.player.systems.WeaponSwaySystem;
@@ -263,6 +267,9 @@ public class GameWorld implements Disposable {
     private SurfaceAnchorSystem surfaceAnchorSystem;
     private AudioSystem audioSystem;
     private RealTimeSkillSystem realTimeSkillSystem;
+    private PerkRegistry perkRegistry;
+    private PerkSystem perkSystem;
+    private SkillXpAwardSystem skillXpAwardSystem;
     private WaveSystem waveSystem;
     private WaterDataRegistry waterDataRegistry;
     private OceanSpawner oceanSpawner;
@@ -342,6 +349,16 @@ public class GameWorld implements Disposable {
 
         realTimeSkillSystem = new RealTimeSkillSystem(eventBus);
         engine.addSystem(realTimeSkillSystem);
+
+        perkRegistry = PerkRegistry.fromFile(com.badlogic.gdx.Gdx.files.internal("data/player/perk_trees.json"));
+        PlayerStatQuery.setPerkRegistry(perkRegistry);
+
+        perkSystem = new PerkSystem(eventBus, perkRegistry);
+        engine.addSystem(perkSystem);
+
+        skillXpAwardSystem = new SkillXpAwardSystem(eventBus, realTimeSkillSystem, engine);
+        engine.addSystem(skillXpAwardSystem);
+
         engine.addSystem(playerInputSystem);
         engine.addSystem(playerMovementSystem);
         engine.addSystem(bulletPhysicsSystem);
@@ -1167,6 +1184,10 @@ public class GameWorld implements Disposable {
     public VehicleRegistry getVehicleRegistry() { return vehicleRegistry; }
 
     public VehicleBayService getVehicleBayService() { return vehicleBayService; }
+
+    public RealTimeSkillSystem getRealTimeSkillSystem() { return realTimeSkillSystem; }
+    public PerkSystem getPerkSystem() { return perkSystem; }
+    public PerkRegistry getPerkRegistry() { return perkRegistry; }
 
     @Override
     public void dispose() {
