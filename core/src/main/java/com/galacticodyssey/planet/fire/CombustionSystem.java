@@ -115,7 +115,7 @@ public class CombustionSystem extends EntitySystem {
             t.incomingHeat += b.heatOutput * b.intensity;
 
             // Spread heat to nearby flammable/normal objects.
-            spreadHeat(e, b, dt);
+            spreadHeat(e, b);
 
             // Ignite the ground/fuel grid beneath the burning entity.
             eventBus.publish(new IgniteAtEvent(
@@ -129,7 +129,7 @@ public class CombustionSystem extends EntitySystem {
         }
     }
 
-    private void spreadHeat(Entity source, BurningComponent b, float dt) {
+    private void spreadHeat(Entity source, BurningComponent b) {
         com.badlogic.gdx.math.Vector3 srcPos = TRANSFORM_M.get(source).position;
         for (int j = 0; j < allTemp.size(); j++) {
             Entity other = allTemp.get(j);
