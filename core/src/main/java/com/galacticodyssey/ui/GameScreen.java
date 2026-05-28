@@ -118,10 +118,7 @@ public class GameScreen implements Screen {
     private AtmosphericSkyRenderer atmosphericSkyRenderer;
     private DeferredRenderer deferredRenderer;
     private DayNightCycle dayNightCycle;
-    private FogShaderProvider fogShaderProvider;
-    private ModelBatch fogModelBatch;
     private float gameTime;
-    private final Vector3 scratchLightDir = new Vector3();
 
     private boolean paused;
     private Stage pauseStage;
@@ -279,8 +276,6 @@ public class GameScreen implements Screen {
 
         atmosphericSkyRenderer = new AtmosphericSkyRenderer();
         dayNightCycle = new DayNightCycle(600f, 23.5f, false);
-        fogShaderProvider = new FogShaderProvider();
-        fogModelBatch = new ModelBatch(fogShaderProvider);
     }
 
     private void openGalaxyMap() {
@@ -1131,47 +1126,31 @@ public class GameScreen implements Screen {
     }
 
     private void renderBoxes() {
-        Vector3 fogCol = atmosphericSkyRenderer.getHorizonColor();
-        float fogDens = atmosphericSkyRenderer.getFogDensity();
-        Vector3 sunDir = dayNightCycle.getSunDirection();
-        fogShaderProvider.setFogParams(fogDens, fogCol);
-        fogShaderProvider.setLightDir(scratchLightDir.set(-sunDir.x, -sunDir.y, -sunDir.z));
-        float amb = dayNightCycle.getAmbientIntensity();
-        fogShaderProvider.setAmbientColor(amb, amb, amb + 0.05f);
-
-        fogModelBatch.begin(camera);
+        modelBatch.begin(camera);
         for (int i = 0; i < boxInstances.size; i++) {
-            fogModelBatch.render(boxInstances.get(i), environment);
+            modelBatch.render(boxInstances.get(i), environment);
         }
-        fogModelBatch.end();
+        modelBatch.end();
     }
 
     private void renderWorldObjects() {
         Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
         Gdx.gl.glDepthMask(true);
 
-        Vector3 fogCol = atmosphericSkyRenderer.getHorizonColor();
-        float fogDens = atmosphericSkyRenderer.getFogDensity();
-        Vector3 sunDir = dayNightCycle.getSunDirection();
-        fogShaderProvider.setFogParams(fogDens, fogCol);
-        fogShaderProvider.setLightDir(scratchLightDir.set(-sunDir.x, -sunDir.y, -sunDir.z));
-        float amb = dayNightCycle.getAmbientIntensity();
-        fogShaderProvider.setAmbientColor(amb, amb, amb + 0.05f);
-
-        fogModelBatch.begin(camera);
+        modelBatch.begin(camera);
         for (int i = 0; i < populatedWorld.treeInstances.size; i++) {
-            fogModelBatch.render(populatedWorld.treeInstances.get(i), environment);
+            modelBatch.render(populatedWorld.treeInstances.get(i), environment);
         }
         for (int i = 0; i < populatedWorld.rockInstances.size; i++) {
-            fogModelBatch.render(populatedWorld.rockInstances.get(i), environment);
+            modelBatch.render(populatedWorld.rockInstances.get(i), environment);
         }
         for (int i = 0; i < populatedWorld.grassInstances.size; i++) {
-            fogModelBatch.render(populatedWorld.grassInstances.get(i), environment);
+            modelBatch.render(populatedWorld.grassInstances.get(i), environment);
         }
         for (int i = 0; i < populatedWorld.animalInstances.size; i++) {
-            fogModelBatch.render(populatedWorld.animalInstances.get(i), environment);
+            modelBatch.render(populatedWorld.animalInstances.get(i), environment);
         }
-        fogModelBatch.end();
+        modelBatch.end();
 
         if (populatedWorld.waterInstance != null) {
             Gdx.gl.glEnable(GL20.GL_BLEND);
@@ -1224,14 +1203,6 @@ public class GameScreen implements Screen {
         if (terrainShader != null) {
             terrainShader.dispose();
             terrainShader = null;
-        }
-        if (fogModelBatch != null) {
-            fogModelBatch.dispose();
-            fogModelBatch = null;
-        }
-        if (fogShaderProvider != null) {
-            fogShaderProvider.dispose();
-            fogShaderProvider = null;
         }
         if (atmosphericSkyRenderer != null) {
             atmosphericSkyRenderer.dispose();
