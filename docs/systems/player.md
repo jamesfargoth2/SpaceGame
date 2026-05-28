@@ -102,14 +102,139 @@ Drives the player body model animation state machine from `MovementStateComponen
 
 ## Skills & Progression
 
-**`RealTimeSkillSystem`**
+### RealTimeSkillSystem
 
-Tracks continuous skill use and awards XP proportional to performance:
-- Accuracy improves with repeated successful shots.
-- Sprint distance improves athleticism.
-- Each skill is a `RealTimeSkill` with `SkillProgress` (current XP, threshold, level).
+Core runtime skill engine. The public entry point is:
 
-`PointSkill` handles discrete upgrade nodes purchased through a separate UI.
+```
+awardSkillXP(player, skill, baseXP, difficulty)
+```
+
+XP is scaled by the difficulty modifier before being added to the skill's running total. Character level is derived from aggregate XP across all skills:
+
+```
+characterLevel = 1 + (int) sqrt(totalXP / 250)
+```
+
+On each level-up the system grants:
+- **2 skill points** per level (3 on every 3rd level).
+- **+1 `unspentPerkPicks`** every 5 character levels.
+
+Published events:
+- `SkillLevelUpEvent` — when an individual skill's level increases.
+- `CharacterLevelUpEvent` — when the derived character level increases.
+- `PerkAvailableEvent` — when `unspentPerkPicks` becomes non-zero (i.e. a pick was just granted).
+
+---
+
+### SkillXpAwardSystem
+
+A centralised `EntitySystem` that subscribes to gameplay events and forwards player-sourced actions to `awardSkillXP`. This keeps every other system ignorant of XP mechanics.
+
+| Skill | Source event | Award |
+|---|---|---|
+| Firearms | `DamageDealtEvent` (type BALLISTIC, attacker = player) | `finalDamage × 0.1` |
+| Energy Weapons | `DamageDealtEvent` (type ENERGY or PLASMA, attacker = player) | `finalDamage × 0.1` |
+| Firearms (kill bonus) | `EntityKilledEvent` (killer = player) | +15 |
+| Melee | `MeleeHitEvent` (attacker = player) | `damage × 0.15` |
+| Mining | `ResourceCollectedEvent` | `amount × 2` |
+| Trading | `TradeCompletedEvent` | `totalPrice × 0.01` |
+| Repair | `HullRepairEvent` (player) | +10 |
+| Stealth | `AwarenessChangedEvent` (NPC transitions back to UNAWARE) | +20 |
+| Athletics | Accrual in `update()`: player sprinting on ground | 1 XP per 10 units of distance |
+| Piloting | Accrual in `update()`: `PlayerStateComponent.mode == PILOTING` | 2 XP per second |
+
+> **TODO hook:** ship-module repair beyond hull (`HullRepairEvent`) has no source event yet; a `ModuleRepairEvent` is the intended trigger.
+
+---
+
+### PerkRegistry
+
+Loads perk tree definitions from `data/player/perk_trees.json` at startup. There are **9 trees** — one per real-time skill — each with **3 tiers** of nodes.
+
+Each `PerkNodeDef` carries:
+- `id` — unique string identifier.
+- `treeSkill` — which real-time skill this node belongs to.
+- `tier` — 1, 2, or 3.
+- `requiredSkillLevel` — minimum level for the parent skill.
+- `prerequisitePerkIds` — list of perk ids that must already be owned.
+- `modifiers` — list of data-driven `PerkModifier` records (`target`, `op`, `value`).
+- `specialEffectId` *(optional)* — named hook consumed by systems that implement bespoke logic.
+
+**Gate check — `canSelect(stats, id)`** returns true only when all of the following hold:
+1. The perk is not already owned by the player.
+2. The player's relevant skill meets `requiredSkillLevel`.
+3. All `prerequisitePerkIds` are present in `stats.perks`.
+
+**Effect application:** data-driven modifiers are folded into stat results by `PlayerStatQuery.applyModifiers`. Special-effect ids are checked at call-sites via `PerkRegistry.has(stats, id)`.
+
+---
+
+### PerkSystem
+
+Handles perk selection at the player's request:
+
+```
+selectPerk(player, id)
+```
+
+- Requires `stats.unspentPerkPicks > 0`.
+- Requires `PerkRegistry.canSelect(stats, id)` to pass.
+- Perk selection is **permanent** — there is no respec mechanic.
+- On success: adds `id` to `stats.perks`, decrements `unspentPerkPicks`, publishes `PerkSelectedEvent`.
+
+---
+
+### PlayerStatQuery (updated)
+
+When a `PerkRegistry` is injected via `setPerkRegistry(registry)`, all 8 stat query methods fold in the owned-perk modifiers before returning. Added query:
+
+```
+getOutgoingDamageMultiplier(stats, DamageType)
+```
+
+Player outgoing damage is scaled in `DamageSystem.processDamage` — the single convergence point for both ranged and melee damage application. Melee perks therefore use the event's actual `DamageType` and are applied there; `MeleeSystem` itself is not modified.
+
+---
+
+### CharacterScreen (UI)
+
+A new **"Character"** tab in the main UI, bound to the **C** key. It contains four sections:
+
+1. **Character summary** — current character level and total XP with a progress bar to the next level.
+2. **Real-time skills** — all 9 skills displayed with their current level and XP progress bar.
+3. **Point skills** — all 8 point skills with permanent `+` / `−` allocation buttons; each press spends or refunds an `unspentPoints` token.
+4. **Perk trees** — the 9 trees laid out tier by tier; nodes available for selection are highlighted when `unspentPerkPicks > 0` and `canSelect` passes; clicking an available node calls `PerkSystem.selectPerk`.
+
+**`LevelUpToastOverlay`** — a transient HUD overlay that pops up on `CharacterLevelUpEvent`, `SkillLevelUpEvent`, and `PerkSelectedEvent`, showing a short message before fading out.
+
+---
+
+### Persistence
+
+`PlayerStatsComponent` implements `Snapshotable<PlayerStatsSnapshot>` and is registered under the key `"PlayerStats"` with the save system. The player entity carries a `PersistenceIdComponent` so its stats are saved and restored across save/load cycles.
+
+---
+
+### Reserved special-effect ids
+
+The following `specialEffectId` values are recorded in `perk_trees.json` and their `PerkRegistry.has()` calls are wired, but the systems that consume them do not exist yet. They are documented here so future implementers know the intended hook names:
+
+| Id | Intended effect |
+|---|---|
+| `firearms_rapid_reload` | Reduced reload time for ballistic weapons |
+| `energy_heat_sink` | Faster heat dissipation for energy weapons |
+| `melee_executioner` | Bonus damage vs low-health targets |
+| `piloting_evasive` | Dodge window on incoming missile lock |
+| `piloting_ace` | Enhanced manoeuvring thrusters at high speed |
+| `athletics_marathon` | Reduced stamina drain while sprinting |
+| `athletics_free_runner` | Nullify fall damage below a threshold |
+| `stealth_shadow` | Movement speed not reduced while crouching |
+| `stealth_ghost` | NPC awareness raise rate reduced |
+| `mining_rich_veins` | Bonus yield from asteroid mining |
+| `mining_deep_core` | Unlock rare-tier minerals from standard deposits |
+| `repair_field` | Allow hull repair while under fire |
+| `repair_overhaul` | Periodic passive hull regeneration |
 
 ---
 
@@ -126,7 +251,7 @@ Tracks continuous skill use and awards XP proportional to performance:
 | `RecoilComponent` | `currentOffset`, `recoveryRate` |
 | `ScreenShakeComponent` | `trauma`, `frequency`, `duration` |
 | `PlayerTargetComponent` | Currently targeted entity, distance, name (for HUD) |
-| `PlayerStatsComponent` | Skill map, total XP, level |
+| `PlayerStatsComponent` | Skill map, total XP, character level, `unspentPoints`, `unspentPerkPicks`, owned `perks` set |
 | `PlayerModelComponent` | Body model handle, current animation state |
 
 ---
@@ -141,3 +266,7 @@ Tracks continuous skill use and awards XP proportional to performance:
 | `PlayerExitShipEvent` | Player leaves the ship |
 | `PlayerStartPilotingEvent` | Player sits in the pilot seat |
 | `PlayerStopPilotingEvent` | Player stands up from the pilot seat |
+| `SkillLevelUpEvent` | An individual real-time skill's level increases |
+| `CharacterLevelUpEvent` | Derived character level increases |
+| `PerkAvailableEvent` | `unspentPerkPicks` becomes non-zero after a level-up grant |
+| `PerkSelectedEvent` | Player confirms a perk node selection |

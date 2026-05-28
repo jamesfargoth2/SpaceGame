@@ -12,7 +12,6 @@ or in PR #24). Systems below are what is **still missing**.
 | System | Gap |
 |---|---|
 | **Scene / Sector streaming** | No `SceneManager` that additively loads/unloads zones (deep space → orbit → planet surface → station interior). `StreamingSystem` distance-enqueues assets but no zone transition state machine exists. |
-| **Player levelling & perks** | `RealTimeSkillSystem` and `PointSkillComponent` exist. No character level accumulation from aggregate XP, no skill point allocation UI, no perk system or perk selection overlay. |
 | **Vehicle bay & deployment** | Mech locomotion works. No `VehicleBayComponent`, no bay slot UI, no ramp open/deploy/retrieve flow, no `VehicleRegistry`. |
 | **Boarding flow** | Docking exists. The full pipeline — disable engines → approach → breach/dock → FPS interior combat → capture resolution (hijack / scrap / ransom / tow) — is not implemented. |
 
@@ -73,7 +72,6 @@ or in PR #24). Systems below are what is **still missing**.
 | System | Gap |
 |---|---|
 | **Power priority sliders** | No player-adjustable power redistribution UI (weapons / shields / engines balance). `PowerSystem` exists but has no UI surface. |
-| **Level-up overlay** | No UI for character level notification, skill point award, or perk selection. |
 | **Ship exterior customisation UI** | `ShipColorPalette` exists; no player-driven paint scheme, decal, or hull mod flow. |
 | **Ship room customisation** | No interior room placement, resizing, or decoration UI. |
 | **Debug / editor imgui overlay** | imgui-java overlay for in-editor spawning, stat inspection, and economy tuning — planned but not started. |
@@ -117,3 +115,4 @@ These were listed as missing in earlier drafts of this file but are now done:
 | Quest journal / job board screen | procgen |
 | Inventory / equipment screen | procgen |
 | Orbital mechanics (Keplerian orbits, SOI tracking, trajectory HUD) | coresystemFinish |
+| Player levelling & perks (XP hooks, perk trees, effects, Character screen, persistence) | coresystemFinish |
