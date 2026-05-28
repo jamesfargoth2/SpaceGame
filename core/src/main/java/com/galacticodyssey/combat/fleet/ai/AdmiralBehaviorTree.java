@@ -29,7 +29,8 @@ public final class AdmiralBehaviorTree {
         if (fc.state == FleetState.RETREATING || fc.state == FleetState.REGROUPING) return;
 
         float lossRatio = computeLossRatio(fc, engine);
-        if (lossRatio >= tc.retreatThreshold) {
+        float retreatThreshold = fc.doctrine.retreatThreshold;
+        if (lossRatio >= retreatThreshold) {
             tc.orders.add(FleetOrder.retreat());
             return;
         }
@@ -39,14 +40,12 @@ public final class AdmiralBehaviorTree {
 
         if (strengthRatio >= fc.doctrine.engageStrengthRatio) {
             if (fc.state != FleetState.ENGAGED) {
-                fc.state = FleetState.ENGAGED;
+                tc.orders.add(FleetOrder.attackTarget(null, new int[0]));
             }
         }
     }
 
     private static float computeLossRatio(FleetComponent fc, Engine engine) {
-        if (!fc.expanded) return fc.lossRatio();
-
         int alive = 0, total = 0;
         for (Entity e : engine.getEntitiesFor(
                 Family.all(FleetMemberComponent.class, HealthComponent.class).get())) {

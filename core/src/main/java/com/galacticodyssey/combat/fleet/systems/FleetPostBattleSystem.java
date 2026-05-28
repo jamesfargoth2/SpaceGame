@@ -64,6 +64,7 @@ public class FleetPostBattleSystem extends EntitySystem {
             if (fc.state != FleetState.REGROUPING && fc.state != FleetState.PATROL) continue;
 
             HealthComponent hp = HEALTH_M.get(e);
+            if (!hp.alive) continue;
             if (hp.currentHP < hp.maxHP) {
                 float missing = hp.maxHP - hp.currentHP;
                 float repair = missing * REPAIR_RATE * deltaTime;

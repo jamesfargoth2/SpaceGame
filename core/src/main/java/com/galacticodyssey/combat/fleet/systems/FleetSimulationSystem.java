@@ -101,8 +101,8 @@ public class FleetSimulationSystem extends EntitySystem {
         fcA.recomputeAggregates();
         fcB.recomputeAggregates();
 
-        boolean aRetreats = fcA.lossRatio() >= tcA.retreatThreshold;
-        boolean bRetreats = fcB.lossRatio() >= tcB.retreatThreshold;
+        boolean aRetreats = fcA.lossRatio() >= fcA.doctrine.retreatThreshold;
+        boolean bRetreats = fcB.lossRatio() >= fcB.doctrine.retreatThreshold;
 
         if (aRetreats || bRetreats) {
             String winnerId, loserId;
