@@ -1,0 +1,20 @@
+{
+  "id": "impact_explosion",
+  "type": "BILLBOARD",
+  "sprite": "shockwave",
+  "maxParticles": 30,
+  "emitRate": 0,
+  "burstCount": 30,
+  "lifetimeMin": 0.3,
+  "lifetimeMax": 0.8,
+  "speedMin": 5.0,
+  "speedMax": 20.0,
+  "spread": 180.0,
+  "sizeMin": 0.3,
+  "sizeMax": 1.0,
+  "sizeEnd": 0.0,
+  "color": "#FF6600",
+  "colorEnd": "#33000000",
+  "blendMode": "ADDITIVE",
+  "gravity": -2.0
+}

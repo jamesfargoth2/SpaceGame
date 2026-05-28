@@ -1,7 +1,20 @@
 {
-  "id": "muzzle_flash_ballistic", "maxParticles": 12, "emitRate": 0, "burstCount": 12,
-  "lifetimeMin": 0.05, "lifetimeMax": 0.12, "speedMin": 2.0, "speedMax": 8.0,
-  "spread": 25.0, "sizeMin": 0.1, "sizeMax": 0.3, "sizeEnd": 0.0,
-  "color": "#FFA500", "colorEnd": "#FF4500",
-  "texture": "particles/spark.png", "blendMode": "ADDITIVE", "gravity": 0.0
+  "id": "muzzle_flash_ballistic",
+  "type": "BILLBOARD",
+  "sprite": "flash",
+  "maxParticles": 12,
+  "emitRate": 0,
+  "burstCount": 12,
+  "lifetimeMin": 0.05,
+  "lifetimeMax": 0.12,
+  "speedMin": 2.0,
+  "speedMax": 8.0,
+  "spread": 25.0,
+  "sizeMin": 0.1,
+  "sizeMax": 0.3,
+  "sizeEnd": 0.0,
+  "color": "#FFA500",
+  "colorEnd": "#FF4500",
+  "blendMode": "ADDITIVE",
+  "gravity": 0.0
 }
