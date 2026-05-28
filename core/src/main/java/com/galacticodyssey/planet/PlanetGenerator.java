@@ -48,7 +48,15 @@ public final class PlanetGenerator {
             PlanetType moonType = moonRng.nextFloat() < 0.5f ? PlanetType.BARREN : PlanetType.ICE_WORLD;
             float moonRadius = RngUtil.range(moonRng, 0.05f, radius * 0.3f);
             float moonMass = moonRadius * moonRadius * RngUtil.range(moonRng, 0.5f, 1.0f);
-            planet.moons.add(new Moon(moonSeed, moonType, moonRadius, moonMass));
+
+            float moonOrbitalRadius = (0.002f + m * 0.002f) * RngUtil.range(moonRng, 0.8f, 1.2f);
+            float moonEccentricity = moonRng.nextFloat() * 0.1f;
+            float moonInclination = (float)(moonRng.nextGaussian() * 0.1);
+
+            Moon moon = new Moon(moonSeed, moonType, moonRadius, moonMass,
+                moonOrbitalRadius, moonEccentricity, moonInclination);
+            moon.computeOrbitalPeriod(mass * OrbitalConstants.EARTH_MASS_KG);
+            planet.moons.add(moon);
         }
 
         RingSystemGenerator ringGen = new RingSystemGenerator();
