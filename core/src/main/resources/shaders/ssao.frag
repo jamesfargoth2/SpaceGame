@@ -20,7 +20,7 @@ uniform float u_bias;
 out float fragOcclusion;
 
 void main() {
-    float depth = texture(u_depthTex, v_texCoord).r;
+    float depth = texture(u_depthTex, v_texCoord).a;
     if (depth >= 1.0) { fragOcclusion = 1.0; return; }
 
     vec3 viewPos = reconstructViewPos(v_texCoord, depth, u_invProjection);
@@ -39,7 +39,7 @@ void main() {
         offset.xyz /= offset.w;
         offset.xyz = offset.xyz * 0.5 + 0.5;
 
-        float sampleDepth = texture(u_depthTex, offset.xy).r;
+        float sampleDepth = texture(u_depthTex, offset.xy).a;
         vec3 sampleViewPos = reconstructViewPos(offset.xy, sampleDepth, u_invProjection);
 
         float rangeCheck = smoothstep(0.0, 1.0, u_radius / abs(viewPos.z - sampleViewPos.z));

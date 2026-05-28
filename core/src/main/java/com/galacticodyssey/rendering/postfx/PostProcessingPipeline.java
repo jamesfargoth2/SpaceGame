@@ -32,7 +32,7 @@ public class PostProcessingPipeline implements Disposable {
     }
 
     public void applySSAO(GBuffer gBuffer, PerspectiveCamera camera) {
-        ssao.apply(gBuffer.getNormalRoughnessAO(), gBuffer.getAlbedoMetallic(), camera);
+        ssao.apply(gBuffer.getNormalRoughnessAO(), gBuffer.getEmissive(), camera);
     }
 
     public Texture getSSAOTexture() { return ssao.getResult(); }
@@ -41,7 +41,7 @@ public class PostProcessingPipeline implements Disposable {
         Texture hdrTex = hdrBuffer.getColorBufferTexture();
 
         ssr.apply(hdrTex, gBuffer.getAlbedoMetallic(), gBuffer.getNormalRoughnessAO(),
-                  gBuffer.getAlbedoMetallic(), camera);
+                  gBuffer.getEmissive(), camera);
         hdrBuffer.begin();
         Gdx.gl.glEnable(GL20.GL_BLEND);
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);

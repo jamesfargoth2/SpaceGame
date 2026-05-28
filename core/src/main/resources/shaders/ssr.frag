@@ -13,7 +13,6 @@ uniform sampler2D u_depthTex;
 
 uniform mat4 u_projection;
 uniform mat4 u_invProjection;
-uniform vec2 u_screenSize;
 uniform float u_maxDistance;
 uniform float u_thickness;
 uniform int u_maxSteps;
@@ -31,7 +30,7 @@ void main() {
         return;
     }
 
-    float depth = texture(u_depthTex, v_texCoord).r;
+    float depth = texture(u_depthTex, v_texCoord).a;
     vec3 viewPos = reconstructViewPos(v_texCoord, depth, u_invProjection);
     vec3 N = octDecode(rt1.xy);
     vec3 V = normalize(-viewPos);
@@ -57,7 +56,7 @@ void main() {
 
         if (sampleUV.x < 0.0 || sampleUV.x > 1.0 || sampleUV.y < 0.0 || sampleUV.y > 1.0) break;
 
-        float sampleDepth = texture(u_depthTex, sampleUV).r;
+        float sampleDepth = texture(u_depthTex, sampleUV).a;
         vec3 sampleViewPos = reconstructViewPos(sampleUV, sampleDepth, u_invProjection);
         vec3 rayPos = startPos + R * u_maxDistance * t;
 

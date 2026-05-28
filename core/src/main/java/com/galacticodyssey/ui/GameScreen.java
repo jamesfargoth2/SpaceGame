@@ -133,12 +133,10 @@ public class GameScreen implements Screen {
     private float weaponSwayX;
     private float weaponSwayY;
 
-    // Muzzle flash screen-space overlay + debug markers
+    // Muzzle flash screen-space overlay
     private static final float MUZZLE_FLASH_DURATION = 0.08f;
     private ShapeRenderer debugRenderer;
-    private final Vector3 debugMuzzleEventPos = new Vector3();
-    private final Vector3 debugBarrelTipWorld = new Vector3();
-    private float debugMarkerTimer;
+    private final Vector3 barrelTipWorld = new Vector3();
     private float muzzleFlashTimer;
     private Texture particleTexture;
 
@@ -264,11 +262,7 @@ public class GameScreen implements Screen {
         buildFirstPersonWeaponModel();
         debugRenderer = new ShapeRenderer();
         gameWorld.getEventBus().subscribe(WeaponFiredEvent.class, e -> {
-            debugMuzzleEventPos.set(e.muzzlePosition);
-            debugMarkerTimer = 3f;
             muzzleFlashTimer = MUZZLE_FLASH_DURATION;
-            Gdx.app.log("MuzzleDebug", "FIRED: event.muzzlePos=" + e.muzzlePosition
-                + " | last barrelTip=" + debugBarrelTipWorld);
         });
         buildPauseMenu();
         buildDialogSystem();
@@ -457,7 +451,7 @@ public class GameScreen implements Screen {
         // Compute world-space barrel tip by transforming model-local muzzle point through the
         // final weapon transform — this handles bob, sway, and lean correctly.
         Vector3 muzzleTip = new Vector3(0f, 0.005f, -0.475f).mul(fpWeaponInstance.transform);
-        debugBarrelTipWorld.set(muzzleTip);
+        barrelTipWorld.set(muzzleTip);
         if (cam != null) cam.worldBarrelTip.set(muzzleTip);
 
         // Render with cleared depth and tight near plane
@@ -480,7 +474,7 @@ public class GameScreen implements Screen {
         muzzleFlashTimer = Math.max(0, muzzleFlashTimer - delta);
         float t = muzzleFlashTimer / MUZZLE_FLASH_DURATION;
 
-        Vector3 screenPos = camera.project(new Vector3(debugBarrelTipWorld));
+        Vector3 screenPos = camera.project(new Vector3(barrelTipWorld));
 
         Gdx.gl.glEnable(GL20.GL_BLEND);
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE); // additive
@@ -495,37 +489,6 @@ public class GameScreen implements Screen {
         debugRenderer.circle(screenPos.x, screenPos.y, 18f);
         debugRenderer.end();
         Gdx.gl.glDisable(GL20.GL_BLEND);
-    }
-
-    /** Debug overlay: RED = where WeaponFiredEvent placed the muzzle; GREEN = where the barrel tip actually is. */
-    private void renderMuzzleDebug(float delta) {
-        if (debugRenderer == null || debugMarkerTimer <= 0) return;
-        debugMarkerTimer -= delta;
-
-        Vector3 eventScreen = camera.project(new Vector3(debugMuzzleEventPos));
-        Vector3 barrelScreen = camera.project(new Vector3(debugBarrelTipWorld));
-
-        float dx = debugMuzzleEventPos.x - debugBarrelTipWorld.x;
-        float dy = debugMuzzleEventPos.y - debugBarrelTipWorld.y;
-        float dz = debugMuzzleEventPos.z - debugBarrelTipWorld.z;
-        float dist = (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
-        Gdx.app.log("MuzzleDebug", String.format(
-            "event=(%.3f,%.3f,%.3f) barrel=(%.3f,%.3f,%.3f) gap=%.3f",
-            debugMuzzleEventPos.x, debugMuzzleEventPos.y, debugMuzzleEventPos.z,
-            debugBarrelTipWorld.x, debugBarrelTipWorld.y, debugBarrelTipWorld.z, dist));
-
-        Gdx.gl.glEnable(GL20.GL_BLEND);
-        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-        debugRenderer.setProjectionMatrix(
-            new Matrix4().setToOrtho2D(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()));
-        debugRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        // RED = where the WeaponFiredEvent said the muzzle was
-        debugRenderer.setColor(1f, 0.1f, 0.1f, 0.9f);
-        debugRenderer.circle(eventScreen.x, eventScreen.y, 10f);
-        // GREEN = where the barrel tip actually is visually right now
-        debugRenderer.setColor(0.1f, 1f, 0.1f, 0.9f);
-        debugRenderer.circle(barrelScreen.x, barrelScreen.y, 10f);
-        debugRenderer.end();
     }
 
     private void buildPauseMenu() {
@@ -1089,7 +1052,6 @@ public class GameScreen implements Screen {
 
         // Screen-space effects (after deferred pipeline outputs to screen)
         renderMuzzleFlash(delta);
-        renderMuzzleDebug(delta);
 
         // HUD / UI (renders to screen directly)
         gameWorld.getCockpitHUDSystem().render(delta);

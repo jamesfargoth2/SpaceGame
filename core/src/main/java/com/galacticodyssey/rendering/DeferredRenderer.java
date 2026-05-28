@@ -6,6 +6,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Disposable;
 import com.galacticodyssey.rendering.lighting.LightingSystem;
@@ -25,6 +26,7 @@ public class DeferredRenderer implements Disposable {
     private int width, height;
 
     public DeferredRenderer(int width, int height) {
+        ShaderProgram.pedantic = false;
         this.width = width;
         this.height = height;
         this.quad = new FullscreenQuad();

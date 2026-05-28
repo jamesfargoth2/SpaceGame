@@ -9,7 +9,6 @@ in vec2 v_texCoord;
 uniform sampler2D u_rt0;
 uniform sampler2D u_rt1;
 uniform sampler2D u_rt2;
-uniform sampler2D u_depth;
 uniform sampler2D u_ssao;
 
 uniform mat4 u_invProjection;
@@ -25,7 +24,7 @@ void main() {
     vec4 rt0 = texture(u_rt0, v_texCoord);
     vec4 rt1 = texture(u_rt1, v_texCoord);
     vec4 rt2 = texture(u_rt2, v_texCoord);
-    float depth = texture(u_depth, v_texCoord).r;
+    float depth = rt2.a;
     float ssao = texture(u_ssao, v_texCoord).r;
 
     vec3 albedo = rt0.rgb;

@@ -44,7 +44,6 @@ public class SSREffect implements Disposable {
         shader.setUniformi("u_depthTex", 3);
         shader.setUniformMatrix("u_projection", camera.projection);
         shader.setUniformMatrix("u_invProjection", camera.invProjectionView);
-        shader.setUniformf("u_screenSize", width, height);
         shader.setUniformf("u_maxDistance", maxDistance);
         shader.setUniformf("u_thickness", thickness);
         shader.setUniformi("u_maxSteps", maxSteps);

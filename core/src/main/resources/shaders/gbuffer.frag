@@ -93,5 +93,5 @@ void main() {
     // Pack into G-Buffer
     rt0_albedoMetallic = vec4(albedo, metallic);
     rt1_normalRoughnessAO = vec4(octEncode(normal), roughness, ao);
-    rt2_emissive = vec4(emissive, 0.0);
+    rt2_emissive = vec4(emissive, gl_FragCoord.z);
 }

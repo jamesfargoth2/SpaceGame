@@ -17,6 +17,7 @@ public class DesktopLauncher {
         var config = new Lwjgl3ApplicationConfiguration();
         config.setTitle("Galactic Odyssey");
         config.setForegroundFPS(60);
+        config.setOpenGLEmulation(Lwjgl3ApplicationConfiguration.GLEmulation.GL30, 3, 3);
 
         applyDisplayPreferences(config);
 
