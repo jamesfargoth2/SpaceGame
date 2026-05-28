@@ -5,6 +5,6 @@ import com.badlogic.ashley.core.Entity;
 
 public class HackingStateComponent implements Component {
     public Entity currentTarget = null;
-    public Object controller = null;  // HackingController (Task 8) — placeholder for now
+    public HackingController controller = null;
     public boolean isRemoteHack = false;
 }
