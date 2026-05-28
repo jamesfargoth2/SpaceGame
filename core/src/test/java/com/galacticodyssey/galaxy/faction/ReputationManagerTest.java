@@ -203,8 +203,22 @@ class ReputationManagerTest {
     }
 
     @Test
+    void tenseRelationSmallInverseRipple() {
+        Map<String, PoliticalRelation> fedRelations = new HashMap<>();
+        fedRelations.put("rival", PoliticalRelation.TENSE);
+        relations.put("fed", fedRelations);
+
+        eventBus.publish(new ReputationChangeEvent("fed", 20f, "test"));
+
+        assertEquals(20f, manager.getStanding("fed"), 0.001f);
+        // TENSE ripple: 20 * 0.10 * -1 = -2
+        assertEquals(-2f, manager.getStanding("rival"), 0.001f);
+    }
+
+    @Test
     void noPlayerEntitySilentlyIgnores() {
-        ReputationManager orphan = new ReputationManager(eventBus, config, relations);
-        eventBus.publish(new ReputationChangeEvent("fed", 10f, "test"));
+        EventBus isolatedBus = new EventBus();
+        ReputationManager orphan = new ReputationManager(isolatedBus, config, relations);
+        isolatedBus.publish(new ReputationChangeEvent("fed", 10f, "test"));
     }
 }
