@@ -21,14 +21,14 @@ public final class VFXLoader {
                 JsonValue json = reader.parse(Gdx.files.internal(path));
                 registry.register(parseEffect(json));
             } catch (Exception e) {
-                Gdx.app.error("VFXLoader", "Skipping missing effect: " + path);
+                Gdx.app.error("VFXLoader", "Skipping missing effect: " + path + " — " + e.getMessage());
             }
         }
         try {
             JsonValue bindingsJson = reader.parse(Gdx.files.internal("data/vfx/vfx_event_bindings.json"));
             parseBindings(bindings, bindingsJson);
         } catch (Exception e) {
-            Gdx.app.error("VFXLoader", "Failed to load vfx_event_bindings.json");
+            Gdx.app.error("VFXLoader", "Failed to load vfx_event_bindings.json — " + e.getMessage());
         }
     }
 
@@ -61,7 +61,7 @@ public final class VFXLoader {
     }
 
     public static void parseBindings(VFXEventBindings bindings, JsonValue json) {
-        java.util.Map<String, String> map = new java.util.LinkedHashMap<>();
+        java.util.Map<String, String> map = new java.util.HashMap<>();
         for (JsonValue entry = json.child; entry != null; entry = entry.next) {
             map.put(entry.name, entry.asString());
         }
