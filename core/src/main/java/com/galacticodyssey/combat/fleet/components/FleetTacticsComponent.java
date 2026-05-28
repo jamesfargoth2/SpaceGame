@@ -12,7 +12,6 @@ public class FleetTacticsComponent implements Component {
     public final Map<String, Float> threatAssessment = new HashMap<>();
     public float engageMinRange = 500f;
     public float engageMaxRange = 2000f;
-    public float retreatThreshold = 0.30f;
     public FleetShipClass priorityTargetClass;
     public final Queue<FleetOrder> orders = new ArrayDeque<>();
 }

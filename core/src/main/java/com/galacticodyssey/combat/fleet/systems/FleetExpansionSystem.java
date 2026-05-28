@@ -4,6 +4,7 @@ import com.badlogic.ashley.core.*;
 import com.badlogic.gdx.math.Vector3;
 import com.galacticodyssey.combat.fleet.components.*;
 import com.galacticodyssey.combat.fleet.data.*;
+import com.galacticodyssey.core.components.TransformComponent;
 import com.galacticodyssey.combat.fleet.events.*;
 import com.galacticodyssey.core.EventBus;
 import java.util.ArrayList;
@@ -98,6 +99,10 @@ public class FleetExpansionSystem extends EntitySystem {
                 fmc.role = entry.shipClass.defaultRole;
                 fmc.formationSlotIndex = slotIndex;
                 ship.add(fmc);
+
+                TransformComponent tc = new TransformComponent();
+                tc.position.set(ffc.localAnchorX, ffc.localAnchorY, ffc.localAnchorZ);
+                ship.add(tc);
 
                 engine.addEntity(ship);
                 slotIndex++;

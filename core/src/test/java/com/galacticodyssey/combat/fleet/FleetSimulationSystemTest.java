@@ -38,7 +38,6 @@ class FleetSimulationSystemTest {
         e.add(fc);
 
         FleetTacticsComponent ftc = new FleetTacticsComponent();
-        ftc.retreatThreshold = doctrine.retreatThreshold;
         ftc.threatAssessment.put(id.equals("attacker") ? "defender" : "attacker", 1.0f);
         e.add(ftc);
 

@@ -17,7 +17,7 @@ import java.util.List;
  * next {@link #update} call before the standard tick logic runs, so single-frame latency is
  * guaranteed even at low tick rates.
  *
- * <p>Priority {@value #PRIORITY} — runs after simulation ({@code 2}) and formation ({@code 3})
+ * <p>Priority {@value #PRIORITY} — runs after simulation ({@code 2}) and expansion ({@code 3})
  * systems so state changes take effect in the following frame.
  */
 public class FleetCommandSystem extends EntitySystem {

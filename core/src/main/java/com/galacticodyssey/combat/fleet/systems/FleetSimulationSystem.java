@@ -15,7 +15,7 @@ import java.util.List;
  * that have each other in their {@link FleetTacticsComponent#threatAssessment} maps exchange
  * fire. Damage is applied via {@link #applyDamage} and casualties are removed from
  * {@link FleetComponent#composition}. When a fleet's {@link FleetComponent#lossRatio()} meets
- * or exceeds its {@link FleetTacticsComponent#retreatThreshold} it sets state to
+ * or exceeds its {@link FleetDoctrine#retreatThreshold} it sets state to
  * {@link FleetState#RETREATING} and a {@link FleetBattleResolvedEvent} is published.
  *
  * <p>Priority {@value #PRIORITY} — runs before formation/command systems.

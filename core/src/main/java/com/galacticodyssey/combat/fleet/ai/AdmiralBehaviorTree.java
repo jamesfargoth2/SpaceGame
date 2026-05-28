@@ -20,6 +20,10 @@ public final class AdmiralBehaviorTree {
     private static final ComponentMapper<HealthComponent> HEALTH_M =
         ComponentMapper.getFor(HealthComponent.class);
 
+    private static final Family MEMBER_HEALTH_FAMILY = Family.all(
+        FleetMemberComponent.class, HealthComponent.class
+    ).get();
+
     private AdmiralBehaviorTree() {}
 
     public static void evaluate(Entity fleetEntity, Engine engine, EventBus eventBus) {
@@ -47,8 +51,7 @@ public final class AdmiralBehaviorTree {
 
     private static float computeLossRatio(FleetComponent fc, Engine engine) {
         int alive = 0, total = 0;
-        for (Entity e : engine.getEntitiesFor(
-                Family.all(FleetMemberComponent.class, HealthComponent.class).get())) {
+        for (Entity e : engine.getEntitiesFor(MEMBER_HEALTH_FAMILY)) {
             FleetMemberComponent fmc = MEMBER_M.get(e);
             if (!fc.fleetId.equals(fmc.fleetId)) continue;
             total++;
