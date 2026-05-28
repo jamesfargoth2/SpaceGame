@@ -96,14 +96,11 @@ public class GameScreen implements Screen {
 
     private WorldPopulator.PopulatedWorld populatedWorld;
 
-    private static final float FOG_DENSITY = 0.004f;
-    private float fogDensity = FOG_DENSITY;
-    private final Vector3 horizonColor = new Vector3(0.6f, 0.55f, 0.45f);
-    private final Vector3 sunDirection = new Vector3(-0.4f, -0.8f, -0.3f).nor();
-
-    private SkyRenderer skyRenderer;
+    private AtmosphericSkyRenderer atmosphericSkyRenderer;
+    private DayNightCycle dayNightCycle;
     private FogShaderProvider fogShaderProvider;
     private ModelBatch fogModelBatch;
+    private float gameTime;
 
     private boolean paused;
     private Stage pauseStage;
@@ -207,7 +204,8 @@ public class GameScreen implements Screen {
 
         buildPauseMenu();
 
-        skyRenderer = new SkyRenderer();
+        atmosphericSkyRenderer = new AtmosphericSkyRenderer();
+        dayNightCycle = new DayNightCycle(600f, 23.5f, false);
         fogShaderProvider = new FogShaderProvider();
         fogModelBatch = new ModelBatch(fogShaderProvider);
     }
@@ -582,11 +580,14 @@ public class GameScreen implements Screen {
         ShaderProgram shader = getShipShader();
         shader.bind();
         shader.setUniformMatrix("u_projViewTrans", camera.combined);
-        shader.setUniformf("u_lightDir", -0.4f, -0.8f, -0.3f);
-        shader.setUniformf("u_ambientColor", 0.3f, 0.3f, 0.35f, 1f);
+        Vector3 sunDir = dayNightCycle.getSunDirection();
+        shader.setUniformf("u_lightDir", -sunDir.x, -sunDir.y, -sunDir.z);
+        float amb = dayNightCycle.getAmbientIntensity();
+        shader.setUniformf("u_ambientColor", amb, amb, amb + 0.05f, 1f);
         shader.setUniformf("u_cameraPos", camera.position.x, camera.position.y, camera.position.z);
-        shader.setUniformf("u_fogDensity", fogDensity);
-        shader.setUniformf("u_fogColor", horizonColor.x, horizonColor.y, horizonColor.z);
+        shader.setUniformf("u_fogDensity", atmosphericSkyRenderer.getFogDensity());
+        Vector3 fogCol = atmosphericSkyRenderer.getHorizonColor();
+        shader.setUniformf("u_fogColor", fogCol.x, fogCol.y, fogCol.z);
 
         for (int i = 0; i < shipEntities.size; i++) {
             Entity ship = shipEntities.get(i);
@@ -657,14 +658,18 @@ public class GameScreen implements Screen {
 
     @Override
     public void render(float delta) {
-        ScreenUtils.clear(0.05f, 0.05f, 0.1f, 1f, true);
-
-        skyRenderer.render(camera, sunDirection);
+        ScreenUtils.clear(0.0f, 0.0f, 0.0f, 1f, true);
 
         if (!paused) {
             float clampedDelta = Math.min(delta, 1f / 30f);
             gameWorld.update(clampedDelta);
+            dayNightCycle.update(clampedDelta);
+            gameTime += clampedDelta;
         }
+
+        atmosphericSkyRenderer.setSunDirection(dayNightCycle.getSunDirection());
+        atmosphericSkyRenderer.setTime(gameTime);
+        atmosphericSkyRenderer.render(camera);
 
         if (!paused) {
             WorldPopulator.updateAnimals(populatedWorld, delta,
@@ -676,10 +681,6 @@ public class GameScreen implements Screen {
         renderBoxes();
         renderWorldObjects();
         renderShips();
-
-        if (gameWorld.getCockpitModelSystem() != null) {
-            gameWorld.getCockpitModelSystem().render(modelBatch, camera);
-        }
 
         gameWorld.getCockpitHUDSystem().render(delta);
         gameWorld.getDebugHudSystem().render(delta);
@@ -704,23 +705,35 @@ public class GameScreen implements Screen {
         Gdx.gl.glDepthFunc(GL20.GL_LEQUAL);
         Gdx.gl.glDepthMask(true);
 
+        Vector3 fogCol = atmosphericSkyRenderer.getHorizonColor();
+        float fogDens = atmosphericSkyRenderer.getFogDensity();
+        Vector3 sunDir = dayNightCycle.getSunDirection();
+        float ambientScale = dayNightCycle.getAmbientIntensity();
+
         ShaderProgram shader = getTerrainShader();
         shader.bind();
         shader.setUniformMatrix("u_projViewTrans", camera.combined);
 
         Matrix4 modelMat = new Matrix4();
         shader.setUniformMatrix("u_worldTrans", modelMat);
-        shader.setUniformf("u_lightDir", -0.4f, -0.8f, -0.3f);
-        shader.setUniformf("u_ambientColor", 0.3f, 0.3f, 0.35f, 1f);
+        shader.setUniformf("u_lightDir", -sunDir.x, -sunDir.y, -sunDir.z);
+        shader.setUniformf("u_ambientColor", ambientScale, ambientScale, ambientScale + 0.05f, 1f);
         shader.setUniformf("u_cameraPos", camera.position.x, camera.position.y, camera.position.z);
-        shader.setUniformf("u_fogDensity", fogDensity);
-        shader.setUniformf("u_fogColor", horizonColor.x, horizonColor.y, horizonColor.z);
+        shader.setUniformf("u_fogDensity", fogDens);
+        shader.setUniformf("u_fogColor", fogCol.x, fogCol.y, fogCol.z);
 
         terrainMesh.render(shader, GL20.GL_TRIANGLES);
     }
 
     private void renderBoxes() {
-        fogShaderProvider.setFogParams(fogDensity, horizonColor);
+        Vector3 fogCol = atmosphericSkyRenderer.getHorizonColor();
+        float fogDens = atmosphericSkyRenderer.getFogDensity();
+        Vector3 sunDir = dayNightCycle.getSunDirection();
+        fogShaderProvider.setFogParams(fogDens, fogCol);
+        fogShaderProvider.setLightDir(new Vector3(-sunDir.x, -sunDir.y, -sunDir.z));
+        float amb = dayNightCycle.getAmbientIntensity();
+        fogShaderProvider.setAmbientColor(amb, amb, amb + 0.05f);
+
         fogModelBatch.begin(camera);
         for (int i = 0; i < boxInstances.size; i++) {
             fogModelBatch.render(boxInstances.get(i), environment);
@@ -732,7 +745,14 @@ public class GameScreen implements Screen {
         Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
         Gdx.gl.glDepthMask(true);
 
-        fogShaderProvider.setFogParams(fogDensity, horizonColor);
+        Vector3 fogCol = atmosphericSkyRenderer.getHorizonColor();
+        float fogDens = atmosphericSkyRenderer.getFogDensity();
+        Vector3 sunDir = dayNightCycle.getSunDirection();
+        fogShaderProvider.setFogParams(fogDens, fogCol);
+        fogShaderProvider.setLightDir(new Vector3(-sunDir.x, -sunDir.y, -sunDir.z));
+        float amb = dayNightCycle.getAmbientIntensity();
+        fogShaderProvider.setAmbientColor(amb, amb, amb + 0.05f);
+
         fogModelBatch.begin(camera);
         for (int i = 0; i < populatedWorld.treeInstances.size; i++) {
             fogModelBatch.render(populatedWorld.treeInstances.get(i), environment);
@@ -799,9 +819,9 @@ public class GameScreen implements Screen {
             fogModelBatch.dispose();
             fogModelBatch = null;
         }
-        if (skyRenderer != null) {
-            skyRenderer.dispose();
-            skyRenderer = null;
+        if (atmosphericSkyRenderer != null) {
+            atmosphericSkyRenderer.dispose();
+            atmosphericSkyRenderer = null;
         }
         if (modelBatch != null) {
             modelBatch.dispose();
