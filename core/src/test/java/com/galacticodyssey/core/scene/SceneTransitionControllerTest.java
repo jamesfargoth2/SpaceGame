@@ -105,4 +105,40 @@ class SceneTransitionControllerTest {
         assertTrue(controller.isIdle());
         assertEquals(SceneState.ACTIVE, target.state);
     }
+
+    @Test
+    void readyOverlapWaitsForDisguiseThenProceeds() {
+        controller.setDisguiseTimeout(5f);
+        Scene source = scene(1, SceneType.DEEP_SPACE, SceneState.ACTIVE);
+        Scene target = scene(2, SceneType.ORBITAL, SceneState.UNLOADED);
+        controller.begin(source, new FakeSceneLoader(SceneType.DEEP_SPACE),
+            target, new FakeSceneLoader(SceneType.ORBITAL));
+
+        controller.update(0.1f); // -> PRELOADING
+        controller.update(0.1f); // -> READY_OVERLAP
+        assertEquals(TransitionPhase.READY_OVERLAP, controller.getPhase());
+
+        controller.update(0.1f); // still waiting on disguise
+        assertEquals(TransitionPhase.READY_OVERLAP, controller.getPhase());
+
+        controller.notifyDisguiseComplete();
+        controller.update(0.1f); // disguise done -> ACTIVATING
+        assertEquals(TransitionPhase.ACTIVATING, controller.getPhase());
+    }
+
+    @Test
+    void readyOverlapProceedsOnTimeoutWithoutDisguiseSignal() {
+        controller.setDisguiseTimeout(0.25f);
+        Scene source = scene(1, SceneType.DEEP_SPACE, SceneState.ACTIVE);
+        Scene target = scene(2, SceneType.ORBITAL, SceneState.UNLOADED);
+        controller.begin(source, new FakeSceneLoader(SceneType.DEEP_SPACE),
+            target, new FakeSceneLoader(SceneType.ORBITAL));
+
+        controller.update(0.1f); // -> PRELOADING
+        controller.update(0.1f); // -> READY_OVERLAP
+        controller.update(0.1f); // timer 0.1 < 0.25, wait
+        assertEquals(TransitionPhase.READY_OVERLAP, controller.getPhase());
+        controller.update(0.2f); // timer 0.3 >= 0.25, proceed
+        assertEquals(TransitionPhase.ACTIVATING, controller.getPhase());
+    }
 }

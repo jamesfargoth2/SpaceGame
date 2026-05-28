@@ -30,7 +30,9 @@ public class SceneTransitionController {
     private final Engine engine;
 
     private float budgetMs = DEFAULT_BUDGET_MS;
-    private float disguiseTimeout = 0f;
+    private float disguiseTimeout = 5f;
+    private boolean disguiseComplete = false;
+    private float disguiseTimer = 0f;
 
     private TransitionPhase phase = TransitionPhase.IDLE;
     private Scene source;
@@ -57,6 +59,13 @@ public class SceneTransitionController {
         this.target = target;
         this.targetLoader = targetLoader;
         this.phase = TransitionPhase.REQUESTED;
+        this.disguiseComplete = false;
+        this.disguiseTimer = 0f;
+    }
+
+    /** Called by a disguise system (camera/VFX/animation) when its transition animation finishes. */
+    public void notifyDisguiseComplete() {
+        this.disguiseComplete = true;
     }
 
     public void update(float dt) {
@@ -81,8 +90,10 @@ public class SceneTransitionController {
                 return;
             }
             case READY_OVERLAP:
-                // Happy path (no disguise wait); Task 7 adds gating + timeout here.
-                phase = TransitionPhase.ACTIVATING;
+                disguiseTimer += dt;
+                if (disguiseComplete || disguiseTimer >= disguiseTimeout) {
+                    phase = TransitionPhase.ACTIVATING;
+                }
                 return;
             case ACTIVATING:
                 reTagPersistentEntities(target.id);
