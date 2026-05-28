@@ -165,4 +165,37 @@ class SceneTransitionControllerTest {
         assertEquals(1, failures.size());
         assertEquals(SceneType.PLANET_SURFACE, failures.get(0).type);
     }
+
+    @Test
+    void preloadingRepeatsUntilDoneAndEmitsProgressEachStep() {
+        List<SceneLoadProgressEvent> progress = new ArrayList<>();
+        bus.subscribe(SceneLoadProgressEvent.class, progress::add);
+
+        Scene source = scene(1, SceneType.DEEP_SPACE, SceneState.ACTIVE);
+        Scene target = scene(2, SceneType.PLANET_SURFACE, SceneState.UNLOADED);
+        FakeSceneLoader targetLoader = new FakeSceneLoader(SceneType.PLANET_SURFACE);
+        targetLoader.stepsToComplete = 3;
+
+        controller.begin(source, new FakeSceneLoader(SceneType.DEEP_SPACE), target, targetLoader);
+
+        controller.update(0.1f); // REQUESTED -> PRELOADING (begin called)
+        assertEquals(TransitionPhase.PRELOADING, controller.getPhase());
+
+        controller.update(0.1f); // step 1/3 -> still PRELOADING
+        assertEquals(TransitionPhase.PRELOADING, controller.getPhase());
+        controller.update(0.1f); // step 2/3 -> still PRELOADING
+        assertEquals(TransitionPhase.PRELOADING, controller.getPhase());
+        assertEquals(SceneState.LOADING, target.state);
+
+        controller.update(0.1f); // step 3/3 -> done -> READY_OVERLAP
+        assertEquals(TransitionPhase.READY_OVERLAP, controller.getPhase());
+        assertEquals(SceneState.ACTIVE, target.state);
+
+        // One progress event per preload step, monotonically increasing to 1.0.
+        assertEquals(3, progress.size());
+        assertEquals(1f / 3f, progress.get(0).progress, 1e-6);
+        assertEquals(2f / 3f, progress.get(1).progress, 1e-6);
+        assertEquals(1f, progress.get(2).progress, 1e-6);
+        assertEquals(2, progress.get(0).sceneId);
+    }
 }
