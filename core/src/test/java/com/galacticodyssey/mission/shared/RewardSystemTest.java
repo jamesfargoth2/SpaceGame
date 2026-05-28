@@ -41,6 +41,7 @@ class RewardSystemTest {
     void questCompleted_noReputationFaction_doesNotPublishRepEvent() {
         MissionReward reward = new MissionReward();
         reward.reputationFaction = null;
+        reward.reputationDelta = 10f;
 
         eventBus.publish(new QuestCompletedEvent("mission2", reward));
 
