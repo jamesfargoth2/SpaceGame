@@ -1,10 +1,13 @@
 package com.galacticodyssey.player.systems;
 
+import com.badlogic.ashley.core.ComponentMapper;
 import com.badlogic.ashley.core.Engine;
 import com.badlogic.ashley.core.Entity;
 import com.badlogic.ashley.core.EntitySystem;
 import com.badlogic.ashley.core.Family;
 import com.badlogic.ashley.utils.ImmutableArray;
+import com.galacticodyssey.player.components.MovementStateComponent;
+import com.galacticodyssey.player.components.PlayerStateComponent;
 import com.galacticodyssey.combat.CombatEnums.DamageType;
 import com.galacticodyssey.combat.events.DamageDealtEvent;
 import com.galacticodyssey.combat.events.EntityKilledEvent;
@@ -32,6 +35,16 @@ import com.galacticodyssey.water.events.HullRepairEvent;
 public class SkillXpAwardSystem extends EntitySystem {
 
     public static final int PRIORITY = 27;
+
+    private static final ComponentMapper<MovementStateComponent> MOVE_M =
+        ComponentMapper.getFor(MovementStateComponent.class);
+    private static final ComponentMapper<PlayerStateComponent> STATE_M =
+        ComponentMapper.getFor(PlayerStateComponent.class);
+
+    private static final float ATHLETICS_DISTANCE_PER_XP = 10f;
+    private static final float PILOTING_XP_PER_SECOND     = 2f;
+
+    private float sprintDistanceAccum;
 
     private final EventBus eventBus;
     private final RealTimeSkillSystem skillSystem;
@@ -100,6 +113,22 @@ public class SkillXpAwardSystem extends EntitySystem {
 
     @Override
     public void update(float deltaTime) {
-        // Accrual hooks (Athletics, Piloting) added in a later task.
+        Entity p = player();
+        if (p == null) return;
+
+        MovementStateComponent move = MOVE_M.get(p);
+        if (move != null && move.isSprinting && move.isGrounded && move.currentSpeed > 0f) {
+            sprintDistanceAccum += move.currentSpeed * deltaTime;
+            if (sprintDistanceAccum >= ATHLETICS_DISTANCE_PER_XP) {
+                int chunks = (int) (sprintDistanceAccum / ATHLETICS_DISTANCE_PER_XP);
+                sprintDistanceAccum -= chunks * ATHLETICS_DISTANCE_PER_XP;
+                skillSystem.awardSkillXP(p, RealTimeSkill.ATHLETICS, chunks, 1f);
+            }
+        }
+
+        PlayerStateComponent state = STATE_M.get(p);
+        if (state != null && state.currentMode == PlayerStateComponent.PlayerMode.PILOTING) {
+            skillSystem.awardSkillXP(p, RealTimeSkill.PILOTING, PILOTING_XP_PER_SECOND * deltaTime, 1f);
+        }
     }
 }
