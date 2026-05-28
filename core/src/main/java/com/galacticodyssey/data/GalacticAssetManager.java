@@ -83,6 +83,7 @@ public final class GalacticAssetManager implements Disposable {
      * promotes any finished loads into their handles.
      */
     public void update() {
+        if (inner == null) return;
         int dispatched = 0;
         while (!queue.isEmpty() && dispatched < MAX_LOADS_PER_FRAME) {
             StreamingQueue.StreamRequest req = queue.poll();
@@ -125,11 +126,11 @@ public final class GalacticAssetManager implements Disposable {
     }
 
     public boolean isLoading() {
-        return !inner.isFinished();
+        return inner != null && !inner.isFinished();
     }
 
     @Override
     public void dispose() {
-        inner.dispose();
+        if (inner != null) inner.dispose();
     }
 }
