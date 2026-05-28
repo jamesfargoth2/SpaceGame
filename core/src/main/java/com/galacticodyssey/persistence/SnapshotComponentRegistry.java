@@ -29,6 +29,7 @@ import com.galacticodyssey.persistence.snapshots.InventorySnapshot;
 import com.galacticodyssey.persistence.snapshots.MeleeWeaponSnapshot;
 import com.galacticodyssey.persistence.snapshots.MovementStateSnapshot;
 import com.galacticodyssey.persistence.snapshots.PlayerStateSnapshot;
+import com.galacticodyssey.persistence.snapshots.PlayerStatsSnapshot;
 import com.galacticodyssey.persistence.snapshots.PlayerWalletSnapshot;
 import com.galacticodyssey.persistence.snapshots.PowerStateSnapshot;
 import com.galacticodyssey.persistence.snapshots.RangedWeaponSnapshot;
@@ -45,6 +46,7 @@ import com.galacticodyssey.persistence.snapshots.WeaponInventorySnapshot;
 import com.galacticodyssey.player.components.FPSCameraComponent;
 import com.galacticodyssey.player.components.MovementStateComponent;
 import com.galacticodyssey.player.components.PlayerStateComponent;
+import com.galacticodyssey.player.components.PlayerStatsComponent;
 import com.galacticodyssey.core.components.PlayerTagComponent;
 import com.galacticodyssey.ship.components.EngineSpecComponent;
 import com.galacticodyssey.ship.components.FuelTankComponent;
@@ -86,6 +88,7 @@ public final class SnapshotComponentRegistry {
         register("MovementState", MovementStateSnapshot.class, MovementStateComponent::new);
         register("FPSCamera",     FPSCameraSnapshot.class,     FPSCameraComponent::new);
         register("PlayerWallet",  PlayerWalletSnapshot.class,  PlayerWalletComponent::new);
+        register("PlayerStats",   PlayerStatsSnapshot.class,   PlayerStatsComponent::new);
 
         // ----- Combat -----
         register("Shield",          ShieldSnapshot.class,          ShieldComponent::new);
