@@ -71,7 +71,14 @@ public class ParticleRenderSystem extends EntitySystem implements Disposable {
 
     @Override
     public void update(float deltaTime) {
-        // Rendering is done in render(), called explicitly by GameScreen after world rendering.
+        if (meshPool == null) return;
+        for (int i = meshPool.active.size() - 1; i >= 0; i--) {
+            MeshParticle mp = meshPool.active.get(i);
+            mp.update(deltaTime);
+            if (mp.life <= 0f) {
+                meshPool.free(mp);
+            }
+        }
     }
 
     public void render() {
