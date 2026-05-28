@@ -34,11 +34,17 @@ public final class FloraMeshBuilder {
             addSegment(tv, ti, a, ra, b, rb, sp.trunkSides, bounds);
         }
 
-        // Foliage clumps at tips.
+        // Foliage clumps at tips. Indices are 16-bit (short), so cap the foliage vertex
+        // count: a single mesh part cannot reference more than Short.MAX_VALUE vertices.
+        // Stop adding blobs once another one would overflow rather than silently corrupt
+        // the index buffer (only reachable with very aggressive clumpsPerTip/maxNodes).
         if (sp.foliageStyle == FoliageStyle.CLUMP) {
+            int blobVerts = (FOLIAGE_RINGS + 1) * (FOLIAGE_SECTORS + 1);
+            outer:
             for (int i = 0; i < skel.size(); i++) {
                 if (!skel.isTip(i)) continue;
                 for (int c = 0; c < sp.clumpsPerTip; c++) {
+                    if (fv.size / 6 + blobVerts > Short.MAX_VALUE) break outer;
                     float r = sp.clumpRadiusMin + rng.nextFloat() * (sp.clumpRadiusMax - sp.clumpRadiusMin);
                     Vector3 center = new Vector3(skel.position(i));
                     center.add((rng.nextFloat() - 0.5f) * r, (rng.nextFloat() - 0.5f) * r * 0.5f,
@@ -56,7 +62,12 @@ public final class FloraMeshBuilder {
         return Math.max(0.02f, sp.baseRadius * (sp.taper * rel + (1f - sp.taper) * rel * rel));
     }
 
-    /** Tapered N-gon tube from a (radius ra) to b (radius rb). */
+    /**
+     * Tapered N-gon tube from a (radius ra) to b (radius rb). Ring normals are purely
+     * radial (cylindrical) — the small axial component from taper is ignored, which is an
+     * acceptable approximation at these low poly counts. The downstream model factory may
+     * recompute normals if smoother shading is ever needed.
+     */
     private static void addSegment(FloatArray v, ShortArray idx, Vector3 a, float ra,
                                    Vector3 b, float rb, int sides, BoundingBox bounds) {
         Vector3 dir = new Vector3(b).sub(a);
