@@ -15,4 +15,8 @@ public class GroundVehicleComponent implements Component {
     public SurfaceMaterial currentSurface = SurfaceMaterial.BARE_ROCK;
     public float slipFraction;
     public float sinkageDepth;
+    /** Driver throttle, -1 (full reverse) .. +1 (full forward). */
+    public float throttleInput;
+    /** Driver steering, -1 (left) .. +1 (right). */
+    public float steerInput;
 }
