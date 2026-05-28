@@ -116,6 +116,9 @@ import com.galacticodyssey.combat.systems.BulletTracerSystem;
 import com.galacticodyssey.vfx.components.ParticlePoolComponent;
 import com.galacticodyssey.vfx.data.VFXEventBindings;
 import com.galacticodyssey.vfx.data.VFXRegistry;
+import com.galacticodyssey.vfx.data.VFXLoader;
+import com.galacticodyssey.vfx.ParticleAtlasManager;
+import com.galacticodyssey.vfx.MeshParticlePool;
 import com.galacticodyssey.core.systems.RadialGravitySystem;
 import com.galacticodyssey.economy.data.CommodityRegistry;
 import com.galacticodyssey.economy.data.PlanetEconomyRegistry;
@@ -178,6 +181,8 @@ public class GameWorld implements Disposable {
     private ParticleSpawnSystem particleSpawnSystem;
     private ParticleUpdateSystem particleUpdateSystem;
     private ParticleRenderSystem particleRenderSystem;
+    private ParticleAtlasManager particleAtlasManager;
+    private MeshParticlePool meshParticlePool;
     private RecoilSystem recoilSystem;
     private ADSSystem adsSystem;
     private CrosshairSystem crosshairSystem;
@@ -437,6 +442,9 @@ public class GameWorld implements Disposable {
         // the effectId returned by VFXEventBindings.resolve() is not found in the registry.
         vfxRegistry = new VFXRegistry();
         VFXEventBindings vfxBindings = new VFXEventBindings();
+        if (com.badlogic.gdx.Gdx.files != null) {
+            VFXLoader.loadAll(vfxRegistry, vfxBindings);
+        }
         Entity poolEntity = new Entity();
         particlePool = new ParticlePoolComponent();
         poolEntity.add(particlePool);
@@ -524,6 +532,18 @@ public class GameWorld implements Disposable {
 
         particleRenderSystem = new ParticleRenderSystem(particlePool, camera);
         engine.addSystem(particleRenderSystem);
+        particleAtlasManager = new ParticleAtlasManager();
+        particleAtlasManager.generate();
+        meshParticlePool = new MeshParticlePool();
+        particleSpawnSystem.setAtlasManager(particleAtlasManager);
+        particleRenderSystem.setAtlasManager(particleAtlasManager);
+        com.badlogic.gdx.graphics.g3d.utils.ModelBuilder mb = new com.badlogic.gdx.graphics.g3d.utils.ModelBuilder();
+        com.badlogic.gdx.graphics.g3d.Model fallbackModel = mb.createBox(0.05f, 0.05f, 0.05f,
+            new com.badlogic.gdx.graphics.g3d.Material(),
+            com.badlogic.gdx.graphics.VertexAttributes.Usage.Position | com.badlogic.gdx.graphics.VertexAttributes.Usage.Normal);
+        com.badlogic.gdx.graphics.g3d.ModelInstance fallbackMesh = new com.badlogic.gdx.graphics.g3d.ModelInstance(fallbackModel);
+        com.badlogic.gdx.graphics.g3d.ModelBatch meshModelBatch = new com.badlogic.gdx.graphics.g3d.ModelBatch();
+        particleRenderSystem.setMeshParticlePool(meshParticlePool, meshModelBatch, fallbackMesh);
     }
 
     public Entity createPlayerEntity(float spawnX, float spawnY, float spawnZ) {
@@ -840,6 +860,7 @@ public class GameWorld implements Disposable {
             disposables.get(i).dispose();
         }
         disposables.clear();
+        if (particleAtlasManager != null) particleAtlasManager.dispose();
         if (particleRenderSystem != null) {
             particleRenderSystem.dispose();
         }
