@@ -162,6 +162,10 @@ import com.galacticodyssey.stealth.NpcAwarenessSystem;
 import com.galacticodyssey.stealth.ShipDetectionSystem;
 import com.galacticodyssey.stealth.ShipSignatureSystem;
 import com.galacticodyssey.stealth.SignatureComponent;
+import com.galacticodyssey.hacking.HackingStateComponent;
+import com.galacticodyssey.hacking.data.HackableTypeRegistry;
+import com.galacticodyssey.hacking.systems.HackingSystem;
+import com.galacticodyssey.hacking.systems.PlayerHackingSystem;
 import java.io.File;
 import java.util.List;
 import java.util.UUID;
@@ -241,6 +245,8 @@ public class GameWorld implements Disposable {
     private NpcAwarenessSystem npcAwarenessSystem;
     private ShipDetectionSystem shipDetectionSystem;
     private ShipSignatureSystem shipSignatureSystem;
+    private HackableTypeRegistry hackableTypeRegistry;
+    private PlayerHackingSystem playerHackingSystem;
 
     private final Array<Disposable> disposables = new Array<>();
 
@@ -538,6 +544,15 @@ public class GameWorld implements Disposable {
         dialogSystem = new DialogSystem(eventBus, dialogDataRegistry);
         engine.addSystem(dialogSystem);
 
+        // Hacking systems
+        hackableTypeRegistry = new HackableTypeRegistry();
+        if (com.badlogic.gdx.Gdx.files != null) {
+            hackableTypeRegistry.loadFromFiles();
+        }
+        playerHackingSystem = new PlayerHackingSystem(eventBus);
+        engine.addSystem(playerHackingSystem);
+        engine.addSystem(new HackingSystem(25, eventBus));
+
         // Asset streaming
         if (com.badlogic.gdx.Gdx.files != null) {
             assetManager = new GalacticAssetManager();
@@ -601,6 +616,7 @@ public class GameWorld implements Disposable {
         player.add(new PlayerModelComponent());
         player.add(new SwimmingStateComponent());
         player.add(new DepthZoneComponent());
+        player.add(new HackingStateComponent());
 
         PhysicsBodyComponent physics = new PhysicsBodyComponent();
         physics.shape = new btCapsuleShape(0.3f, 1.2f);
@@ -849,6 +865,7 @@ public class GameWorld implements Disposable {
 
     public DialogSystem getDialogSystem() { return dialogSystem; }
     public DialogDataRegistry getDialogDataRegistry() { return dialogDataRegistry; }
+    public HackableTypeRegistry getHackableTypeRegistry() { return hackableTypeRegistry; }
 
     /** Wire up the audio system. Call after GameWorld construction, before the first update(). */
     public void initAudio(AudioManager audioManager) {

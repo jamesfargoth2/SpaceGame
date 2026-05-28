@@ -69,6 +69,15 @@ import com.galacticodyssey.core.components.PlayerTagComponent;
 import com.badlogic.ashley.core.Family;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Quaternion;
+import com.galacticodyssey.npc.events.DialogClosedEvent;
+import com.galacticodyssey.npc.events.DialogOpenedEvent;
+import com.galacticodyssey.npc.systems.DialogSystem;
+import com.galacticodyssey.ui.systems.DialogHudSystem;
+import com.galacticodyssey.hacking.ui.HackingOverlay;
+import com.galacticodyssey.hacking.HackingStateComponent;
+import com.galacticodyssey.hacking.events.HackStartedEvent;
+import com.galacticodyssey.hacking.events.HackSucceededEvent;
+import com.galacticodyssey.hacking.events.HackFailedEvent;
 
 import java.util.Random;
 
@@ -107,6 +116,7 @@ public class GameScreen implements Screen {
     private FogShaderProvider fogShaderProvider;
     private ModelBatch fogModelBatch;
     private float gameTime;
+    private final Vector3 scratchLightDir = new Vector3();
 
     private boolean paused;
     private Stage pauseStage;
@@ -119,6 +129,12 @@ public class GameScreen implements Screen {
     private float weaponBobTimer;
     private float weaponSwayX;
     private float weaponSwayY;
+    private Texture particleTexture;
+
+    private DialogHudSystem dialogHudSystem;
+    private boolean inDialog;
+    private InputAdapter dialogInputAdapter;
+    private HackingOverlay hackingOverlay;
 
     // Preserve existing constructor for load-game flow
     public GameScreen(GalacticOdyssey game) {
@@ -161,8 +177,17 @@ public class GameScreen implements Screen {
 
         gameWorld.initializeSystems(camera);
 
+        Pixmap pix = new Pixmap(4, 4, Pixmap.Format.RGBA8888);
+        pix.setColor(Color.WHITE);
+        pix.fill();
+        particleTexture = new Texture(pix);
+        pix.dispose();
+        gameWorld.getParticleRenderSystem().initialize(new TextureRegion(particleTexture));
+
         populatedWorld = WorldPopulator.populate(
             heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, terrainSeed);
+
+        gameWorld.getOceanSpawner().spawnSeawater(populatedWorld.seaLevel, terrainSeed);
 
         createTerrainMesh();
         createTerrainPhysics();
@@ -176,6 +201,12 @@ public class GameScreen implements Screen {
                 heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, 0, 0) + 2f;
             gameWorld.createPlayerEntity(0, spawnHeight, 0);
         }
+
+        // Spawn test NPC near player for dialog testing (negative Z = in front of default camera)
+        float npcX = 0f, npcZ = -2f;
+        float npcY = TerrainGenerator.getHeightAt(
+            heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, npcX, npcZ) + 1f;
+        gameWorld.spawnTestNpc(npcX, npcY, npcZ);
 
         shipFactory = new ShipFactory(gameWorld.getEngine(), gameWorld.getBulletPhysicsSystem());
 
@@ -216,6 +247,8 @@ public class GameScreen implements Screen {
 
         buildFirstPersonWeaponModel();
         buildPauseMenu();
+        buildDialogSystem();
+        buildHackingSystem();
 
         atmosphericSkyRenderer = new AtmosphericSkyRenderer();
         dayNightCycle = new DayNightCycle(600f, 23.5f, false);
@@ -457,6 +490,80 @@ public class GameScreen implements Screen {
         });
 
         table.add(button).width(300).height(50).padBottom(12).row();
+    }
+
+    private void buildHackingSystem() {
+        EventBus eventBus = gameWorld.getEventBus();
+        hackingOverlay = new HackingOverlay(eventBus, game.getSkin());
+
+        eventBus.subscribe(HackStartedEvent.class, event -> {
+            com.badlogic.ashley.core.Entity player = event.player;
+            HackingStateComponent hackState = player.getComponent(HackingStateComponent.class);
+            if (hackState != null && hackState.controller != null) {
+                hackingOverlay.show(hackState.controller);
+            }
+        });
+        eventBus.subscribe(HackSucceededEvent.class, e -> {
+            hackingOverlay.hide();
+            Gdx.input.setInputProcessor(inputMultiplexer);
+        });
+        eventBus.subscribe(HackFailedEvent.class, e -> {
+            hackingOverlay.hide();
+            Gdx.input.setInputProcessor(inputMultiplexer);
+        });
+    }
+
+    private void buildDialogSystem() {
+        EventBus eventBus = gameWorld.getEventBus();
+        DialogSystem dialogSystem = gameWorld.getDialogSystem();
+
+        dialogHudSystem = new DialogHudSystem(eventBus, game.getSkin());
+        dialogHudSystem.initialize();
+
+        dialogInputAdapter = new InputAdapter() {
+            @Override
+            public boolean keyDown(int keycode) {
+                if (keycode >= Input.Keys.NUM_1 && keycode <= Input.Keys.NUM_4) {
+                    dialogSystem.selectChoice(keycode - Input.Keys.NUM_1);
+                    return true;
+                }
+                if (keycode == Input.Keys.SPACE || keycode == Input.Keys.ENTER) {
+                    dialogSystem.advanceOrClose();
+                    return true;
+                }
+                if (keycode == Input.Keys.ESCAPE) {
+                    dialogSystem.closeDialog();
+                    return true;
+                }
+                return true;
+            }
+
+            @Override
+            public boolean keyUp(int keycode) { return true; }
+            @Override
+            public boolean touchDown(int x, int y, int pointer, int button) { return true; }
+            @Override
+            public boolean touchUp(int x, int y, int pointer, int button) { return true; }
+            @Override
+            public boolean mouseMoved(int x, int y) { return true; }
+            @Override
+            public boolean scrolled(float amountX, float amountY) { return true; }
+        };
+
+        eventBus.subscribe(DialogOpenedEvent.class, event -> {
+            inDialog = true;
+            Gdx.input.setCursorCatched(false);
+            gameWorld.getPlayerInputSystem().setEnabled(false);
+            inputMultiplexer.clear();
+            inputMultiplexer.addProcessor(dialogInputAdapter);
+        });
+
+        eventBus.subscribe(DialogClosedEvent.class, event -> {
+            inDialog = false;
+            Gdx.input.setCursorCatched(true);
+            gameWorld.getPlayerInputSystem().setEnabled(true);
+            setupInput();
+        });
     }
 
     private void createTerrainMesh() {
@@ -812,10 +919,20 @@ public class GameScreen implements Screen {
         renderWorldObjects();
         renderShips();
 
+        gameWorld.getParticleRenderSystem().render();
+
         renderFirstPersonWeapon(delta);
 
         gameWorld.getCockpitHUDSystem().render(delta);
         gameWorld.getDebugHudSystem().render(delta);
+
+        if (dialogHudSystem != null) {
+            dialogHudSystem.render(delta);
+        }
+
+        if (hackingOverlay != null) {
+            hackingOverlay.render(delta);
+        }
 
         if (paused) {
             pauseStage.act(delta);
@@ -862,7 +979,7 @@ public class GameScreen implements Screen {
         float fogDens = atmosphericSkyRenderer.getFogDensity();
         Vector3 sunDir = dayNightCycle.getSunDirection();
         fogShaderProvider.setFogParams(fogDens, fogCol);
-        fogShaderProvider.setLightDir(new Vector3(-sunDir.x, -sunDir.y, -sunDir.z));
+        fogShaderProvider.setLightDir(scratchLightDir.set(-sunDir.x, -sunDir.y, -sunDir.z));
         float amb = dayNightCycle.getAmbientIntensity();
         fogShaderProvider.setAmbientColor(amb, amb, amb + 0.05f);
 
@@ -881,7 +998,7 @@ public class GameScreen implements Screen {
         float fogDens = atmosphericSkyRenderer.getFogDensity();
         Vector3 sunDir = dayNightCycle.getSunDirection();
         fogShaderProvider.setFogParams(fogDens, fogCol);
-        fogShaderProvider.setLightDir(new Vector3(-sunDir.x, -sunDir.y, -sunDir.z));
+        fogShaderProvider.setLightDir(scratchLightDir.set(-sunDir.x, -sunDir.y, -sunDir.z));
         float amb = dayNightCycle.getAmbientIntensity();
         fogShaderProvider.setAmbientColor(amb, amb, amb + 0.05f);
 
@@ -919,6 +1036,8 @@ public class GameScreen implements Screen {
         camera.update();
         gameWorld.resize(width, height);
         pauseStage.getViewport().update(width, height, true);
+        if (dialogHudSystem != null) dialogHudSystem.resize(width, height);
+        if (hackingOverlay != null) hackingOverlay.resize(width, height);
     }
 
     @Override
@@ -951,6 +1070,10 @@ public class GameScreen implements Screen {
             fogModelBatch.dispose();
             fogModelBatch = null;
         }
+        if (fogShaderProvider != null) {
+            fogShaderProvider.dispose();
+            fogShaderProvider = null;
+        }
         if (atmosphericSkyRenderer != null) {
             atmosphericSkyRenderer.dispose();
             atmosphericSkyRenderer = null;
@@ -960,9 +1083,21 @@ public class GameScreen implements Screen {
             fpWeaponModel = null;
             fpWeaponInstance = null;
         }
+        if (particleTexture != null) {
+            particleTexture.dispose();
+            particleTexture = null;
+        }
         if (modelBatch != null) {
             modelBatch.dispose();
             modelBatch = null;
+        }
+        if (dialogHudSystem != null) {
+            dialogHudSystem.dispose();
+            dialogHudSystem = null;
+        }
+        if (hackingOverlay != null) {
+            hackingOverlay.dispose();
+            hackingOverlay = null;
         }
         if (pauseStage != null) {
             pauseStage.dispose();
