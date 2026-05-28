@@ -19,10 +19,13 @@ import com.galacticodyssey.npc.components.RecruitableComponent;
 import com.galacticodyssey.npc.components.NpcStatsComponent;
 import com.galacticodyssey.npc.crew.CrewMemberComponent;
 import com.galacticodyssey.npc.crew.CrewRole;
+import com.galacticodyssey.npc.components.RecruitInteractionState;
 import com.galacticodyssey.npc.events.CandidateSelectedEvent;
 import com.galacticodyssey.npc.events.CrewMemberHiredEvent;
+import com.galacticodyssey.npc.events.DialogClosedEvent;
 import com.galacticodyssey.npc.events.RecruitmentClosedEvent;
 import com.galacticodyssey.npc.events.RecruitmentOpenedEvent;
+import com.galacticodyssey.core.events.NpcDialogueEvent;
 import com.galacticodyssey.ui.actors.CantinaSceneActor;
 import com.galacticodyssey.ui.actors.CandidateDetailOverlay;
 import com.galacticodyssey.ui.actors.HireConfirmationDialog;
@@ -64,12 +67,15 @@ public class RecruitmentScreenSystem implements Disposable {
     private HireConfirmationDialog confirmDialog;
     private ResultToast toast;
     private final List<NpcPortraitActor> portraitActors = new ArrayList<>();
+    private Entity selectedEntity;
+    private boolean inDialog;
 
     public RecruitmentScreenSystem(EventBus eventBus, Skin skin) {
         this.eventBus = eventBus;
         this.skin = skin;
 
         eventBus.subscribe(RecruitmentOpenedEvent.class, this::onOpened);
+        eventBus.subscribe(DialogClosedEvent.class, this::onDialogClosed);
     }
 
     public void initialize(Engine engine) {
@@ -113,6 +119,8 @@ public class RecruitmentScreenSystem implements Disposable {
         open = false;
         detailOverlay.hide();
         hiringBoard.hide();
+        selectedEntity = null;
+        inDialog = false;
         confirmDialog.hide();
         clearPortraits();
         eventBus.publish(new RecruitmentClosedEvent());
@@ -172,6 +180,7 @@ public class RecruitmentScreenSystem implements Disposable {
     }
 
     private void onPortraitClicked(Entity npc) {
+        selectedEntity = npc;
         for (NpcPortraitActor actor : portraitActors) {
             actor.setSelected(actor.getEntity() == npc);
         }
@@ -185,10 +194,34 @@ public class RecruitmentScreenSystem implements Disposable {
     }
 
     private void onTalk(Entity npc) {
-        confirmDialog.show(npc, getCrewCount(), getCrewMax(), getPlayerCredits());
+        selectedEntity = npc;
+        inDialog = true;
+        detailOverlay.hide();
+
+        NpcIdentityComponent identity = IDENTITY_M.get(npc);
+        RecruitableComponent rc = RECRUIT_M.get(npc);
+        if (identity != null && rc != null) {
+            rc.interactionState = RecruitInteractionState.TALKED;
+            String npcId = identity.npcId != null ? identity.npcId : identity.name;
+            eventBus.publish(new NpcDialogueEvent(npcId, "recruitment"));
+        }
+    }
+
+    private void onDialogClosed(DialogClosedEvent event) {
+        if (!inDialog || selectedEntity == null) return;
+        inDialog = false;
+
+        NpcIdentityComponent identity = IDENTITY_M.get(selectedEntity);
+        if (identity != null) {
+            String npcId = identity.npcId != null ? identity.npcId : identity.name;
+            if (npcId != null && npcId.equals(event.npcId)) {
+                confirmDialog.show(selectedEntity, getCrewCount(), getCrewMax(), getPlayerCredits());
+            }
+        }
     }
 
     private void onDismissDetail() {
+        selectedEntity = null;
         detailOverlay.hide();
         for (NpcPortraitActor actor : portraitActors) {
             actor.setSelected(false);
