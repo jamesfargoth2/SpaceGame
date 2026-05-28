@@ -2,10 +2,12 @@ package com.galacticodyssey.galaxy.faction;
 
 import com.badlogic.ashley.core.ComponentMapper;
 import com.badlogic.ashley.core.Entity;
+import com.galacticodyssey.combat.events.EntityKilledEvent;
 import com.galacticodyssey.core.EventBus;
 import com.galacticodyssey.core.events.ReputationChangeEvent;
 import com.galacticodyssey.core.events.ReputationTierChangedEvent;
 import com.galacticodyssey.mission.job.ReputationQuery;
+import com.galacticodyssey.npc.components.NpcIdentityComponent;
 import com.galacticodyssey.player.components.PlayerReputationComponent;
 import com.galacticodyssey.player.components.PlayerStatsComponent;
 import com.galacticodyssey.player.stats.PointSkill;
@@ -19,6 +21,8 @@ public class ReputationManager implements ReputationQuery {
         ComponentMapper.getFor(PlayerReputationComponent.class);
     private static final ComponentMapper<PlayerStatsComponent> STATS_M =
         ComponentMapper.getFor(PlayerStatsComponent.class);
+    private static final ComponentMapper<NpcIdentityComponent> NPC_M =
+        ComponentMapper.getFor(NpcIdentityComponent.class);
 
     private final EventBus eventBus;
     private final ReputationConfigData config;
@@ -35,6 +39,7 @@ public class ReputationManager implements ReputationQuery {
         this.relations = relations;
 
         eventBus.subscribe(ReputationChangeEvent.class, this::onReputationChange);
+        eventBus.subscribe(EntityKilledEvent.class, this::onEntityKilled);
     }
 
     public void setPlayerEntity(Entity player) {
@@ -80,6 +85,15 @@ public class ReputationManager implements ReputationQuery {
                 applyDelta(entry.getKey(), delta * rippleFraction * sign);
             }
         }
+    }
+
+    private void onEntityKilled(EntityKilledEvent event) {
+        if (event.killer != playerEntity) return;
+        NpcIdentityComponent npc = NPC_M.get(event.target);
+        if (npc == null || npc.factionId == null) return;
+        eventBus.publish(new ReputationChangeEvent(
+            npc.factionId, config.combatKillPenalty,
+            "combat:" + npc.npcId));
     }
 
     private void applyDelta(String factionId, float delta) {

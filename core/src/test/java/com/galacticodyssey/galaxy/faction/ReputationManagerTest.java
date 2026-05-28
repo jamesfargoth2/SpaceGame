@@ -1,10 +1,12 @@
 package com.galacticodyssey.galaxy.faction;
 
 import com.badlogic.ashley.core.Entity;
+import com.galacticodyssey.combat.events.EntityKilledEvent;
 import com.galacticodyssey.core.EventBus;
 import com.galacticodyssey.core.events.ReputationChangeEvent;
 import com.galacticodyssey.core.events.ReputationTierChangedEvent;
 import com.galacticodyssey.mission.job.ReputationQuery;
+import com.galacticodyssey.npc.components.NpcIdentityComponent;
 import com.galacticodyssey.player.components.PlayerReputationComponent;
 import com.galacticodyssey.player.components.PlayerStatsComponent;
 import com.galacticodyssey.player.stats.PointSkill;
@@ -220,5 +222,44 @@ class ReputationManagerTest {
         EventBus isolatedBus = new EventBus();
         ReputationManager orphan = new ReputationManager(isolatedBus, config, relations);
         isolatedBus.publish(new ReputationChangeEvent("fed", 10f, "test"));
+    }
+
+    @Test
+    void combatKillAppliesPenalty() {
+        Entity npc = new Entity();
+        NpcIdentityComponent npcId = new NpcIdentityComponent();
+        npcId.factionId = "fed";
+        npcId.npcId = "npc_001";
+        npc.add(npcId);
+
+        eventBus.publish(new EntityKilledEvent(npc, player));
+
+        assertEquals(config.combatKillPenalty, manager.getStanding("fed"), 0.001f);
+    }
+
+    @Test
+    void combatKillIgnoresNonFactionNpc() {
+        Entity npc = new Entity();
+        NpcIdentityComponent npcId = new NpcIdentityComponent();
+        npcId.npcId = "npc_002";
+        npc.add(npcId);
+
+        eventBus.publish(new EntityKilledEvent(npc, player));
+
+        assertEquals(0f, manager.getStanding("fed"), 0.001f);
+    }
+
+    @Test
+    void combatKillIgnoresNonPlayerKiller() {
+        Entity npc = new Entity();
+        NpcIdentityComponent npcId = new NpcIdentityComponent();
+        npcId.factionId = "fed";
+        npcId.npcId = "npc_003";
+        npc.add(npcId);
+
+        Entity otherNpc = new Entity();
+        eventBus.publish(new EntityKilledEvent(npc, otherNpc));
+
+        assertEquals(0f, manager.getStanding("fed"), 0.001f);
     }
 }
