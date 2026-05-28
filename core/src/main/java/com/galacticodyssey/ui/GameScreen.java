@@ -167,6 +167,8 @@ public class GameScreen implements Screen {
     private RecruitmentScreenSystem recruitmentScreen;
     private boolean inRecruitment;
     private boolean inJournal;
+    private QuestJournalOverlay questJournalOverlay;
+    private ScreenTabManager screenTabManager;
 
     // Preserve existing constructor for load-game flow
     public GameScreen(GalacticOdyssey game) {
@@ -1340,6 +1342,10 @@ public class GameScreen implements Screen {
             hackingOverlay.dispose();
             hackingOverlay = null;
         }
+        if (screenTabManager != null) {
+            screenTabManager.dispose();
+            screenTabManager = null;
+        }
         if (inventoryScreenSystem != null) {
             inventoryScreenSystem.dispose();
             inventoryScreenSystem = null;
@@ -1348,9 +1354,9 @@ public class GameScreen implements Screen {
             outfitterScreenSystem.dispose();
             outfitterScreenSystem = null;
         }
-        if (recruitmentScreen != null) {
-            recruitmentScreen.dispose();
-            recruitmentScreen = null;
+        if (questJournalOverlay != null) {
+            questJournalOverlay.dispose();
+            questJournalOverlay = null;
         }
         if (pauseStage != null) {
             pauseStage.dispose();
