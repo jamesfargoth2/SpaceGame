@@ -138,6 +138,9 @@ import com.galacticodyssey.vfx.systems.ParticleUpdateSystem;
 import com.galacticodyssey.persistence.LocalFileSaveBackend;
 import com.galacticodyssey.persistence.PersistenceIdComponent;
 import com.galacticodyssey.persistence.SaveCoordinator;
+import com.galacticodyssey.data.GalacticAssetManager;
+import com.galacticodyssey.data.systems.StreamingSystem;
+import com.badlogic.gdx.utils.JsonReader;
 import com.galacticodyssey.mission.job.JobRegistry;
 import com.galacticodyssey.mission.job.ProceduralJobGenerator;
 import com.galacticodyssey.mission.job.EventJobGenerator;
@@ -216,6 +219,9 @@ public class GameWorld implements Disposable {
     private SagaRunner sagaRunner;
     private RewardSystem rewardSystem;
     private QuestDiscoverySystem questDiscoverySystem;
+    private GalacticAssetManager assetManager;
+    private StreamingSystem streamingSystem;
+    private com.badlogic.gdx.graphics.PerspectiveCamera camera;
 
     private final Array<Disposable> disposables = new Array<>();
 
@@ -488,10 +494,25 @@ public class GameWorld implements Disposable {
         engine.addSystem(objectiveTrackingSystem);
         engine.addSystem(sagaRunner);
 
+        // Asset streaming
+        if (com.badlogic.gdx.Gdx.files != null) {
+            assetManager = new GalacticAssetManager();
+            JsonReader jsonReader = new JsonReader();
+            assetManager.registerManifest(jsonReader.parse(
+                com.badlogic.gdx.Gdx.files.internal("data/assets/characters.json")));
+            assetManager.registerManifest(jsonReader.parse(
+                com.badlogic.gdx.Gdx.files.internal("data/assets/props.json")));
+            assetManager.loadStreamingConfig(jsonReader.parse(
+                com.badlogic.gdx.Gdx.files.internal("data/assets/streaming_config.json")));
+            streamingSystem = new StreamingSystem(assetManager);
+            engine.addSystem(streamingSystem);
+        }
+
         playerInputSystem.setCombatInputSystem(combatInputSystem);
     }
 
     public void initializeSystems(PerspectiveCamera camera) {
+        this.camera = camera;
         playerInputSystem.initialize();
         cameraSystem.setCamera(camera);
         debugHudSystem.initialize();
@@ -724,6 +745,10 @@ public class GameWorld implements Disposable {
     }
 
     public void update(float delta) {
+        if (assetManager != null) {
+            if (camera != null) streamingSystem.setCameraPosition(camera.position);
+            assetManager.update();
+        }
         engine.update(delta);
 
         if (saveCoordinator != null) {
@@ -827,6 +852,7 @@ public class GameWorld implements Disposable {
         debugHudSystem.dispose();
         if (cockpitHUDSystem != null) cockpitHUDSystem.dispose();
         if (cockpitModelSystem != null) cockpitModelSystem.dispose();
+        if (assetManager != null) assetManager.dispose();
         bulletPhysicsSystem.dispose();
     }
 }
