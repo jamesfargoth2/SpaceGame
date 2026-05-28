@@ -40,6 +40,8 @@ public class WeaponSystem extends IteratingSystem {
         ComponentMapper.getFor(TransformComponent.class);
     private static final ComponentMapper<FPSCameraComponent> CAMERA_M =
         ComponentMapper.getFor(FPSCameraComponent.class);
+    private static final ComponentMapper<com.galacticodyssey.player.components.PlayerStateComponent> STATE_M =
+        ComponentMapper.getFor(com.galacticodyssey.player.components.PlayerStateComponent.class);
 
     public WeaponSystem(EventBus eventBus) {
         super(Family.all(CombatInputComponent.class,
@@ -51,6 +53,14 @@ public class WeaponSystem extends IteratingSystem {
 
     @Override
     protected void processEntity(Entity entity, float deltaTime) {
+        com.galacticodyssey.player.components.PlayerStateComponent state = STATE_M.get(entity);
+        if (state != null
+                && (state.currentMode == com.galacticodyssey.player.components.PlayerStateComponent.PlayerMode.PILOTING
+                 || state.currentMode == com.galacticodyssey.player.components.PlayerStateComponent.PlayerMode.DRIVING)) {
+            CombatInputComponent input = INPUT_M.get(entity);
+            input.fireRequested = false;
+            return;
+        }
         CombatInputComponent input = INPUT_M.get(entity);
         RangedWeaponComponent ranged = RANGED_M.get(entity);
         WeaponInventoryComponent inventory = INVENTORY_M.get(entity);
