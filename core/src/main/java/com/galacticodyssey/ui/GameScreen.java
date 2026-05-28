@@ -60,9 +60,15 @@ import com.galacticodyssey.ship.ShipFactory;
 import com.galacticodyssey.ship.ShipSizeClass;
 import com.galacticodyssey.ship.components.ShipDataComponent;
 import com.galacticodyssey.ship.components.ShipMeshComponent;
+import com.galacticodyssey.player.components.FPSCameraComponent;
+import com.galacticodyssey.player.components.MovementStateComponent;
 import com.galacticodyssey.player.components.PlayerStateComponent;
+import com.galacticodyssey.combat.components.RangedWeaponComponent;
+import com.galacticodyssey.combat.components.WeaponInventoryComponent;
 import com.galacticodyssey.core.components.PlayerTagComponent;
 import com.badlogic.ashley.core.Family;
+import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Quaternion;
 
 import java.util.Random;
 
@@ -107,6 +113,12 @@ public class GameScreen implements Screen {
     private Texture overlayTexture;
     private InputMultiplexer inputMultiplexer;
     private boolean initialized;
+
+    private Model fpWeaponModel;
+    private ModelInstance fpWeaponInstance;
+    private float weaponBobTimer;
+    private float weaponSwayX;
+    private float weaponSwayY;
 
     // Preserve existing constructor for load-game flow
     public GameScreen(GalacticOdyssey game) {
@@ -202,6 +214,7 @@ public class GameScreen implements Screen {
         environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.3f, 0.3f, 0.35f, 1f));
         environment.add(new DirectionalLight().set(0.8f, 0.8f, 0.75f, -0.4f, -0.8f, -0.3f));
 
+        buildFirstPersonWeaponModel();
         buildPauseMenu();
 
         atmosphericSkyRenderer = new AtmosphericSkyRenderer();
@@ -254,6 +267,123 @@ public class GameScreen implements Screen {
             gameWorld.getPlayerInputSystem().setEnabled(true);
             setupInput();
         }
+    }
+
+    private void buildFirstPersonWeaponModel() {
+        ModelBuilder mb = new ModelBuilder();
+        mb.begin();
+
+        Material bodyMat = new Material(ColorAttribute.createDiffuse(new Color(0.25f, 0.25f, 0.28f, 1f)));
+        Material barrelMat = new Material(ColorAttribute.createDiffuse(new Color(0.15f, 0.15f, 0.18f, 1f)));
+        Material gripMat = new Material(ColorAttribute.createDiffuse(new Color(0.12f, 0.10f, 0.08f, 1f)));
+        Material magMat = new Material(ColorAttribute.createDiffuse(new Color(0.20f, 0.20f, 0.22f, 1f)));
+        Material sightMat = new Material(ColorAttribute.createDiffuse(new Color(0.10f, 0.10f, 0.12f, 1f)));
+        Material accentMat = new Material(ColorAttribute.createDiffuse(new Color(0.0f, 0.6f, 0.8f, 1f)));
+        long attrs = VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal;
+
+        // Receiver / main body
+        mb.part("body", GL20.GL_TRIANGLES, attrs, bodyMat)
+            .box(0f, 0f, -0.12f, 0.045f, 0.055f, 0.28f);
+        // Barrel
+        mb.part("barrel", GL20.GL_TRIANGLES, attrs, barrelMat)
+            .box(0f, 0.005f, -0.36f, 0.025f, 0.025f, 0.22f);
+        // Barrel shroud / handguard
+        mb.part("handguard", GL20.GL_TRIANGLES, attrs, bodyMat)
+            .box(0f, 0.002f, -0.30f, 0.035f, 0.038f, 0.14f);
+        // Pistol grip
+        mb.part("grip", GL20.GL_TRIANGLES, attrs, gripMat)
+            .box(0.0f, -0.055f, -0.05f, 0.028f, 0.065f, 0.035f);
+        // Magazine
+        mb.part("magazine", GL20.GL_TRIANGLES, attrs, magMat)
+            .box(0.0f, -0.06f, -0.14f, 0.022f, 0.07f, 0.03f);
+        // Stock
+        mb.part("stock", GL20.GL_TRIANGLES, attrs, bodyMat)
+            .box(0f, -0.005f, 0.08f, 0.03f, 0.045f, 0.12f);
+        // Stock buttpad
+        mb.part("buttpad", GL20.GL_TRIANGLES, attrs, gripMat)
+            .box(0f, -0.005f, 0.145f, 0.032f, 0.048f, 0.015f);
+        // Front sight post
+        mb.part("front_sight", GL20.GL_TRIANGLES, attrs, sightMat)
+            .box(0f, 0.04f, -0.35f, 0.005f, 0.018f, 0.005f);
+        // Rear sight
+        mb.part("rear_sight", GL20.GL_TRIANGLES, attrs, sightMat)
+            .box(0f, 0.04f, -0.06f, 0.018f, 0.015f, 0.008f);
+        // Accent strip on receiver
+        mb.part("accent", GL20.GL_TRIANGLES, attrs, accentMat)
+            .box(0f, 0.03f, -0.12f, 0.046f, 0.003f, 0.10f);
+        // Muzzle device
+        mb.part("muzzle", GL20.GL_TRIANGLES, attrs, barrelMat)
+            .box(0f, 0.005f, -0.475f, 0.018f, 0.018f, 0.02f);
+
+        fpWeaponModel = mb.end();
+        fpWeaponInstance = new ModelInstance(fpWeaponModel);
+    }
+
+    private void renderFirstPersonWeapon(float delta) {
+        if (fpWeaponInstance == null || gameWorld == null) return;
+
+        var players = gameWorld.getEngine().getEntitiesFor(
+            Family.all(PlayerTagComponent.class, PlayerStateComponent.class).get());
+        if (players.size() == 0) return;
+        Entity player = players.first();
+
+        PlayerStateComponent pState = player.getComponent(PlayerStateComponent.class);
+        if (pState != null && pState.currentMode == PlayerStateComponent.PlayerMode.PILOTING) return;
+
+        WeaponInventoryComponent inv = player.getComponent(WeaponInventoryComponent.class);
+        if (inv != null && inv.isActiveSlotMelee()) return;
+
+        FPSCameraComponent cam = player.getComponent(FPSCameraComponent.class);
+        if (cam != null && cam.currentCameraDistance >= 0.1f) return;
+
+        MovementStateComponent movement = player.getComponent(MovementStateComponent.class);
+
+        // Weapon bob
+        if (movement != null && movement.currentSpeed > 0.5f && movement.isGrounded) {
+            weaponBobTimer += delta * 6f;
+        } else {
+            weaponBobTimer *= 0.95f;
+        }
+        float bobX = MathUtils.sin(weaponBobTimer) * 0.003f;
+        float bobY = MathUtils.sin(weaponBobTimer * 2f) * 0.002f;
+
+        // Weapon sway from mouse movement
+        if (cam != null) {
+            float targetSwayX = -cam.pitchAngle * 0.0002f;
+            float targetSwayY = 0f;
+            weaponSwayX = MathUtils.lerp(weaponSwayX, targetSwayX, 5f * delta);
+            weaponSwayY = MathUtils.lerp(weaponSwayY, targetSwayY, 5f * delta);
+        }
+
+        // Position weapon relative to camera
+        Matrix4 camInv = new Matrix4(camera.view).inv();
+        fpWeaponInstance.transform.set(camInv);
+        fpWeaponInstance.transform.translate(
+            0.18f + bobX + weaponSwayY,
+            -0.14f + bobY + weaponSwayX,
+            -0.25f
+        );
+
+        // Apply lean roll to weapon
+        if (cam != null && Math.abs(cam.leanAngle) > 0.01f) {
+            fpWeaponInstance.transform.rotate(0, 0, 1, cam.leanAngle);
+        }
+
+        // Scale the weapon down slightly
+        fpWeaponInstance.transform.scl(0.7f);
+
+        // Render with cleared depth and tight near plane
+        Gdx.gl.glClear(GL20.GL_DEPTH_BUFFER_BIT);
+        float savedNear = camera.near;
+        camera.near = 0.01f;
+        camera.update();
+
+        modelBatch.begin(camera);
+        modelBatch.render(fpWeaponInstance, environment);
+        modelBatch.end();
+
+        camera.near = savedNear;
+        camera.update();
     }
 
     private void buildPauseMenu() {
@@ -682,6 +812,8 @@ public class GameScreen implements Screen {
         renderWorldObjects();
         renderShips();
 
+        renderFirstPersonWeapon(delta);
+
         gameWorld.getCockpitHUDSystem().render(delta);
         gameWorld.getDebugHudSystem().render(delta);
 
@@ -822,6 +954,11 @@ public class GameScreen implements Screen {
         if (atmosphericSkyRenderer != null) {
             atmosphericSkyRenderer.dispose();
             atmosphericSkyRenderer = null;
+        }
+        if (fpWeaponModel != null) {
+            fpWeaponModel.dispose();
+            fpWeaponModel = null;
+            fpWeaponInstance = null;
         }
         if (modelBatch != null) {
             modelBatch.dispose();
