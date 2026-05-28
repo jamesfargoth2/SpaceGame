@@ -144,7 +144,7 @@ public class GameScreen implements Screen {
     private boolean paused;
     private Stage pauseStage;
     private Texture overlayTexture;
-    private InputMultiplexer inputMultiplexer;
+    private InputMultiplexer inputMultiplexer = new InputMultiplexer();
     private boolean initialized;
 
     private Model fpWeaponModel;
@@ -409,7 +409,8 @@ public class GameScreen implements Screen {
             }
         };
 
-        inputMultiplexer = new InputMultiplexer();
+        inputMultiplexer.clear();
+        if (vehicleBayStage != null) inputMultiplexer.addProcessor(vehicleBayStage);
         inputMultiplexer.addProcessor(keyHandler);
         if (paused) {
             inputMultiplexer.addProcessor(pauseStage);
@@ -431,6 +432,7 @@ public class GameScreen implements Screen {
             Gdx.input.setCursorCatched(false);
             gameWorld.getPlayerInputSystem().setEnabled(false);
             inputMultiplexer.clear();
+            if (vehicleBayStage != null) inputMultiplexer.addProcessor(vehicleBayStage);
             inputMultiplexer.addProcessor(new InputAdapter() {
                 @Override
                 public boolean keyDown(int keycode) {
@@ -768,10 +770,6 @@ public class GameScreen implements Screen {
             gameWorld.getEventBus());
         vehicleBayPanel.setFillParent(true);
         vehicleBayStage.addActor(vehicleBayPanel);
-        // Give the bay stage first dibs on input so its Deploy/close buttons are clickable when
-        // shown. While the panel is hidden the (invisible) stage hit-tests to nothing and passes
-        // all input through to the rest of the multiplexer.
-        inputMultiplexer.addProcessor(0, vehicleBayStage);
     }
     private void buildDialogSystem() {
         EventBus eventBus = gameWorld.getEventBus();
