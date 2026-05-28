@@ -141,4 +141,28 @@ class SceneTransitionControllerTest {
         controller.update(0.2f); // timer 0.3 >= 0.25, proceed
         assertEquals(TransitionPhase.ACTIVATING, controller.getPhase());
     }
+
+    @Test
+    void loadFailureRollsBackAndKeepsSourceActive() {
+        List<SceneLoadFailedEvent> failures = new ArrayList<>();
+        bus.subscribe(SceneLoadFailedEvent.class, failures::add);
+
+        Scene source = scene(1, SceneType.DEEP_SPACE, SceneState.ACTIVE);
+        Scene target = scene(2, SceneType.PLANET_SURFACE, SceneState.UNLOADED);
+        FakeSceneLoader sourceLoader = new FakeSceneLoader(SceneType.DEEP_SPACE);
+        FakeSceneLoader targetLoader = new FakeSceneLoader(SceneType.PLANET_SURFACE);
+        targetLoader.throwOnStep = true;
+
+        controller.begin(source, sourceLoader, target, targetLoader);
+        controller.update(0.1f); // REQUESTED -> PRELOADING
+        controller.update(0.1f); // step throws -> rollback
+
+        assertTrue(controller.isIdle());
+        assertEquals(SceneState.ACTIVE, source.state);
+        assertEquals(SceneState.UNLOADED, target.state);
+        assertEquals(1, targetLoader.unloadCount); // partial target cleaned up
+        assertEquals(0, sourceLoader.unloadCount);  // source untouched
+        assertEquals(1, failures.size());
+        assertEquals(SceneType.PLANET_SURFACE, failures.get(0).type);
+    }
 }

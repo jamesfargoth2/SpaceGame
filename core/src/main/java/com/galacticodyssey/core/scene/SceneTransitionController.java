@@ -6,6 +6,7 @@ import com.badlogic.ashley.core.Entity;
 import com.badlogic.ashley.core.Family;
 import com.galacticodyssey.core.EventBus;
 import com.galacticodyssey.core.events.SceneActivatedEvent;
+import com.galacticodyssey.core.events.SceneLoadFailedEvent;
 import com.galacticodyssey.core.events.SceneLoadProgressEvent;
 import com.galacticodyssey.core.events.SceneTransitionBeganEvent;
 import com.galacticodyssey.core.events.SceneTransitionCompletedEvent;
@@ -80,7 +81,13 @@ public class SceneTransitionController {
                 phase = TransitionPhase.PRELOADING;
                 return;
             case PRELOADING: {
-                float progress = targetLoader.step(target, budgetMs);
+                float progress;
+                try {
+                    progress = targetLoader.step(target, budgetMs);
+                } catch (RuntimeException ex) {
+                    rollback(ex.getMessage());
+                    return;
+                }
                 eventBus.publish(new SceneLoadProgressEvent(target.id, progress));
                 if (progress >= 1f) {
                     target.state = SceneState.ACTIVE;
@@ -110,6 +117,19 @@ public class SceneTransitionController {
                 reset();
                 return;
         }
+    }
+
+    private void rollback(String reason) {
+        SceneType failedType = target.type;
+        try {
+            targetLoader.unload(target);
+        } catch (RuntimeException ignored) {
+            // best-effort cleanup; never mask the original failure
+        }
+        target.state = SceneState.UNLOADED;
+        // source is left untouched and ACTIVE
+        eventBus.publish(new SceneLoadFailedEvent(failedType, reason));
+        reset();
     }
 
     private void reTagPersistentEntities(int targetSceneId) {
