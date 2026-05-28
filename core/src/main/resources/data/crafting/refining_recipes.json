@@ -146,7 +146,7 @@
     "requiredTier": 3,
     "inputs": [
       { "materialId": "iron_ingot", "quantity": 3 },
-      { "materialId": "carbon_powder", "quantity": 1 }
+      { "materialId": "carbon_fiber", "quantity": 1 }
     ],
     "outputs": [
       { "materialId": "steel_alloy", "baseQuantity": 2 }

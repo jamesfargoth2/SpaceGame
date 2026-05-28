@@ -126,9 +126,8 @@ public class RefiningRequestHandler extends EntitySystem {
                 outputs.add(new RefiningJob.Output(output.materialId, adjustedQty));
             }
 
-            // 5f. Create job with adjusted time
-            float totalTime = recipe.processingTime / refinery.getSpeedMultiplier();
-            RefiningJob job = new RefiningJob(recipe.recipeId, consumed, outputs, totalTime);
+            // 5f. Create job — RefiningSystem applies speedMultiplier during tick
+            RefiningJob job = new RefiningJob(recipe.recipeId, consumed, outputs, recipe.processingTime);
 
             // 5g. If refinery has no active job, set this one to ACTIVE
             if (refinery.getActiveJob() == null) {
