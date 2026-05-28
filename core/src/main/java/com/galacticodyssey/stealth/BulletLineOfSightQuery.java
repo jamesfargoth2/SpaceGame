@@ -3,6 +3,7 @@ package com.galacticodyssey.stealth;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.bullet.collision.ClosestRayResultCallback;
 import com.badlogic.gdx.physics.bullet.dynamics.btDynamicsWorld;
+import com.badlogic.gdx.utils.Disposable;
 
 /**
  * Bullet-physics implementation of {@link LineOfSightQuery}.
@@ -14,14 +15,14 @@ import com.badlogic.gdx.physics.bullet.dynamics.btDynamicsWorld;
  * <p>The internal {@link ClosestRayResultCallback} is reused across calls to avoid per-frame
  * allocation. Call {@link #dispose()} when this query is no longer needed.
  */
-public final class BulletLineOfSightQuery implements LineOfSightQuery {
+public final class BulletLineOfSightQuery implements LineOfSightQuery, Disposable {
 
     private final btDynamicsWorld world;
     private final ClosestRayResultCallback rayCallback;
 
     public BulletLineOfSightQuery(btDynamicsWorld world) {
         this.world = world;
-        this.rayCallback = new ClosestRayResultCallback(Vector3.Zero, Vector3.Zero);
+        this.rayCallback = new ClosestRayResultCallback(new Vector3(), new Vector3());
     }
 
     @Override

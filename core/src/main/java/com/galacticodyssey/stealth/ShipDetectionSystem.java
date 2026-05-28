@@ -24,14 +24,20 @@ import com.galacticodyssey.stealth.events.PlayerDetectedEvent;
  */
 public final class ShipDetectionSystem extends EntitySystem {
 
-    // Package-private (not final) so tests can override thresholds by name
-    static float FALLOFF_K       = 0.0001f;
-    static float RISE_RATE       = 2.0f;
-    static float DECAY_RATE      = 0.8f;
-    static float SUSPICION_LIMIT = 8.0f;
-    static float SEARCH_DURATION = 30.0f;
+    private static final float FALLOFF_K       = 0.0001f;
+    private static final float RISE_RATE       = 2.0f;
+    private static final float DECAY_RATE      = 0.8f;
+    private static final float SUSPICION_LIMIT = 8.0f;
+    private static final float SEARCH_DURATION = 30.0f;
+
+    /** Accumulator value below which a ship stops being suspicious. */
+    private static final float DECAY_FLOOR     = 0.05f;
+    /** Seconds a CURIOUS ship must wait at low accumulator before returning to UNAWARE. */
+    private static final float CURIOUS_COOLDOWN = 5.0f;
 
     private final EventBus eventBus;
+    /** Stored so the same reference can be passed to {@link EventBus#unsubscribe}. */
+    private final EventBus.EventListener<ActiveScanEvent> activeScanListener;
 
     private static final ComponentMapper<AwarenessStateComponent> AWARE_M =
         ComponentMapper.getFor(AwarenessStateComponent.class);
@@ -53,7 +59,15 @@ public final class ShipDetectionSystem extends EntitySystem {
 
     public ShipDetectionSystem(EventBus eventBus) {
         this.eventBus = eventBus;
-        eventBus.subscribe(ActiveScanEvent.class, this::onActiveScan);
+        this.activeScanListener = this::onActiveScan;
+        eventBus.subscribe(ActiveScanEvent.class, activeScanListener);
+    }
+
+    @Override
+    public void removedFromEngine(Engine engine) {
+        eventBus.unsubscribe(ActiveScanEvent.class, activeScanListener);
+        scannerEntities = null;
+        playerEntities  = null;
     }
 
     @Override
@@ -84,11 +98,11 @@ public final class ShipDetectionSystem extends EntitySystem {
 
             if (state.state != before) {
                 eventBus.publish(new AwarenessChangedEvent(
-                    Integer.toHexString(System.identityHashCode(scanner)),
+                    Integer.toHexString(System.identityHashCode(scanner)), // debug-only ID — not stable across sessions
                     before, state.state, state.lastKnownPosition));
                 if (state.state == AwarenessState.ALERTED) {
                     eventBus.publish(new PlayerDetectedEvent(
-                        Integer.toHexString(System.identityHashCode(scanner)), "SHIP_PASSIVE"));
+                        Integer.toHexString(System.identityHashCode(scanner)), "SHIP_PASSIVE")); // debug-only ID — not stable across sessions
                 }
             }
         }
@@ -119,13 +133,13 @@ public final class ShipDetectionSystem extends EntitySystem {
                         || state.suspicionTimer > SUSPICION_LIMIT) {
                     state.lastKnownPosition.set(playerPos);
                     transition(state, AwarenessState.ALERTED);
-                } else if (state.detectionAccumulator < 0.05f && state.suspicionTimer > 5f) {
+                } else if (state.detectionAccumulator < DECAY_FLOOR && state.suspicionTimer > CURIOUS_COOLDOWN) {
                     transition(state, AwarenessState.UNAWARE);
                 }
             }
             case ALERTED -> {
                 state.lastKnownPosition.set(playerPos);
-                if (state.detectionAccumulator < 0.05f)
+                if (state.detectionAccumulator < DECAY_FLOOR)
                     transition(state, AwarenessState.SEARCHING);
             }
             case SEARCHING -> {
