@@ -14,6 +14,7 @@ class MoonOrbitalTest {
 
         assertEquals(0.005f, moon.orbitalRadius);
         assertEquals(0.05f, moon.orbitalEccentricity);
+        moon.computeOrbitalPeriod(OrbitalConstants.EARTH_MASS_KG);
         assertTrue(moon.orbitalPeriod > 0f);
     }
 
