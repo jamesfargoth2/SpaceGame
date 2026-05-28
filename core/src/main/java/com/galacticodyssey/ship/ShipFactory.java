@@ -15,6 +15,7 @@ import com.galacticodyssey.ship.components.*;
 import com.galacticodyssey.ship.modules.*;
 import com.galacticodyssey.ship.modules.components.ShipCargoComponent;
 import com.galacticodyssey.ship.modules.components.ShipLoadoutComponent;
+import com.galacticodyssey.ship.boarding.ShipSubsystemsComponent;
 import com.galacticodyssey.ship.power.PowerStateComponent;
 import com.galacticodyssey.ship.power.ReactorSpec;
 import com.galacticodyssey.ship.power.ReactorSpecRegistry;
@@ -150,6 +151,9 @@ public class ShipFactory implements Disposable {
         shipData.currentHullHp = HULL_HP[si];
         shipData.hullGeometry = hull;
         entity.add(shipData);
+        ShipSubsystemsComponent subsystems = new ShipSubsystemsComponent();
+        subsystems.initDefaults(shipData.hullHp * 0.25f);
+        entity.add(subsystems);
 
         // Mesh component — hullMesh intentionally null until GL context available
         ShipMeshComponent meshComp = new ShipMeshComponent();
@@ -244,6 +248,9 @@ public class ShipFactory implements Disposable {
         data.currentHullHp = HULL_HP[si];
         data.hullGeometry = hull;
         entity.add(data);
+        ShipSubsystemsComponent subsystems2 = new ShipSubsystemsComponent();
+        subsystems2.initDefaults(data.hullHp * 0.25f);
+        entity.add(subsystems2);
 
         ShipMeshComponent meshComp = new ShipMeshComponent();
         meshComp.vertexStride = hull.vertexStride;
