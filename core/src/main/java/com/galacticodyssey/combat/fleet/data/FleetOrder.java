@@ -44,4 +44,20 @@ public final class FleetOrder {
     public static FleetOrder launchFighters() {
         return new FleetOrder(FleetOrderType.LAUNCH_FIGHTERS, null, 0, 0, 0, null, null);
     }
+
+    public static FleetOrder advance(int[] squadrons) {
+        return new FleetOrder(FleetOrderType.ADVANCE, null, 0, 0, 0, null, squadrons);
+    }
+
+    public static FleetOrder regroup() {
+        return new FleetOrder(FleetOrderType.REGROUP, null, 0, 0, 0, null, null);
+    }
+
+    public static FleetOrder recallFighters() {
+        return new FleetOrder(FleetOrderType.RECALL_FIGHTERS, null, 0, 0, 0, null, null);
+    }
+
+    public static FleetOrder escortShip(Entity target, int[] squadrons) {
+        return new FleetOrder(FleetOrderType.ESCORT_SHIP, target, 0, 0, 0, null, squadrons);
+    }
 }

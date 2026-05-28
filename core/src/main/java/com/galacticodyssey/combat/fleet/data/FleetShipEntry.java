@@ -14,10 +14,12 @@ public final class FleetShipEntry {
     }
 
     public float totalFirepower() {
+        if (shipClass == null || count <= 0) return 0f;
         return shipClass.firepowerWeight * count;
     }
 
     public float totalHp() {
-        return shipClass.baseHullHp * count * avgHpRatio;
+        if (shipClass == null || count <= 0) return 0f;
+        return shipClass.baseHullHp * count * Math.max(0f, avgHpRatio);
     }
 }
