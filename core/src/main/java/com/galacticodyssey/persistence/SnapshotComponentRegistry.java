@@ -30,10 +30,13 @@ import com.galacticodyssey.persistence.snapshots.MeleeWeaponSnapshot;
 import com.galacticodyssey.persistence.snapshots.MovementStateSnapshot;
 import com.galacticodyssey.persistence.snapshots.PlayerStateSnapshot;
 import com.galacticodyssey.persistence.snapshots.PlayerWalletSnapshot;
+import com.galacticodyssey.persistence.snapshots.PowerStateSnapshot;
 import com.galacticodyssey.persistence.snapshots.RangedWeaponSnapshot;
 import com.galacticodyssey.persistence.snapshots.ShieldSnapshot;
+import com.galacticodyssey.persistence.snapshots.ShipCargoSnapshot;
 import com.galacticodyssey.persistence.snapshots.ShipDataSnapshot;
 import com.galacticodyssey.persistence.snapshots.ShipFlightSnapshot;
+import com.galacticodyssey.persistence.snapshots.ShipLoadoutSnapshot;
 import com.galacticodyssey.persistence.snapshots.SquadSnapshot;
 import com.galacticodyssey.persistence.snapshots.StatusEffectsSnapshot;
 import com.galacticodyssey.persistence.snapshots.StructuralIntegritySnapshot;
@@ -42,12 +45,15 @@ import com.galacticodyssey.persistence.snapshots.WeaponInventorySnapshot;
 import com.galacticodyssey.player.components.FPSCameraComponent;
 import com.galacticodyssey.player.components.MovementStateComponent;
 import com.galacticodyssey.player.components.PlayerStateComponent;
-import com.galacticodyssey.player.components.PlayerTagComponent;
+import com.galacticodyssey.core.components.PlayerTagComponent;
 import com.galacticodyssey.ship.components.EngineSpecComponent;
 import com.galacticodyssey.ship.components.FuelTankComponent;
 import com.galacticodyssey.ship.components.ShipDataComponent;
 import com.galacticodyssey.ship.components.ShipFlightComponent;
 import com.galacticodyssey.ship.docking.DockingStateComponent;
+import com.galacticodyssey.ship.modules.components.ShipCargoComponent;
+import com.galacticodyssey.ship.modules.components.ShipLoadoutComponent;
+import com.galacticodyssey.ship.power.PowerStateComponent;
 import com.galacticodyssey.ship.lifesupport.CompartmentAtmosphereComponent;
 import com.galacticodyssey.ship.structure.StructuralIntegrityComponent;
 import com.galacticodyssey.ship.thermal.ThermalStateComponent;
@@ -97,17 +103,20 @@ public final class SnapshotComponentRegistry {
         register("EquipmentSlots",  EquipmentSlotsSnapshot.class,  EquipmentSlotsComponent::new);
 
         // ----- Ship core -----
-        register("ShipData",   ShipDataSnapshot.class,   ShipDataComponent::new);
-        register("ShipFlight", ShipFlightSnapshot.class, ShipFlightComponent::new);
-        register("CargoBay",   CargoBaySnapshot.class,   CargoBayComponent::new);
-        register("EngineSpec", EngineSpecSnapshot.class, EngineSpecComponent::new);
-        register("FuelTank",   FuelTankSnapshot.class,   FuelTankComponent::new);
+        register("ShipData",    ShipDataSnapshot.class,    ShipDataComponent::new);
+        register("ShipFlight",  ShipFlightSnapshot.class,  ShipFlightComponent::new);
+        register("CargoBay",    CargoBaySnapshot.class,    CargoBayComponent::new);
+        register("EngineSpec",  EngineSpecSnapshot.class,  EngineSpecComponent::new);
+        register("FuelTank",    FuelTankSnapshot.class,    FuelTankComponent::new);
+        register("ShipLoadout", ShipLoadoutSnapshot.class, ShipLoadoutComponent::new);
+        register("ShipCargo",   ShipCargoSnapshot.class,   ShipCargoComponent::new);
 
         // ----- Ship subsystems -----
         register("ThermalState",           ThermalStateSnapshot.class,           ThermalStateComponent::new);
         register("StructuralIntegrity",    StructuralIntegritySnapshot.class,    StructuralIntegrityComponent::new);
         register("CompartmentAtmosphere",  CompartmentAtmosphereSnapshot.class,  CompartmentAtmosphereComponent::new);
         register("DockingState",           DockingStateSnapshot.class,           DockingStateComponent::new);
+        register("PowerState",             PowerStateSnapshot.class,             PowerStateComponent::new);
 
         // ----- Tags -----
         TAG_REGISTRY.put("HostileTagComponent", HostileTagComponent::new);
