@@ -18,6 +18,7 @@ import com.galacticodyssey.ship.modules.components.ShipLoadoutComponent;
 import com.galacticodyssey.ship.power.PowerStateComponent;
 import com.galacticodyssey.ship.power.ReactorSpec;
 import com.galacticodyssey.ship.power.ReactorSpecRegistry;
+import com.galacticodyssey.shipbuilder.ShipDesign;
 
 import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
@@ -201,6 +202,90 @@ public class ShipFactory implements Disposable {
         // ----- 4. Register with engine -----
         engine.addEntity(entity);
 
+        return entity;
+    }
+
+    /**
+     * Creates and returns a fully assembled ship entity from a {@link ShipDesign} at the given
+     * world position. Mirrors {@link #createShip} but derives blueprint from the design rather
+     * than a raw seed.
+     *
+     * @param design    the ship design produced by the drydock builder
+     * @param x         initial world X position (local-space float, floating-origin convention)
+     * @param y         initial world Y position
+     * @param z         initial world Z position
+     * @return the assembled entity, already added to the engine
+     */
+    public Entity createShipFromDesign(ShipDesign design, float x, float y, float z) {
+        ShipBlueprint blueprint = design.toBlueprint();
+        HullGeometry hull = hullGenerator.generate(blueprint);
+        InteriorLayout interior = interiorGenerator.generate(blueprint, hull);
+
+        Vector3 bboxMin = new Vector3();
+        hull.boundingBox.getMin(bboxMin);
+        float adjustedY = y - bboxMin.y;
+
+        Entity entity = new Entity();
+
+        TransformComponent transform = new TransformComponent();
+        transform.position.set(x, adjustedY, z);
+        entity.add(transform);
+
+        int si = design.sizeClass.ordinal();
+        float mass = lerp(MASS_MIN[si], MASS_MAX[si], 0.5f);
+
+        ShipDataComponent data = new ShipDataComponent();
+        data.blueprint = blueprint;
+        data.mass = mass;
+        data.maxThrust = MAX_THRUST[si];
+        data.maxTurnRate = TURN_RATE[si];
+        data.maxSpeed = MAX_SPEED[si];
+        data.hullHp = HULL_HP[si];
+        data.currentHullHp = HULL_HP[si];
+        data.hullGeometry = hull;
+        entity.add(data);
+
+        ShipMeshComponent meshComp = new ShipMeshComponent();
+        meshComp.vertexStride = hull.vertexStride;
+        entity.add(meshComp);
+
+        entity.add(buildInteriorComponent(interior));
+
+        // Flight parameters — inline, same pattern as createShip
+        ShipFlightComponent flight = new ShipFlightComponent();
+        flight.linearThrust = LINEAR_THRUST[si];
+        flight.strafeThrustFraction = STRAFE_FRACTION[si];
+        flight.verticalThrustFraction = VERTICAL_FRACTION[si];
+        flight.pitchYawTorque = PITCH_YAW_TORQUE[si];
+        flight.rollTorque = ROLL_TORQUE[si];
+        flight.linearDrag = LINEAR_DRAG[si];
+        flight.angularDrag = ANGULAR_DRAG[si];
+        flight.currentThrottle = 0f;
+        entity.add(flight);
+
+        PilotSeatComponent seat = new PilotSeatComponent();
+        seat.interiorPosition.set(interior.pilotSeatPosition);
+        entity.add(seat);
+
+        ShipEntryPointComponent entry = new ShipEntryPointComponent();
+        entry.interiorPosition.set(interior.airlockPosition);
+        entry.localExteriorPosition.set(0f, bboxMin.y - 0.5f, 0f);
+        entry.worldPosition.set(x + entry.localExteriorPosition.x,
+                                adjustedY + entry.localExteriorPosition.y,
+                                z + entry.localExteriorPosition.z);
+        entity.add(entry);
+
+        PowerStateComponent power = buildPowerState(design.sizeClass);
+        entity.add(power);
+
+        ShipLoadoutComponent loadout = buildLoadoutComponent(design.sizeClass);
+        entity.add(loadout);
+        entity.add(new ShipCargoComponent());
+
+        PhysicsBodyComponent physComp = buildExteriorPhysicsBody(hull, mass, x, adjustedY, z);
+        entity.add(physComp);
+
+        engine.addEntity(entity);
         return entity;
     }
 
