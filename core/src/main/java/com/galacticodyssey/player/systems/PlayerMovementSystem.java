@@ -84,15 +84,8 @@ public class PlayerMovementSystem extends IteratingSystem {
             return;
         }
 
-        SwimmingStateComponent swimState = entity.getComponent(SwimmingStateComponent.class);
-        if (swimState != null && swimState.swimState != SwimState.DRY) {
-            return;
-        }
-
         PlayerInputComponent input = inputMapper.get(entity);
         PhysicsBodyComponent physics = physicsMapper.get(entity);
-        MovementStateComponent state = stateMapper.get(entity);
-        TransformComponent transform = transformMapper.get(entity);
         FPSCameraComponent cam = cameraMapper.get(entity);
 
         if (physics.body == null) return;
@@ -106,16 +99,21 @@ public class PlayerMovementSystem extends IteratingSystem {
 
         if (cam != null) {
             cam.localUp.set(localUp);
-        }
-
-        boolean wasGrounded = state.isGrounded;
-        performGroundCheck(physics, state, tempVec);
-
-        if (cam != null) {
             cam.yawAngle -= input.mouseDeltaX * cam.mouseSensitivity;
             cam.pitchAngle += input.mouseDeltaY * cam.mouseSensitivity;
             cam.pitchAngle = MathUtils.clamp(cam.pitchAngle, -85f, 85f);
         }
+
+        SwimmingStateComponent swimState = entity.getComponent(SwimmingStateComponent.class);
+        if (swimState != null && swimState.swimState != SwimState.DRY) {
+            return;
+        }
+
+        MovementStateComponent state = stateMapper.get(entity);
+        TransformComponent transform = transformMapper.get(entity);
+
+        boolean wasGrounded = state.isGrounded;
+        performGroundCheck(physics, state, tempVec);
 
         buildTangentFrame(cam != null ? -cam.yawAngle : 0f);
 
@@ -264,7 +262,6 @@ public class PlayerMovementSystem extends IteratingSystem {
         rayTo.set(localUp).scl(-(CAPSULE_HALF_HEIGHT + GROUND_RAY_EXTRA)).add(bodyPos);
 
         ClosestRayResultCallback callback = new ClosestRayResultCallback(rayFrom, rayTo);
-        callback.setCollisionFilterMask((short) 2);
         dynamicsWorld.rayTest(rayFrom, rayTo, callback);
 
         if (callback.hasHit()) {

@@ -112,7 +112,7 @@ class WeaponsIntegrationTest {
         assertNotNull(wic.slots[0]);
 
         // Publish WeaponFiredEvent (triggers VFX particles) and RecoilEvent (triggers recoil system)
-        eventBus.publish(new WeaponFiredEvent(player, new Vector3(0, 0, -1), true));
+        eventBus.publish(new WeaponFiredEvent(player, new Vector3(0, 0, -1), true, new Vector3(0, 1.7f, -0.5f)));
         eventBus.publish(new RecoilEvent(player, new Vector2(1.5f, 0f)));
         engine.update(0.016f);
 
@@ -136,7 +136,7 @@ class WeaponsIntegrationTest {
         assertTrue(ads.adsProgress > 0.9f);
 
         // Publish both events: WeaponFiredEvent for VFX, RecoilEvent for recoil system
-        eventBus.publish(new WeaponFiredEvent(player, new Vector3(0, 0, -1), true));
+        eventBus.publish(new WeaponFiredEvent(player, new Vector3(0, 0, -1), true, new Vector3(0, 1.7f, -0.5f)));
         eventBus.publish(new RecoilEvent(player, new Vector2(1.5f, 0f)));
         engine.update(0.016f);
 

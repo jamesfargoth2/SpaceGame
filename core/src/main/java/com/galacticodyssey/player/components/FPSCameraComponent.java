@@ -24,6 +24,16 @@ public class FPSCameraComponent implements Component, Snapshotable<FPSCameraSnap
 
     public final Vector3 localUp = new Vector3(0, 1, 0);
 
+    public float baseFov = 75f;
+
+    /** Camera world-space position after all offsets (eye height, head bob, lean, landing dip).
+     *  Written by CameraSystem each frame; read by WeaponSystem for accurate muzzle placement. */
+    public final Vector3 worldEyePos = new Vector3();
+
+    /** World-space position of the gun barrel tip, written by GameScreen after the FP weapon
+     *  transform is built each render frame. Used by WeaponSystem next frame for muzzle placement. */
+    public final Vector3 worldBarrelTip = new Vector3();
+
     public float targetCameraDistance;
     public float currentCameraDistance;
     public float maxCameraDistance = 12f;

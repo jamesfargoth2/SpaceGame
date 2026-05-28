@@ -29,6 +29,7 @@ import com.galacticodyssey.ship.modules.events.ModuleInstalledEvent;
 import com.galacticodyssey.ship.modules.events.ModuleUninstalledEvent;
 import com.galacticodyssey.ship.weapons.components.ShipHardpointComponent;
 import com.galacticodyssey.ship.weapons.data.ShipWeaponData;
+import com.galacticodyssey.ui.ManagedScreen;
 import com.galacticodyssey.ui.events.OutfitterClosedEvent;
 import com.galacticodyssey.ui.events.OutfitterOpenedEvent;
 
@@ -45,7 +46,7 @@ import java.util.ArrayList;
  * Opening publishes {@link OutfitterOpenedEvent}; closing publishes
  * {@link OutfitterClosedEvent}.</p>
  */
-public class OutfitterScreenSystem implements Disposable {
+public class OutfitterScreenSystem implements ManagedScreen {
 
     private static final String DEFAULT_SHIP_CLASS = "corvette_scout";
 
@@ -117,10 +118,13 @@ public class OutfitterScreenSystem implements Disposable {
     // State queries
     // -------------------------------------------------------------------------
 
-    /** Returns {@code true} if the outfitter screen is currently visible. */
+    @Override
+    public String getDisplayName() { return "Outfitter"; }
+
+    @Override
     public boolean isOpen() { return open; }
 
-    /** Returns the Scene2D {@link Stage} so the caller can route input to it. */
+    @Override
     public Stage getStage() { return stage; }
 
     // -------------------------------------------------------------------------
@@ -273,12 +277,11 @@ public class OutfitterScreenSystem implements Disposable {
         if (open) close(); else if (shipEntity != null) open(shipEntity, stationMode);
     }
 
-    /**
-     * Opens the outfitter for the given ship entity.
-     *
-     * @param shipEntity the ship Entity to outfit
-     * @param stationMode {@code true} when docked at a station (enables buy/sell)
-     */
+    @Override
+    public void open() {
+        if (shipEntity != null) open(shipEntity, stationMode);
+    }
+
     public void open(Entity shipEntity, boolean stationMode) {
         if (open) return;
         this.shipEntity = shipEntity;
@@ -312,7 +315,7 @@ public class OutfitterScreenSystem implements Disposable {
         refreshAll();
     }
 
-    /** Closes the outfitter. No-op (and no event) if already closed. */
+    @Override
     public void close() {
         if (!open) return;
         open = false;
@@ -631,14 +634,14 @@ public class OutfitterScreenSystem implements Disposable {
     // Per-frame update
     // -------------------------------------------------------------------------
 
-    /** Acts and draws the stage. Does nothing if the screen is closed or not yet initialised. */
+    @Override
     public void render(float delta) {
         if (!open || stage == null) return;
         stage.act(delta);
         stage.draw();
     }
 
-    /** Updates the stage viewport on window resize. */
+    @Override
     public void resize(int width, int height) {
         if (stage != null) stage.getViewport().update(width, height, true);
     }

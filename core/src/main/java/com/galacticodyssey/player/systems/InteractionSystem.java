@@ -10,6 +10,8 @@ import com.galacticodyssey.core.components.PhysicsBodyComponent;
 import com.galacticodyssey.core.components.PlayerTagComponent;
 import com.galacticodyssey.core.components.TransformComponent;
 import com.galacticodyssey.core.events.*;
+import com.galacticodyssey.npc.components.NpcDialogComponent;
+import com.galacticodyssey.npc.components.NpcIdentityComponent;
 import com.galacticodyssey.player.components.PlayerInputComponent;
 import com.galacticodyssey.player.components.PlayerStateComponent;
 import com.galacticodyssey.player.components.PlayerStateComponent.PlayerMode;
@@ -25,9 +27,12 @@ public class InteractionSystem extends EntitySystem {
     private final ComponentMapper<ShipEntryPointComponent> entryMapper = ComponentMapper.getFor(ShipEntryPointComponent.class);
     private final ComponentMapper<PilotSeatComponent> seatMapper = ComponentMapper.getFor(PilotSeatComponent.class);
     private final ComponentMapper<ShipInteriorComponent> interiorMapper = ComponentMapper.getFor(ShipInteriorComponent.class);
+    private final ComponentMapper<NpcDialogComponent> npcDialogMapper = ComponentMapper.getFor(NpcDialogComponent.class);
+    private final ComponentMapper<NpcIdentityComponent> npcIdentityMapper = ComponentMapper.getFor(NpcIdentityComponent.class);
 
     private ImmutableArray<Entity> playerEntities;
     private ImmutableArray<Entity> shipEntities;
+    private ImmutableArray<Entity> npcEntities;
     private final Vector3 tempVec = new Vector3();
     private final Vector3 worldPos = new Vector3();
     private final Matrix4 shipWorldMat = new Matrix4();
@@ -45,6 +50,8 @@ public class InteractionSystem extends EntitySystem {
             PlayerInputComponent.class, PlayerStateComponent.class).get());
         shipEntities = engine.getEntitiesFor(Family.all(
             ShipEntryPointComponent.class, TransformComponent.class).get());
+        npcEntities = engine.getEntitiesFor(Family.all(
+            NpcDialogComponent.class, NpcIdentityComponent.class, TransformComponent.class).get());
     }
 
     @Override
@@ -58,7 +65,11 @@ public class InteractionSystem extends EntitySystem {
         eventBus.publish(new InteractionPromptEvent("", false));
 
         switch (state.currentMode) {
-            case ON_FOOT_EXTERIOR: checkShipEntry(player, playerTransform, state, input); break;
+            case ON_FOOT_EXTERIOR:
+                if (!checkNpcDialog(player, playerTransform, input)) {
+                    checkShipEntry(player, playerTransform, state, input);
+                }
+                break;
             case ON_FOOT_INTERIOR:
                 checkPilotSeat(player, state, input);
                 checkShipExit(player, state, input);
@@ -66,6 +77,37 @@ public class InteractionSystem extends EntitySystem {
             case PILOTING: checkStopPiloting(player, state, input); break;
         }
         input.interactPressed = false;
+    }
+
+    private boolean checkNpcDialog(Entity player, TransformComponent playerTransform,
+                                   PlayerInputComponent input) {
+        Entity nearestNpc = null;
+        float nearestDist = Float.MAX_VALUE;
+
+        for (int i = 0; i < npcEntities.size(); i++) {
+            Entity npc = npcEntities.get(i);
+            TransformComponent npcTransform = transformMapper.get(npc);
+            NpcDialogComponent dialog = npcDialogMapper.get(npc);
+            float dist = tempVec.set(playerTransform.position).dst(npcTransform.position);
+            if (dist < dialog.interactionRadius && dist < nearestDist) {
+                nearestDist = dist;
+                nearestNpc = npc;
+            }
+        }
+
+        if (nearestNpc == null) return false;
+
+        NpcIdentityComponent identity = npcIdentityMapper.get(nearestNpc);
+        NpcDialogComponent dialog = npcDialogMapper.get(nearestNpc);
+        String npcName = identity.name != null ? identity.name : "NPC";
+
+        eventBus.publish(new InteractionPromptEvent("[F] Talk to " + npcName, true));
+
+        if (input.interactPressed) {
+            eventBus.publish(new NpcDialogueEvent(identity.npcId, dialog.dialogTreeId));
+        }
+
+        return true;
     }
 
     private void checkShipEntry(Entity player, TransformComponent playerTransform,

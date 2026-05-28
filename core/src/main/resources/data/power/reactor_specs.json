@@ -1,0 +1,53 @@
+[
+  {
+    "id": "compact_fusion_mk1",
+    "name": "Compact Fusion Reactor Mk.I",
+    "sizeClass": "SMALL",
+    "baseOutput": 100,
+    "wasteHeatFactor": 0.15,
+    "batteryCapacity": 500,
+    "batteryChargeRate": 50,
+    "batteryDischargeRate": 80,
+    "capacitorCapacity": 100,
+    "capacitorChargeRate": 80,
+    "engineMaxDraw": 50,
+    "weaponMaxDraw": 20,
+    "shieldMaxDraw": 15,
+    "lifeSupportDraw": 5,
+    "sensorMaxDraw": 10
+  },
+  {
+    "id": "fusion_core_mk2",
+    "name": "Fusion Core Mk.II",
+    "sizeClass": "MEDIUM",
+    "baseOutput": 300,
+    "wasteHeatFactor": 0.18,
+    "batteryCapacity": 1500,
+    "batteryChargeRate": 120,
+    "batteryDischargeRate": 200,
+    "capacitorCapacity": 300,
+    "capacitorChargeRate": 200,
+    "engineMaxDraw": 120,
+    "weaponMaxDraw": 60,
+    "shieldMaxDraw": 50,
+    "lifeSupportDraw": 10,
+    "sensorMaxDraw": 30
+  },
+  {
+    "id": "heavy_reactor_mk3",
+    "name": "Heavy Fusion Reactor Mk.III",
+    "sizeClass": "LARGE",
+    "baseOutput": 800,
+    "wasteHeatFactor": 0.20,
+    "batteryCapacity": 5000,
+    "batteryChargeRate": 300,
+    "batteryDischargeRate": 500,
+    "capacitorCapacity": 800,
+    "capacitorChargeRate": 500,
+    "engineMaxDraw": 300,
+    "weaponMaxDraw": 180,
+    "shieldMaxDraw": 150,
+    "lifeSupportDraw": 20,
+    "sensorMaxDraw": 60
+  }
+]

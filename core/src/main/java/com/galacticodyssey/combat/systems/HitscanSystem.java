@@ -103,7 +103,7 @@ public class HitscanSystem extends EntitySystem {
 
         if (shooterTransform == null || weaponComp == null) return;
 
-        Vector3 origin = shooterTransform.position;
+        Vector3 origin = event.muzzlePosition;
 
         // 2. Apply weapon spread: small random offset perpendicular to aim direction
         rayDir.set(event.aimDirection).nor();

@@ -10,6 +10,7 @@ import com.badlogic.gdx.math.Vector3;
 import com.galacticodyssey.combat.events.RecoilEvent;
 import com.galacticodyssey.core.EventBus;
 import com.galacticodyssey.core.components.TransformComponent;
+import com.galacticodyssey.player.components.ADSComponent;
 import com.galacticodyssey.player.components.FPSCameraComponent;
 import com.galacticodyssey.player.components.MovementStateComponent;
 import com.galacticodyssey.player.components.PlayerInputComponent;
@@ -33,6 +34,8 @@ public class CameraSystem extends IteratingSystem {
         ComponentMapper.getFor(MovementStateComponent.class);
     private final ComponentMapper<PlayerInputComponent> inputMapper =
         ComponentMapper.getFor(PlayerInputComponent.class);
+    private final ComponentMapper<ADSComponent> adsMapper =
+        ComponentMapper.getFor(ADSComponent.class);
 
     private PerspectiveCamera camera;
     private boolean wasGrounded;
@@ -116,6 +119,7 @@ public class CameraSystem extends IteratingSystem {
         camX += MathUtils.cos(yawRadForLean) * leanFraction * cam.leanHorizontalOffset;
         camZ += -MathUtils.sin(yawRadForLean) * leanFraction * cam.leanHorizontalOffset;
 
+        cam.worldEyePos.set(camX, camY, camZ);
         camera.position.set(camX, camY, camZ);
 
         // Apply recoil offsets on top of the base camera angles.
@@ -140,6 +144,13 @@ public class CameraSystem extends IteratingSystem {
             MathUtils.cos(leanRad),
             rightZ * MathUtils.sin(leanRad)
         ).nor();
+
+        // Apply ADS zoom: lerp FOV toward baseFov * zoomMultiplier as adsProgress reaches 1.
+        ADSComponent ads = adsMapper.get(entity);
+        if (ads != null) {
+            float targetFov = cam.baseFov * MathUtils.lerp(1f, ads.zoomMultiplier, ads.adsProgress);
+            camera.fieldOfView = MathUtils.lerp(camera.fieldOfView, targetFov, 10f * deltaTime);
+        }
 
         camera.update();
 

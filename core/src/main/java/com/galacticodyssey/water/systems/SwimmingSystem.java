@@ -10,6 +10,7 @@ import com.badlogic.gdx.utils.Pools;
 import com.galacticodyssey.core.EventBus;
 import com.galacticodyssey.core.components.PhysicsBodyComponent;
 import com.galacticodyssey.core.components.TransformComponent;
+import com.galacticodyssey.player.components.FPSCameraComponent;
 import com.galacticodyssey.player.components.MovementStateComponent;
 import com.galacticodyssey.player.components.PlayerInputComponent;
 import com.galacticodyssey.water.SwimState;
@@ -32,6 +33,8 @@ public class SwimmingSystem extends IteratingSystem {
         ComponentMapper.getFor(TransformComponent.class);
     private final ComponentMapper<PhysicsBodyComponent> physicsMapper =
         ComponentMapper.getFor(PhysicsBodyComponent.class);
+    private final ComponentMapper<FPSCameraComponent> camMapper =
+        ComponentMapper.getFor(FPSCameraComponent.class);
 
     private final EventBus eventBus;
     private final SwimConfigData config;
@@ -93,7 +96,7 @@ public class SwimmingSystem extends IteratingSystem {
         updateStateMachine(entity, swim, input, movement, transform, waterSurface,
             footY, chestY, headY, dt);
         updateStamina(swim, movement, input, dt);
-        applySwimPhysics(entity, swim, input, transform, physics, waterSurface, dt);
+        applySwimPhysics(entity, swim, input, movement, transform, physics, waterSurface, dt);
     }
 
     private void updateStateMachine(Entity entity, SwimmingStateComponent swim,
@@ -103,7 +106,7 @@ public class SwimmingSystem extends IteratingSystem {
 
         switch (swim.swimState) {
             case DRY:
-                if (waterSurface > footY + config.wadeDepthFoot && movement.isGrounded) {
+                if (waterSurface > footY + config.wadeDepthFoot) {
                     swim.swimState = SwimState.WADING;
                     eventBus.publish(new PlayerEnteredWaterEvent(entity, null));
                 }
@@ -201,15 +204,33 @@ public class SwimmingSystem extends IteratingSystem {
         movement.isExhausted = movement.currentStamina <= 0f;
     }
 
+    private static final float GRAVITY = 9.81f;
+
     private void applySwimPhysics(Entity entity, SwimmingStateComponent swim,
-            PlayerInputComponent input, TransformComponent transform,
-            PhysicsBodyComponent physics, float waterSurface, float dt) {
+            PlayerInputComponent input, MovementStateComponent movement,
+            TransformComponent transform, PhysicsBodyComponent physics,
+            float waterSurface, float dt) {
         if (physics.body == null) return;
         if (swim.swimState == SwimState.DRY) return;
 
         Vector3 vel = Pools.obtain(Vector3.class);
         vel.set(physics.body.getLinearVelocity());
 
+        // Passive buoyancy: counteract gravity proportional to how submerged the player is.
+        // At immersionFraction=1 (fully submerged) this exactly cancels gravity → neutral buoyancy.
+        // At immersionFraction=0.5 it partially reduces effective weight while wading.
+        if (swim.swimState != SwimState.DROWNING) {
+            float buoyancy = GRAVITY * swim.immersionFraction;
+            Vector3 buoyancyForce = Pools.obtain(Vector3.class);
+            buoyancyForce.set(0f, buoyancy * physics.mass, 0f);
+            physics.body.applyCentralForce(buoyancyForce);
+            Pools.free(buoyancyForce);
+        }
+
+        // Surface position spring: a gentle corrector that settles the player at eye level.
+        // Passive buoyancy already handles the bulk of gravity, so the spring only needs to
+        // correct the small residual positional error — keeping buoyancySpringK low (10)
+        // ensures the system is overdamped (no bounce) with the current buoyancyDamping (8).
         if (swim.swimState == SwimState.SURFACE) {
             float targetY = waterSurface + config.surfaceEyeOffset - CAPSULE_HALF_HEIGHT;
             float errorY = targetY - transform.position.y;
@@ -228,7 +249,7 @@ public class SwimmingSystem extends IteratingSystem {
             Pools.free(floatForce);
         }
 
-        if (swim.swimState != SwimState.DRY && swim.swimState != SwimState.DROWNING) {
+        if (swim.swimState != SwimState.DROWNING) {
             float speed = vel.len();
             if (speed > 0.01f) {
                 float dragMag = 0.5f * 1025f * config.playerDragCoefficient
@@ -240,7 +261,75 @@ public class SwimmingSystem extends IteratingSystem {
             }
         }
 
+        if (swim.swimState == SwimState.WADING || swim.swimState == SwimState.SURFACE) {
+            applyHorizontalSwimForce(entity, input, movement, physics, vel);
+        } else if (swim.swimState == SwimState.DIVING || swim.swimState == SwimState.SUBMERGED) {
+            apply3DSwimForce(entity, input, movement, physics, vel);
+        }
+
         Pools.free(vel);
+    }
+
+    private void applyHorizontalSwimForce(Entity entity, PlayerInputComponent input,
+            MovementStateComponent movement, PhysicsBodyComponent physics, Vector3 vel) {
+        if (input.moveForward == 0 && input.moveStrafe == 0) return;
+        FPSCameraComponent cam = camMapper.get(entity);
+        if (cam == null) return;
+
+        float yawRad = -cam.yawAngle * MathUtils.degreesToRadians;
+        float cosYaw = MathUtils.cos(yawRad);
+        float sinYaw = MathUtils.sin(yawRad);
+
+        float fx = sinYaw * input.moveForward + cosYaw * input.moveStrafe;
+        float fz = -cosYaw * input.moveForward + sinYaw * input.moveStrafe;
+        float len = (float) Math.sqrt(fx * fx + fz * fz);
+        if (len < 0.001f) return;
+
+        float targetSpeed = config.surfaceSwimSpeed;
+        if (input.sprint && !movement.isExhausted) targetSpeed *= config.sprintSwimMultiplier;
+
+        float horizSpeedSq = vel.x * vel.x + vel.z * vel.z;
+        if (horizSpeedSq < targetSpeed * targetSpeed) {
+            Vector3 swimForce = Pools.obtain(Vector3.class);
+            swimForce.set(fx / len * config.surfaceSwimForce * physics.mass,
+                          0f,
+                          fz / len * config.surfaceSwimForce * physics.mass);
+            physics.body.applyCentralForce(swimForce);
+            Pools.free(swimForce);
+        }
+    }
+
+    private void apply3DSwimForce(Entity entity, PlayerInputComponent input,
+            MovementStateComponent movement, PhysicsBodyComponent physics, Vector3 vel) {
+        if (input.moveForward == 0 && input.moveStrafe == 0) return;
+        FPSCameraComponent cam = camMapper.get(entity);
+        if (cam == null) return;
+
+        float yawRad = -cam.yawAngle * MathUtils.degreesToRadians;
+        float pitchRad = cam.pitchAngle * MathUtils.degreesToRadians;
+        float cosYaw = MathUtils.cos(yawRad);
+        float sinYaw = MathUtils.sin(yawRad);
+        float cosPitch = MathUtils.cos(pitchRad);
+        float sinPitch = MathUtils.sin(pitchRad);
+
+        float fx = sinYaw * cosPitch * input.moveForward + cosYaw * input.moveStrafe;
+        float fy = -sinPitch * input.moveForward;
+        float fz = -cosYaw * cosPitch * input.moveForward + sinYaw * input.moveStrafe;
+
+        float len = (float) Math.sqrt(fx * fx + fy * fy + fz * fz);
+        if (len < 0.001f) return;
+
+        float targetSpeed = config.diveSwimSpeed;
+        if (input.sprint && !movement.isExhausted) targetSpeed *= config.sprintSwimMultiplier;
+
+        if (vel.len2() < targetSpeed * targetSpeed) {
+            Vector3 swimForce = Pools.obtain(Vector3.class);
+            swimForce.set(fx / len * config.diveSwimForce * physics.mass,
+                          fy / len * config.diveSwimForce * physics.mass,
+                          fz / len * config.diveSwimForce * physics.mass);
+            physics.body.applyCentralForce(swimForce);
+            Pools.free(swimForce);
+        }
     }
 
     private float getWaterSurfaceHeight(Vector3 localPos, SwimmingStateComponent swim) {

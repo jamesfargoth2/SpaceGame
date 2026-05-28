@@ -1,84 +1,86 @@
 package com.galacticodyssey.ui;
 
-import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector3;
 
-public final class DayNightCycle {
+public class DayNightCycle {
 
     private final float dayLengthSeconds;
-    private final float axialTiltRadians;
-    private final boolean tidallyLocked;
+    private float timeOfDayHours;
+    private final boolean paused;
 
-    private float elapsed;
     private final Vector3 sunDirection = new Vector3();
 
-    public DayNightCycle(float dayLengthSeconds, float axialTiltDegrees,
-                         boolean tidallyLocked) {
-        this.dayLengthSeconds = Math.max(1f, dayLengthSeconds);
-        this.axialTiltRadians = axialTiltDegrees * MathUtils.degreesToRadians;
-        this.tidallyLocked = tidallyLocked;
-        this.elapsed = this.dayLengthSeconds * 0.5f;
-        recalcSunDirection();
+    public DayNightCycle(float dayLengthSeconds, float axialTiltDegrees, boolean paused) {
+        this.dayLengthSeconds = dayLengthSeconds;
+        this.timeOfDayHours = 12f; // always start at solar noon
+        this.paused = paused;
+        updateSunDirection();
     }
 
-    public void update(float delta) {
-        if (tidallyLocked) return;
-        elapsed += delta;
-        if (elapsed >= dayLengthSeconds) {
-            elapsed -= dayLengthSeconds * (int) (elapsed / dayLengthSeconds);
+    public void update(float deltaSeconds) {
+        if (!paused) {
+            float hoursPerSecond = 24f / dayLengthSeconds;
+            timeOfDayHours += deltaSeconds * hoursPerSecond;
+            if (timeOfDayHours >= 24f) timeOfDayHours -= 24f;
         }
-        recalcSunDirection();
+        updateSunDirection();
+    }
+
+    private void updateSunDirection() {
+        // Map time of day to sun angle. 6:00 = sunrise (east), 12:00 = noon (overhead), 18:00 = sunset (west)
+        float angle = (timeOfDayHours / 24f) * 360f - 90f;
+        float radians = (float) Math.toRadians(angle);
+        float x = (float) Math.cos(radians);
+        float y = (float) Math.sin(radians);
+        // sun direction points FROM the sun TOWARD the scene
+        sunDirection.set(-x, -y, -0.3f).nor();
+    }
+
+    private float computeDayFactor() {
+        // Daylight between 6:00 and 18:00, peak at noon
+        float t = (timeOfDayHours - 6f) / 12f;
+        if (t < 0f || t > 1f) return 0f;
+        return (float) Math.sin(t * Math.PI);
+    }
+
+    public float getSunIntensity() {
+        return clamp01(computeDayFactor()) * 1.0f;
+    }
+
+    public float getAmbientIntensity() {
+        return 0.3f;
     }
 
     public Vector3 getSunDirection() {
         return sunDirection;
     }
 
-    public float getSunAltitude() {
-        return sunDirection.y;
+    public float getTimeOfDayHours() {
+        return timeOfDayHours;
     }
 
+    /** Normalized time in [0,1] where 0 = midnight and 0.5 = noon. */
     public float getTimeOfDay() {
-        return elapsed / dayLengthSeconds;
+        return timeOfDayHours / 24f;
+    }
+
+    /** Sun elevation: positive above horizon, negative below. */
+    public float getSunAltitude() {
+        return -sunDirection.y;
     }
 
     public boolean isNight() {
-        return sunDirection.y < -0.05f;
+        return getSunAltitude() < 0f;
     }
 
-    public float getSunIntensity() {
-        return smoothstep(-0.1f, 0.2f, sunDirection.y);
-    }
-
-    public float getAmbientIntensity() {
-        float dayAmbient = 0.35f;
-        float nightAmbient = 0.06f;
-        float t = smoothstep(-0.1f, 0.2f, sunDirection.y);
-        return nightAmbient + (dayAmbient - nightAmbient) * t;
-    }
-
+    /** 0 at full day, 1 at full night. */
     public float getStarVisibility() {
-        return 1f - smoothstep(-0.15f, 0.05f, sunDirection.y);
+        return 1f - clamp01(computeDayFactor());
     }
 
-    private void recalcSunDirection() {
-        // Offset by half-cycle so angle=0 at elapsed=0.5*day (noon), y=+1 (overhead)
-        float angle = ((elapsed / dayLengthSeconds) - 0.5f) * MathUtils.PI2;
-        float cosA = MathUtils.cos(angle);
-        float sinA = MathUtils.sin(angle);
-
-        float tiltCos = MathUtils.cos(axialTiltRadians);
-        float tiltSin = MathUtils.sin(axialTiltRadians);
-
-        sunDirection.set(
-            sinA,
-            cosA * tiltCos,
-            cosA * tiltSin
-        ).nor();
-    }
-
-    private static float smoothstep(float edge0, float edge1, float x) {
-        float t = Math.max(0f, Math.min(1f, (x - edge0) / (edge1 - edge0)));
-        return t * t * (3f - 2f * t);
+    private static float clamp01(float v) {
+        if (v < 0f) return 0f;
+        if (v > 1f) return 1f;
+        return v;
     }
 }

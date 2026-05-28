@@ -4,6 +4,7 @@ import com.badlogic.ashley.core.ComponentMapper;
 import com.badlogic.ashley.core.Entity;
 import com.badlogic.ashley.core.Family;
 import com.badlogic.ashley.systems.IteratingSystem;
+import com.badlogic.gdx.math.Vector3;
 import com.galacticodyssey.combat.CombatEnums.FiringMode;
 import com.galacticodyssey.combat.components.CombatInputComponent;
 import com.galacticodyssey.combat.components.RangedWeaponComponent;
@@ -11,6 +12,8 @@ import com.galacticodyssey.combat.components.WeaponInventoryComponent;
 import com.galacticodyssey.combat.events.ReloadStartedEvent;
 import com.galacticodyssey.combat.events.WeaponFiredEvent;
 import com.galacticodyssey.core.EventBus;
+import com.galacticodyssey.core.components.TransformComponent;
+import com.galacticodyssey.player.components.FPSCameraComponent;
 
 /**
  * Processes weapon firing and reloading each frame for entities that have
@@ -33,6 +36,10 @@ public class WeaponSystem extends IteratingSystem {
         ComponentMapper.getFor(RangedWeaponComponent.class);
     private static final ComponentMapper<WeaponInventoryComponent> INVENTORY_M =
         ComponentMapper.getFor(WeaponInventoryComponent.class);
+    private static final ComponentMapper<TransformComponent> TRANSFORM_M =
+        ComponentMapper.getFor(TransformComponent.class);
+    private static final ComponentMapper<FPSCameraComponent> CAMERA_M =
+        ComponentMapper.getFor(FPSCameraComponent.class);
 
     public WeaponSystem(EventBus eventBus) {
         super(Family.all(CombatInputComponent.class,
@@ -48,10 +55,15 @@ public class WeaponSystem extends IteratingSystem {
         RangedWeaponComponent ranged = RANGED_M.get(entity);
         WeaponInventoryComponent inventory = INVENTORY_M.get(entity);
 
-        // Skip if a weapon switch is in progress or the active slot is melee
+        // Skip firing during weapon switch or melee, but still allow reload to start
         if (inventory.switching || inventory.isActiveSlotMelee()) {
-            // Still consume fire requests so they don't linger
+            if (input.reloadRequested && !ranged.reloading) {
+                ranged.reloading = true;
+                ranged.reloadTimer = ranged.reloadTime;
+                eventBus.publish(new ReloadStartedEvent(entity, ranged.reloadTime));
+            }
             input.fireRequested = false;
+            input.reloadRequested = false;
             return;
         }
 
@@ -118,10 +130,9 @@ public class WeaponSystem extends IteratingSystem {
                 break;
 
             case AUTO:
-                if (input.fireHeld && ranged.fireTimer <= 0f) {
+                if ((input.fireHeld || input.fireRequested) && ranged.fireTimer <= 0f) {
                     fireShot(entity, ranged, input);
                 }
-                // Do not consume fireRequested for AUTO (it's fireHeld-driven)
                 input.fireRequested = false;
                 break;
 
@@ -145,6 +156,29 @@ public class WeaponSystem extends IteratingSystem {
     private void fireShot(Entity entity, RangedWeaponComponent ranged, CombatInputComponent input) {
         ranged.currentAmmo--;
         ranged.fireTimer = ranged.fireRate > 0f ? 1f / ranged.fireRate : 0f;
-        eventBus.publish(new WeaponFiredEvent(entity, input.aimDirection, ranged.hitscan));
+        eventBus.publish(new WeaponFiredEvent(entity, input.aimDirection, ranged.hitscan, computeMuzzlePosition(entity)));
+    }
+
+    /**
+     * Ray origin for bullet/tracer spawning.
+     * For first-person player entities: returns the camera eye position so that shots travel
+     * exactly where the crosshair points.  For NPC entities (no FPSCameraComponent): falls back
+     * to the transform position.
+     */
+    private Vector3 computeMuzzlePosition(Entity entity) {
+        TransformComponent transform = TRANSFORM_M.get(entity);
+        FPSCameraComponent cam = CAMERA_M.get(entity);
+        if (transform == null) return new Vector3();
+
+        if (cam != null) {
+            // CameraSystem (priority 4, registered before WeaponSystem) has already written
+            // worldEyePos this frame, so it is always current.
+            if (cam.worldEyePos.len2() > 0f) {
+                return new Vector3(cam.worldEyePos);
+            }
+            return new Vector3(transform.position).add(0, cam.currentEyeHeight, 0);
+        }
+
+        return new Vector3(transform.position);
     }
 }

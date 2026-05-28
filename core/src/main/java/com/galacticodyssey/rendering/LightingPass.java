@@ -28,6 +28,7 @@ public class LightingPass implements Disposable {
     private int width, height;
 
     private final Matrix4 invProjection = new Matrix4();
+    private final Vector3 viewLightDir = new Vector3();
 
     public LightingPass(ShaderCache shaderCache, FullscreenQuad quad, int width, int height) {
         this.shaderCache = shaderCache;
@@ -41,6 +42,7 @@ public class LightingPass implements Disposable {
     private void createHDRBuffer() {
         GLFrameBuffer.FrameBufferBuilder builder = new GLFrameBuffer.FrameBufferBuilder(width, height);
         builder.addColorTextureAttachment(GL30.GL_RGBA16F, GL20.GL_RGBA, GL20.GL_FLOAT);
+        builder.addDepthRenderBuffer(GL30.GL_DEPTH24_STENCIL8);
         hdrBuffer = builder.build();
         hdrBuffer.getColorBufferTexture().setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
     }
@@ -51,10 +53,11 @@ public class LightingPass implements Disposable {
                         ImmutableArray<Entity> lights) {
 
         invProjection.set(camera.projection).inv();
+        viewLightDir.set(sunDirection).rot(camera.view).nor();
 
         hdrBuffer.begin();
         Gdx.gl.glClearColor(0, 0, 0, 0);
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT | GL20.GL_STENCIL_BUFFER_BIT);
         Gdx.gl.glDisable(GL20.GL_DEPTH_TEST);
 
         ShaderProgram dirShader = shaderCache.get("fullscreen.vert", "lighting_directional.frag");
@@ -68,7 +71,7 @@ public class LightingPass implements Disposable {
         ssaoTexture.bind(4);
         dirShader.setUniformi("u_ssao", 4);
         dirShader.setUniformMatrix("u_invProjection", invProjection);
-        dirShader.setUniformf("u_lightDir", sunDirection.x, sunDirection.y, sunDirection.z);
+        dirShader.setUniformf("u_lightDir", viewLightDir.x, viewLightDir.y, viewLightDir.z);
         dirShader.setUniformf("u_lightColor", sunColor.x, sunColor.y, sunColor.z);
         dirShader.setUniformf("u_lightIntensity", sunIntensity);
         dirShader.setUniformf("u_ambientColor", ambientColor.x, ambientColor.y, ambientColor.z);

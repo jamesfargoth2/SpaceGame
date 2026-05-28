@@ -147,7 +147,7 @@ public final class ScatteringParams {
         float atmoR = pR + scaleH * 6f;
 
         // Sun intensity from equilibrium temperature
-        float sunIntensity = 22.0f * (atmo.equilibriumTemp / 255f);
+        float sunIntensity = Math.max(0f, 22.0f * (atmo.equilibriumTemp / 255f));
 
         // Clouds
         float cloudCoverage;

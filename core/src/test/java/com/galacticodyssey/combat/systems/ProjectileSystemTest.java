@@ -97,7 +97,7 @@ class ProjectileSystemTest {
     void projectileEntityCreatedOnFire() {
         int before = projectileCount();
 
-        eventBus.publish(new WeaponFiredEvent(shooter, new Vector3(0f, 0f, -1f), false));
+        eventBus.publish(new WeaponFiredEvent(shooter, new Vector3(0f, 0f, -1f), false, new Vector3(0f, 1.7f, -0.5f)));
         // The system adds the entity directly on receiving the event (before any update)
         engine.update(0f);
 
@@ -111,7 +111,7 @@ class ProjectileSystemTest {
      */
     @Test
     void projectileMovesForward() {
-        eventBus.publish(new WeaponFiredEvent(shooter, new Vector3(0f, 0f, -1f), false));
+        eventBus.publish(new WeaponFiredEvent(shooter, new Vector3(0f, 0f, -1f), false, new Vector3(0f, 1.7f, -0.5f)));
         engine.update(0f); // let entity settle
 
         // Capture initial Z position of the projectile
@@ -133,7 +133,7 @@ class ProjectileSystemTest {
      */
     @Test
     void projectileExpiresAfterLifetime() {
-        eventBus.publish(new WeaponFiredEvent(shooter, new Vector3(0f, 0f, -1f), false));
+        eventBus.publish(new WeaponFiredEvent(shooter, new Vector3(0f, 0f, -1f), false, new Vector3(0f, 1.7f, -0.5f)));
         engine.update(0f); // entity added
 
         assertEquals(1, projectileCount(), "Projectile should exist before expiry");
@@ -172,7 +172,7 @@ class ProjectileSystemTest {
         engine.addEntity(target);
 
         // Fire toward the target
-        eventBus.publish(new WeaponFiredEvent(shooter, new Vector3(0f, 0f, -1f), false));
+        eventBus.publish(new WeaponFiredEvent(shooter, new Vector3(0f, 0f, -1f), false, new Vector3(0f, 1.7f, -0.5f)));
         engine.update(0f); // spawn projectile
 
         // Step in small increments until hit or timeout (well within 2 s lifetime)
@@ -317,7 +317,7 @@ class ProjectileSystemTest {
         weapon.damageType = DamageType.EXPLOSIVE;
 
         // Fire weapon
-        eventBus.publish(new WeaponFiredEvent(shooter, new Vector3(0, 0, -1), false));
+        eventBus.publish(new WeaponFiredEvent(shooter, new Vector3(0, 0, -1), false, new Vector3(0f, 1.7f, -0.5f)));
         engine.update(0.016f);
 
         // Find the spawned projectile (not the shooter)
