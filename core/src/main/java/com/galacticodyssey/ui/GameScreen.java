@@ -82,6 +82,7 @@ import com.galacticodyssey.hacking.events.HackStartedEvent;
 import com.galacticodyssey.hacking.events.HackSucceededEvent;
 import com.galacticodyssey.hacking.events.HackFailedEvent;
 import com.galacticodyssey.rendering.DeferredRenderer;
+import com.galacticodyssey.rendering.lighting.LightComponent;
 
 import java.util.Random;
 
@@ -276,6 +277,14 @@ public class GameScreen implements Screen {
 
         atmosphericSkyRenderer = new AtmosphericSkyRenderer();
         dayNightCycle = new DayNightCycle(600f, 23.5f, false);
+
+        Entity sunEntity = new Entity();
+        LightComponent sunLight = new LightComponent();
+        sunLight.type = LightComponent.Type.DIRECTIONAL;
+        sunLight.color.set(1f, 0.95f, 0.9f, 1f);
+        sunLight.intensity = 3f;
+        sunEntity.add(sunLight);
+        gameWorld.getEngine().addEntity(sunEntity);
     }
 
     private void openGalaxyMap() {
