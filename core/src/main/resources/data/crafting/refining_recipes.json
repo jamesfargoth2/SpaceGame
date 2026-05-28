@@ -1,0 +1,157 @@
+[
+  {
+    "recipeId": "process_iron_ore",
+    "name": "Process Iron Ore",
+    "category": "PROCESSING",
+    "requiredTier": 1,
+    "inputs": [
+      { "materialId": "iron_ore", "quantity": 5 }
+    ],
+    "outputs": [
+      { "materialId": "iron_concentrate", "baseQuantity": 3 }
+    ],
+    "processingTime": 30.0,
+    "powerCost": 10.0
+  },
+  {
+    "recipeId": "process_titanium_ore",
+    "name": "Process Titanium Ore",
+    "category": "PROCESSING",
+    "requiredTier": 1,
+    "inputs": [
+      { "materialId": "titanium_ore", "quantity": 5 }
+    ],
+    "outputs": [
+      { "materialId": "titanium_concentrate", "baseQuantity": 3 }
+    ],
+    "processingTime": 35.0,
+    "powerCost": 12.0
+  },
+  {
+    "recipeId": "process_carbon",
+    "name": "Process Carbon Deposit",
+    "category": "PROCESSING",
+    "requiredTier": 1,
+    "inputs": [
+      { "materialId": "carbon_deposit", "quantity": 4 }
+    ],
+    "outputs": [
+      { "materialId": "carbon_fiber", "baseQuantity": 3 }
+    ],
+    "processingTime": 25.0,
+    "powerCost": 8.0
+  },
+  {
+    "recipeId": "process_lithium_ore",
+    "name": "Process Lithium Crystals",
+    "category": "PROCESSING",
+    "requiredTier": 1,
+    "inputs": [
+      { "materialId": "lithium_crystals", "quantity": 4 }
+    ],
+    "outputs": [
+      { "materialId": "lithium_solution", "baseQuantity": 3 }
+    ],
+    "processingTime": 28.0,
+    "powerCost": 9.0
+  },
+  {
+    "recipeId": "process_copper_ore",
+    "name": "Process Copper Ore",
+    "category": "PROCESSING",
+    "requiredTier": 1,
+    "inputs": [
+      { "materialId": "copper_ore", "quantity": 5 }
+    ],
+    "outputs": [
+      { "materialId": "copper_wire", "baseQuantity": 4 }
+    ],
+    "processingTime": 30.0,
+    "powerCost": 10.0
+  },
+  {
+    "recipeId": "refine_iron",
+    "name": "Refine Iron",
+    "category": "REFINEMENT",
+    "requiredTier": 2,
+    "inputs": [
+      { "materialId": "iron_concentrate", "quantity": 4 }
+    ],
+    "outputs": [
+      { "materialId": "iron_ingot", "baseQuantity": 2 }
+    ],
+    "processingTime": 60.0,
+    "powerCost": 20.0
+  },
+  {
+    "recipeId": "refine_titanium",
+    "name": "Refine Titanium",
+    "category": "REFINEMENT",
+    "requiredTier": 2,
+    "inputs": [
+      { "materialId": "titanium_concentrate", "quantity": 4 }
+    ],
+    "outputs": [
+      { "materialId": "titanium_ingot", "baseQuantity": 2 }
+    ],
+    "processingTime": 75.0,
+    "powerCost": 25.0
+  },
+  {
+    "recipeId": "refine_carbon",
+    "name": "Refine Carbon Fiber",
+    "category": "REFINEMENT",
+    "requiredTier": 2,
+    "inputs": [
+      { "materialId": "carbon_fiber", "quantity": 3 }
+    ],
+    "outputs": [
+      { "materialId": "carbon_composite", "baseQuantity": 2 }
+    ],
+    "processingTime": 50.0,
+    "powerCost": 15.0
+  },
+  {
+    "recipeId": "refine_lithium",
+    "name": "Refine Lithium Solution",
+    "category": "REFINEMENT",
+    "requiredTier": 2,
+    "inputs": [
+      { "materialId": "lithium_solution", "quantity": 3 }
+    ],
+    "outputs": [
+      { "materialId": "lithium_cells", "baseQuantity": 2 }
+    ],
+    "processingTime": 55.0,
+    "powerCost": 18.0
+  },
+  {
+    "recipeId": "refine_copper",
+    "name": "Refine Copper Wire",
+    "category": "REFINEMENT",
+    "requiredTier": 2,
+    "inputs": [
+      { "materialId": "copper_wire", "quantity": 4 }
+    ],
+    "outputs": [
+      { "materialId": "copper_circuitry", "baseQuantity": 2 }
+    ],
+    "processingTime": 65.0,
+    "powerCost": 22.0
+  },
+  {
+    "recipeId": "forge_steel",
+    "name": "Forge Steel Alloy",
+    "category": "ALLOY",
+    "requiredTier": 3,
+    "inputs": [
+      { "materialId": "iron_ingot", "quantity": 3 },
+      { "materialId": "carbon_powder", "quantity": 1 }
+    ],
+    "outputs": [
+      { "materialId": "steel_alloy", "baseQuantity": 2 }
+    ],
+    "processingTime": 90.0,
+    "powerCost": 30.0
+  }
+]
