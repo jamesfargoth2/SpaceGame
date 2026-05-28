@@ -12,7 +12,6 @@ or in PR #24). Systems below are what is **still missing**.
 | System | Gap |
 |---|---|
 | **Scene / Sector streaming** | No `SceneManager` that additively loads/unloads zones (deep space → orbit → planet surface → station interior). `StreamingSystem` distance-enqueues assets but no zone transition state machine exists. |
-| **Orbital mechanics** | No Keplerian orbit integration. Planets are stationary. No HUD trajectory prediction arc. |
 | **Player levelling & perks** | `RealTimeSkillSystem` and `PointSkillComponent` exist. No character level accumulation from aggregate XP, no skill point allocation UI, no perk system or perk selection overlay. |
 | **Vehicle bay & deployment** | Mech locomotion works. No `VehicleBayComponent`, no bay slot UI, no ramp open/deploy/retrieve flow, no `VehicleRegistry`. |
 | **Boarding flow** | Docking exists. The full pipeline — disable engines → approach → breach/dock → FPS interior combat → capture resolution (hijack / scrap / ransom / tow) — is not implemented. |
@@ -117,3 +116,4 @@ These were listed as missing in earlier drafts of this file but are now done:
 | Crew recruitment screen | procgen |
 | Quest journal / job board screen | procgen |
 | Inventory / equipment screen | procgen |
+| Orbital mechanics (Keplerian orbits, SOI tracking, trajectory HUD) | coresystemFinish |
