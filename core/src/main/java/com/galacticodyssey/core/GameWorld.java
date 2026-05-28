@@ -148,6 +148,12 @@ import com.galacticodyssey.planet.terrain.SeismicSystem;
 import com.galacticodyssey.planet.terrain.SurfaceAnchorSystem;
 import com.galacticodyssey.planet.terrain.SurfaceVehicleSystem;
 import com.galacticodyssey.planet.terrain.TerrainChunk;
+import com.galacticodyssey.planet.terrain.VehicleBayService;
+import com.galacticodyssey.planet.terrain.VehicleCameraSystem;
+import com.galacticodyssey.planet.terrain.VehicleControlSystem;
+import com.galacticodyssey.planet.terrain.VehicleFactory;
+import com.galacticodyssey.planet.terrain.VehicleWeaponSystem;
+import com.galacticodyssey.data.VehicleRegistry;
 import com.galacticodyssey.audio.AudioSystem;
 import com.galacticodyssey.vfx.systems.ParticleRenderSystem;
 import com.galacticodyssey.vfx.systems.ParticleSpawnSystem;
@@ -289,6 +295,10 @@ public class GameWorld implements Disposable {
     private LightingSystem lightingSystem;
     private SceneManager sceneManager;
     private SceneStreamingSystem sceneStreamingSystem;
+    private VehicleRegistry vehicleRegistry;
+    private VehicleBayService vehicleBayService;
+    private VehicleCameraSystem vehicleCameraSystem;
+    private InteractionSystem interactionSystem;
 
     private final Array<Disposable> disposables = new Array<>();
 
@@ -340,7 +350,7 @@ public class GameWorld implements Disposable {
         engine.addSystem(new PlayerAnimationSystem());
         engine.addSystem(debugHudSystem);
 
-        InteractionSystem interactionSystem = new InteractionSystem(eventBus);
+        interactionSystem = new InteractionSystem(eventBus);
         engine.addSystem(interactionSystem);
 
         ShipFlightSystem shipFlightSystem = new ShipFlightSystem();
@@ -402,6 +412,24 @@ public class GameWorld implements Disposable {
         engine.addSystem(statusEffectSystem);
         engine.addSystem(combatAISystem);
         engine.addSystem(squadTacticsSystem);
+
+        // Vehicle systems — added after input systems (PlayerInputSystem priority 0, CombatInputSystem
+        // priority 0) so VehicleControlSystem reads per-frame input components in the correct order.
+        VehicleControlSystem vehicleControlSystem = new VehicleControlSystem();
+        engine.addSystem(vehicleControlSystem);
+
+        VehicleWeaponSystem vehicleWeaponSystem = new VehicleWeaponSystem(eventBus);
+        engine.addSystem(vehicleWeaponSystem);
+
+        vehicleRegistry = new VehicleRegistry();
+        if (com.badlogic.gdx.Gdx.files != null) {
+            vehicleRegistry.load("data/vehicles/vehicles.json");
+        }
+
+        vehicleBayService = new VehicleBayService(
+            engine, bulletPhysicsSystem.getDynamicsWorld(),
+            vehicleRegistry, new VehicleFactory(), eventBus);
+        interactionSystem.setVehicleBayService(vehicleBayService);
 
         lightingSystem = new LightingSystem();
         engine.addSystem(lightingSystem);
@@ -682,6 +710,9 @@ public class GameWorld implements Disposable {
         debugHudSystem.initialize();
         shipCameraSystem.setCamera(camera);
         cockpitHUDSystem.initialize();
+
+        vehicleCameraSystem = new VehicleCameraSystem(camera);
+        engine.addSystem(vehicleCameraSystem);
 
         TargetingSystem targetingSystem = new TargetingSystem(eventBus, camera);
         engine.addSystem(targetingSystem);
@@ -1129,6 +1160,10 @@ public class GameWorld implements Disposable {
     }
 
     public LightingSystem getLightingSystem() { return lightingSystem; }
+
+    public VehicleRegistry getVehicleRegistry() { return vehicleRegistry; }
+
+    public VehicleBayService getVehicleBayService() { return vehicleBayService; }
 
     @Override
     public void dispose() {
