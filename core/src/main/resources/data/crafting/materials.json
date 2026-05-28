@@ -1,0 +1,178 @@
+[
+  {
+    "materialId": "iron_ore",
+    "name": "Iron Ore",
+    "tier": "RAW",
+    "category": "METAL",
+    "weight": 2.0,
+    "volume": 1.0,
+    "maxStack": 99,
+    "description": "Unprocessed iron-bearing rock mined from asteroids and planetary surfaces.",
+    "commodityLink": "iron_ore"
+  },
+  {
+    "materialId": "iron_concentrate",
+    "name": "Iron Concentrate",
+    "tier": "PROCESSED",
+    "category": "METAL",
+    "weight": 1.5,
+    "volume": 0.8,
+    "maxStack": 99,
+    "description": "Purified iron compound ready for smelting.",
+    "commodityLink": null
+  },
+  {
+    "materialId": "iron_ingot",
+    "name": "Iron Ingot",
+    "tier": "REFINED",
+    "category": "METAL",
+    "weight": 1.0,
+    "volume": 0.5,
+    "maxStack": 50,
+    "description": "Smelted iron bar suitable for fabrication.",
+    "commodityLink": null
+  },
+  {
+    "materialId": "titanium_ore",
+    "name": "Titanium Ore",
+    "tier": "RAW",
+    "category": "METAL",
+    "weight": 2.5,
+    "volume": 1.0,
+    "maxStack": 99,
+    "description": "Dense titanium-bearing mineral found in asteroid belts.",
+    "commodityLink": "titanium_ore"
+  },
+  {
+    "materialId": "titanium_concentrate",
+    "name": "Titanium Concentrate",
+    "tier": "PROCESSED",
+    "category": "METAL",
+    "weight": 2.0,
+    "volume": 0.8,
+    "maxStack": 99,
+    "description": "Refined titanium dioxide powder.",
+    "commodityLink": null
+  },
+  {
+    "materialId": "titanium_ingot",
+    "name": "Titanium Ingot",
+    "tier": "REFINED",
+    "category": "METAL",
+    "weight": 1.2,
+    "volume": 0.5,
+    "maxStack": 50,
+    "description": "High-grade titanium bar used in advanced hull plating.",
+    "commodityLink": null
+  },
+  {
+    "materialId": "carbon_deposit",
+    "name": "Carbon Deposit",
+    "tier": "RAW",
+    "category": "MINERAL",
+    "weight": 1.8,
+    "volume": 1.2,
+    "maxStack": 99,
+    "description": "Raw carbon material extracted from planetary crusts.",
+    "commodityLink": "carbon"
+  },
+  {
+    "materialId": "carbon_fiber",
+    "name": "Carbon Fiber",
+    "tier": "PROCESSED",
+    "category": "MINERAL",
+    "weight": 0.8,
+    "volume": 0.6,
+    "maxStack": 99,
+    "description": "Woven carbon filaments with high tensile strength.",
+    "commodityLink": null
+  },
+  {
+    "materialId": "carbon_composite",
+    "name": "Carbon Composite",
+    "tier": "REFINED",
+    "category": "MINERAL",
+    "weight": 0.5,
+    "volume": 0.4,
+    "maxStack": 50,
+    "description": "Lightweight structural composite for ship components.",
+    "commodityLink": null
+  },
+  {
+    "materialId": "lithium_crystals",
+    "name": "Lithium Crystals",
+    "tier": "RAW",
+    "category": "MINERAL",
+    "weight": 1.2,
+    "volume": 0.8,
+    "maxStack": 99,
+    "description": "Crystalline lithium formations found in volcanic regions.",
+    "commodityLink": "lithium"
+  },
+  {
+    "materialId": "lithium_solution",
+    "name": "Lithium Solution",
+    "tier": "PROCESSED",
+    "category": "CHEMICAL",
+    "weight": 1.0,
+    "volume": 1.0,
+    "maxStack": 99,
+    "description": "Dissolved lithium salts ready for electrolysis.",
+    "commodityLink": null
+  },
+  {
+    "materialId": "lithium_cells",
+    "name": "Lithium Cells",
+    "tier": "REFINED",
+    "category": "CHEMICAL",
+    "weight": 0.8,
+    "volume": 0.6,
+    "maxStack": 50,
+    "description": "High-density lithium power cells for energy systems.",
+    "commodityLink": null
+  },
+  {
+    "materialId": "copper_ore",
+    "name": "Copper Ore",
+    "tier": "RAW",
+    "category": "METAL",
+    "weight": 2.2,
+    "volume": 1.0,
+    "maxStack": 99,
+    "description": "Copper-bearing rock common in terrestrial planets.",
+    "commodityLink": "copper_ore"
+  },
+  {
+    "materialId": "copper_wire",
+    "name": "Copper Wire",
+    "tier": "PROCESSED",
+    "category": "METAL",
+    "weight": 1.0,
+    "volume": 0.4,
+    "maxStack": 99,
+    "description": "Drawn copper conductors for electrical systems.",
+    "commodityLink": null
+  },
+  {
+    "materialId": "copper_circuitry",
+    "name": "Copper Circuitry",
+    "tier": "REFINED",
+    "category": "METAL",
+    "weight": 0.6,
+    "volume": 0.3,
+    "maxStack": 50,
+    "description": "Precision copper circuit boards for ship electronics.",
+    "commodityLink": null
+  },
+  {
+    "materialId": "steel_alloy",
+    "name": "Steel Alloy",
+    "tier": "REFINED",
+    "category": "METAL",
+    "weight": 1.5,
+    "volume": 0.5,
+    "maxStack": 50,
+    "description": "Iron-carbon alloy with superior structural properties.",
+    "commodityLink": null
+  }
+]
