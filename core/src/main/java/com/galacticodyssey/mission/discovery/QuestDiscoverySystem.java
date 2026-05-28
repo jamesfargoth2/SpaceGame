@@ -11,14 +11,11 @@ import com.galacticodyssey.mission.job.JobState;
 import com.galacticodyssey.mission.shared.QuestJournal;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
 
 public class QuestDiscoverySystem extends EntitySystem {
 
     private final EventBus eventBus;
     private final QuestJournal journal;
-    private final Map<String, JobInstance> leadJobs = new HashMap<>();
 
     public QuestDiscoverySystem(EventBus eventBus, QuestJournal journal) {
         this.eventBus = eventBus;
@@ -27,7 +24,7 @@ public class QuestDiscoverySystem extends EntitySystem {
     }
 
     public void registerLead(JobInstance job, DiscoveryLead lead) {
-        leadJobs.put(lead.jobInstanceId, job);
+        // Activation logic reads directly from journal.getRumourBoard(); no registration needed.
     }
 
     private void subscribeAll() {
