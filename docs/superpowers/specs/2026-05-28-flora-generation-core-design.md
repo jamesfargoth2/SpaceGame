@@ -60,8 +60,9 @@ core/src/main/java/com/galacticodyssey/flora/
   FloraGenerator.java       orchestrator: builds prototype pool + produces placements
 
 core/src/main/resources/data/flora/
-  species/     *.json   (one file per species, or a small grouped set)
-  palettes/    *.json   (one file per biome)
+  species.json    (array of all species — consolidated; libGDX internal dir listing is
+                   unreliable, so one file rather than one-per-species)
+  palettes.json   (array of per-biome palettes)
 ```
 
 Each unit has a single purpose and is understandable/testable in isolation, per the
@@ -69,8 +70,8 @@ Each unit has a single purpose and is understandable/testable in isolation, per 
 
 ## 3. Data Flow
 
-1. **Load** — `FloraRegistry.load()` reads `resources/data/flora/species/*.json` and
-   `resources/data/flora/palettes/*.json`, following the existing content-registry
+1. **Load** — `FloraRegistry.load()` reads `resources/data/flora/species.json` and
+   `resources/data/flora/palettes.json`, following the existing content-registry
    pattern. No hardcoded content (CLAUDE.md rule #2).
 2. **Prototype pool** — `FloraGenerator.buildPrototypes(planetSeed)`: for each species,
    generate `prototypeVariants` (≈6–8) `Model`s via
@@ -115,14 +116,18 @@ Uses the existing `SeedDeriver` hierarchy (`galaxy/SeedDeriver`).
 ## 6. Mesh Build — GL-free data, then thin GL upload
 
 `FloraMeshBuilder` runs **without a GL context** and emits interleaved
-**pos3 + normal3 + color4** vertices (the same 10-float stride the terrain mesh uses, so
-the existing deferred PBR shaders consume flora unchanged):
+**pos3 + normal3** vertices (stride 6, attributes `Position | Normal`), split into
+**separate trunk and foliage geometry**. Colour is applied per **MeshPart material**
+(a trunk material + a foliage material) — the same `ColorAttribute.Diffuse` path the
+existing box trees/rocks already render correctly through the deferred gbuffer. (Per-vertex
+`color4` was considered but not used: it is unverified through the deferred shader, whereas
+material-diffuse colour is proven. Colour variation instead comes from per-prototype-variant
+material colours; per-instance variation is transform only.)
 
 - **Branches**: each segment (node → parent) becomes a tapered N-gon tube
-  (`trunk.sides`, e.g. 5–6), colored with the trunk color.
-- **Foliage**: at tip nodes (and optionally sub-tips), if `foliage.style != NONE`, place
-  `clumpsPerTip` low-poly blobs (subdivided octahedron / coarse icosphere) sized from
-  `clumpRadius` and tinted from the foliage color range.
+  (`trunk.sides`, e.g. 5–6).
+- **Foliage**: at tip nodes, if `foliage.style != NONE`, place `clumpsPerTip` low-poly
+  blobs (coarse UV sphere) sized from `clumpRadius`.
 - Computes a bounding box for culling.
 
 This builder is the **testable core**. `FloraModelFactory` is the only GL-bound piece: it
@@ -132,7 +137,7 @@ testable without a GL context."
 
 ## 7. Data Schemas (illustrative)
 
-**Species** (`resources/data/flora/species/jungle_canopy_tree.json`):
+**Species** (an entry in `resources/data/flora/species.json`):
 ```json
 {
   "id": "jungle_canopy_tree",
@@ -157,7 +162,7 @@ testable without a GL context."
 ```
 `foliage.style` ∈ `{ CLUMP, NONE }` (NONE → bare/woody plants like cacti).
 
-**Palette** (`resources/data/flora/palettes/tropical_forest.json`), one per biome:
+**Palette** (an entry in `resources/data/flora/palettes.json`), one per biome:
 ```json
 {
   "biome": "TROPICAL_FOREST",
