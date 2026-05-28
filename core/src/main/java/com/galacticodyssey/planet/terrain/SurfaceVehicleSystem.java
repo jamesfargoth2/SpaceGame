@@ -20,6 +20,7 @@ public class SurfaceVehicleSystem extends IteratingSystem {
 
     private static final float MAX_SINKAGE = 0.5f;
     private static final float SINKAGE_ROLLING_RESISTANCE_COEFF = 0.05f;
+    private static final float STEER_TORQUE_SCALE = 0.04f;
 
     private final ComponentMapper<GroundVehicleComponent> vehicleMapper =
         ComponentMapper.getFor(GroundVehicleComponent.class);
@@ -33,6 +34,7 @@ public class SurfaceVehicleSystem extends IteratingSystem {
 
     private final Vector3 tmpForward = new Vector3();
     private final Vector3 tmpVel = new Vector3();
+    private final Vector3 tmpUp = new Vector3();
     private final Matrix4 tmpMat = new Matrix4();
     private final Quaternion tmpQuat = new Quaternion();
 
@@ -71,23 +73,35 @@ public class SurfaceVehicleSystem extends IteratingSystem {
         final float normalForce = vehicle.mass * gravMag;
         final float maxTraction = normalForce * surface.kineticFriction;
 
-        // Default throttle of 1.0 when no input component is present
-        final float throttleInput = 1.0f;
-        final float requestedForce = vehicle.maxDriveForce * throttleInput;
+        final float requestedForce = vehicle.maxDriveForce * vehicle.throttleInput;
+        final float requestedMag = Math.abs(requestedForce);
 
-        final float actualForce = Math.min(Math.abs(requestedForce), maxTraction);
-        vehicle.slipFraction = MathUtils.clamp(
-            1f - actualForce / Math.max(Math.abs(requestedForce), 0.001f), 0f, 1f);
-
-        if (vehicle.slipFraction > 0.1f) {
-            eventBus.publish(new WheelSlipEvent(entity, vehicle.slipFraction));
+        if (requestedMag <= 0.001f) {
+            vehicle.slipFraction = 0f;
+        } else {
+            final float clampedMag = Math.min(requestedMag, maxTraction);
+            vehicle.slipFraction = MathUtils.clamp(1f - clampedMag / requestedMag, 0f, 1f);
+            if (vehicle.slipFraction > 0.1f) {
+                eventBus.publish(new WheelSlipEvent(entity, vehicle.slipFraction));
+            }
+            final float actualForce = Math.signum(requestedForce) * clampedMag;
+            physics.body.getWorldTransform(tmpMat);
+            tmpMat.getRotation(tmpQuat);
+            tmpForward.set(0f, 0f, -1f).mul(tmpQuat).nor();
+            physics.body.applyCentralForce(tmpForward.scl(actualForce));
+            physics.body.activate();
         }
 
-        // Forward direction is derived from the body's current world transform
+        applySteering(vehicle, physics);
+    }
+
+    private void applySteering(GroundVehicleComponent vehicle, PhysicsBodyComponent physics) {
+        if (Math.abs(vehicle.steerInput) <= 0.001f) return;
         physics.body.getWorldTransform(tmpMat);
         tmpMat.getRotation(tmpQuat);
-        tmpForward.set(0f, 0f, -1f).mul(tmpQuat).nor();
-        physics.body.applyCentralForce(tmpForward.scl(actualForce));
+        tmpUp.set(0f, 1f, 0f).mul(tmpQuat).nor();
+        final float torque = vehicle.steerInput * vehicle.maxSteerAngle * vehicle.mass * STEER_TORQUE_SCALE;
+        physics.body.applyTorque(tmpUp.scl(torque));
         physics.body.activate();
     }
 

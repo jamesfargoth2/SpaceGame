@@ -87,6 +87,7 @@ import com.galacticodyssey.ship.weapons.systems.ShipWeaponSystem;
 import com.galacticodyssey.ship.weapons.systems.TargetingSystem;
 import com.galacticodyssey.ship.weapons.systems.TurretTrackingSystem;
 import com.galacticodyssey.core.components.CelestialBodyType;
+import com.galacticodyssey.core.components.GravitySourceComponent;
 import com.galacticodyssey.core.components.OrbitalBodyComponent;
 import com.galacticodyssey.core.components.SOITrackerComponent;
 import com.galacticodyssey.core.components.TrajectoryComponent;
