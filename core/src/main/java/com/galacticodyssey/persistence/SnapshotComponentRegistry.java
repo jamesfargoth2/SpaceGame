@@ -54,6 +54,8 @@ import com.galacticodyssey.ship.components.EngineSpecComponent;
 import com.galacticodyssey.ship.components.FuelTankComponent;
 import com.galacticodyssey.ship.components.ShipDataComponent;
 import com.galacticodyssey.ship.components.ShipFlightComponent;
+import com.galacticodyssey.ship.components.VehicleBayComponent;
+import com.galacticodyssey.persistence.snapshots.VehicleBaySnapshot;
 import com.galacticodyssey.ship.boarding.BoardingOperationComponent;
 import com.galacticodyssey.ship.boarding.ShipSubsystemsComponent;
 import com.galacticodyssey.ship.docking.DockingStateComponent;
@@ -126,6 +128,7 @@ public final class SnapshotComponentRegistry {
         register("PowerState",             PowerStateSnapshot.class,             PowerStateComponent::new);
         register("ShipSubsystems",         ShipSubsystemsSnapshot.class,         ShipSubsystemsComponent::new);
         register("BoardingOperation",      BoardingOperationSnapshot.class,      BoardingOperationComponent::new);
+        register("VehicleBay",             VehicleBaySnapshot.class,             VehicleBayComponent::new);
 
         // ----- Tags -----
         TAG_REGISTRY.put("HostileTagComponent", HostileTagComponent::new);

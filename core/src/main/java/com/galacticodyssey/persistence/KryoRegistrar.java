@@ -91,6 +91,7 @@ public final class KryoRegistrar {
         kryo.register(CargoBaySnapshot.class, 62);
         kryo.register(EngineSpecSnapshot.class, 63);
         kryo.register(FuelTankSnapshot.class, 64);
+        kryo.register(VehicleBaySnapshot.class, 65);
 
         // --- Ship subsystem snapshots ---
         kryo.register(ThermalStateSnapshot.class, 70);
