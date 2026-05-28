@@ -9,10 +9,13 @@ import com.badlogic.ashley.utils.ImmutableArray;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Pools;
+import com.galacticodyssey.combat.CombatEnums.FuseType;
+import com.galacticodyssey.combat.components.GrenadeComponent;
 import com.galacticodyssey.combat.components.HealthComponent;
 import com.galacticodyssey.combat.components.HitboxComponent;
 import com.galacticodyssey.combat.components.ProjectileComponent;
 import com.galacticodyssey.combat.components.RangedWeaponComponent;
+import com.galacticodyssey.combat.events.GrenadeBounceEvent;
 import com.galacticodyssey.combat.events.ProjectileHitEvent;
 import com.galacticodyssey.combat.events.WeaponFiredEvent;
 import com.galacticodyssey.core.EventBus;
@@ -153,6 +156,24 @@ public class ProjectileSystem extends IteratingSystem {
             return;
         }
 
+        // --- Ground-plane bounce for grenades ---
+        GrenadeComponent gc = GrenadeComponent.MAPPER.get(entity);
+        if (gc != null && gc.fuseType != FuseType.IMPACT && transform.position.y <= 0f) {
+            transform.position.y = 0f;
+            if (gc.bounceCount < gc.maxBounces) {
+                proj.velocity.y = -proj.velocity.y * gc.bounceRestitution;
+                proj.velocity.x *= gc.bounceRestitution;
+                proj.velocity.z *= gc.bounceRestitution;
+                gc.bounceCount++;
+                if (proj.velocity.len() < 0.5f) {
+                    proj.velocity.setZero();
+                }
+                eventBus.publish(new GrenadeBounceEvent(entity, transform.position, Vector3.Y));
+            } else {
+                proj.velocity.setZero();
+            }
+        }
+
         // --- Collision detection ---
         if (engine == null) return;
 
@@ -169,6 +190,31 @@ public class ProjectileSystem extends IteratingSystem {
 
             float dist = transform.position.dst(targetTransform.position);
             if (dist <= COLLISION_RADIUS) {
+                // Check if this projectile is a grenade
+                GrenadeComponent grenadeComp = GrenadeComponent.MAPPER.get(entity);
+                if (grenadeComp != null) {
+                    if (grenadeComp.fuseType == FuseType.IMPACT) {
+                        grenadeComp.fuseTimer = 0f;
+                        proj.velocity.setZero();
+                    } else {
+                        if (grenadeComp.bounceCount < grenadeComp.maxBounces) {
+                            Vector3 normal = new Vector3(transform.position).sub(targetTransform.position).nor();
+                            float dot = proj.velocity.dot(normal);
+                            proj.velocity.mulAdd(normal, -2f * dot);
+                            proj.velocity.scl(grenadeComp.bounceRestitution);
+                            grenadeComp.bounceCount++;
+                            if (proj.velocity.len() < 0.5f) {
+                                proj.velocity.setZero();
+                            }
+                            eventBus.publish(new GrenadeBounceEvent(entity, transform.position, normal));
+                        } else {
+                            proj.velocity.setZero();
+                        }
+                    }
+                    return; // Skip normal projectile hit processing for ALL grenades
+                }
+
+                // Normal projectile hit (non-grenade)
                 eventBus.publish(new ProjectileHitEvent(
                     proj.owner,
                     candidate,
