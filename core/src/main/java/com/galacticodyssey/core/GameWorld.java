@@ -144,8 +144,19 @@ import com.galacticodyssey.economy.service.TransactionService;
 import com.galacticodyssey.economy.simulation.PlanetaryEconomyManager;
 import com.galacticodyssey.economy.systems.PlanetaryStockSystem;
 import com.galacticodyssey.economy.systems.PricingSystem;
+import com.galacticodyssey.planet.AtmoHazard;
+import com.galacticodyssey.planet.Atmosphere;
 import com.galacticodyssey.planet.BiomeMap;
+import com.galacticodyssey.planet.BiomeType;
+import com.galacticodyssey.planet.Gas;
 import com.galacticodyssey.planet.Planet;
+import com.galacticodyssey.planet.fire.CombustionSystem;
+import com.galacticodyssey.planet.fire.WildfireSystem;
+import com.galacticodyssey.planet.thermal.HeatSourceSystem;
+import com.galacticodyssey.planet.thermal.ObjectTemperatureSystem;
+import com.galacticodyssey.planet.thermal.PlanetSurfaceEnvironment;
+import com.galacticodyssey.planet.thermal.ThermalEnvironment;
+import com.galacticodyssey.planet.thermal.ThermalMaterialRegistry;
 import com.galacticodyssey.planet.terrain.DustSystem;
 import com.galacticodyssey.planet.terrain.PlanetTerrainSystem;
 import com.galacticodyssey.planet.terrain.SeismicSystem;
@@ -265,6 +276,7 @@ public class GameWorld implements Disposable {
     private DustSystem dustSystem;
     private SeismicSystem seismicSystem;
     private SurfaceAnchorSystem surfaceAnchorSystem;
+    private ThermalMaterialRegistry thermalMaterialRegistry;
     private AudioSystem audioSystem;
     private RealTimeSkillSystem realTimeSkillSystem;
     private PerkRegistry perkRegistry;
@@ -346,6 +358,34 @@ public class GameWorld implements Disposable {
         engine.addSystem(dustSystem);
         engine.addSystem(seismicSystem);
         engine.addSystem(surfaceAnchorSystem);
+
+        // Planetside thermal & fire simulation for the active surface scene.
+        // The flat test map has no active Planet/BiomeMap/Atmosphere in scope, so an
+        // Earth-like baseline environment is built here (293 K ambient, breathable air,
+        // 21% O2) consistent with the surface scene. When a real planet is streamed in,
+        // pass that planet's BiomeMap + Atmosphere (and scene lat/lon/radius) here instead.
+        thermalMaterialRegistry = new ThermalMaterialRegistry();
+        thermalMaterialRegistry.loadFromFiles();
+
+        java.util.EnumMap<Gas, Float> airComposition = new java.util.EnumMap<>(Gas.class);
+        airComposition.put(Gas.N2, 0.78f);
+        airComposition.put(Gas.O2, 0.21f);
+        airComposition.put(Gas.Ar, 0.01f);
+        Atmosphere surfaceAtmosphere = new Atmosphere(
+            airComposition, 101325f, 1.0f, 255f, 293f, true,
+            java.util.EnumSet.noneOf(AtmoHazard.class));
+        BiomeMap surfaceBiomeMap = new BiomeMap(
+            0L, 0f, 6000f, 0.5f, 293f, java.util.EnumSet.allOf(BiomeType.class));
+        float sceneLatRad = 0f;
+        float sceneLonRad = 0f;
+        // Planet center sits 50 km below the flat map (see planetCenter above); use that as radius.
+        float planetRadius = 50000f;
+        ThermalEnvironment thermalEnv = new PlanetSurfaceEnvironment(
+            surfaceBiomeMap, surfaceAtmosphere, sceneLatRad, sceneLonRad, planetRadius);
+        engine.addSystem(new WildfireSystem(eventBus, thermalEnv));
+        engine.addSystem(new HeatSourceSystem());
+        engine.addSystem(new CombustionSystem(eventBus, thermalMaterialRegistry));
+        engine.addSystem(new ObjectTemperatureSystem(eventBus, thermalMaterialRegistry, thermalEnv));
 
         realTimeSkillSystem = new RealTimeSkillSystem(eventBus);
         engine.addSystem(realTimeSkillSystem);
