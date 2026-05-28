@@ -1,17 +1,12 @@
 package com.galacticodyssey.galaxy;
 
 import com.badlogic.ashley.core.EntitySystem;
+import com.badlogic.gdx.math.MathUtils;
 import com.galacticodyssey.core.EventBus;
+import com.galacticodyssey.planet.Moon;
+import com.galacticodyssey.planet.Planet;
 
-/**
- * Ashley EntitySystem (priority 2) that advances every {@link OrbitalSlot} in the active
- * {@link StarSystem} each frame.  Runs after GravitySystem (priority 1).
- *
- * No GL resources are touched here — only float arithmetic and event publishing.
- */
 public final class KeplerianOrbitSystem extends EntitySystem {
-
-    // ------------------------------------------------------------------ inner events
 
     public static final class OrbitTickEvent {
         public final StarSystem system;
@@ -21,19 +16,14 @@ public final class KeplerianOrbitSystem extends EntitySystem {
         }
     }
 
-    // ------------------------------------------------------------------ fields
-
     private final EventBus eventBus;
     private StarSystem activeSystem;
-
-    // ------------------------------------------------------------------ construction
+    private float timeScale = 1.0f;
 
     public KeplerianOrbitSystem(EventBus eventBus) {
         super(2);
         this.eventBus = eventBus;
     }
-
-    // ------------------------------------------------------------------ API
 
     public void setActiveSystem(StarSystem system) {
         this.activeSystem = system;
@@ -48,27 +38,38 @@ public final class KeplerianOrbitSystem extends EntitySystem {
         return activeSystem;
     }
 
-    // ------------------------------------------------------------------ update
+    public void setTimeScale(float timeScale) {
+        this.timeScale = timeScale;
+    }
+
+    public float getTimeScale() {
+        return timeScale;
+    }
 
     @Override
     public void update(float dt) {
         if (activeSystem == null || activeSystem.orbits.isEmpty()) return;
 
-        final float starMass = activeSystem.mass;
-        final float GM       = OrbitalMechanics.G * starMass;
+        final float scaledDt = dt * timeScale;
 
         for (OrbitalSlot slot : activeSystem.orbits) {
             if (slot.orbitalPeriod <= 0f) continue;
 
-            // Mean motion n = 2π / T
-            final float n = com.badlogic.gdx.math.MathUtils.PI2 / slot.orbitalPeriod;
-
-            // Advance mean anomaly
-            slot.currentMeanAnomaly += n * dt;
-
-            // Convert M → ν
+            float n = MathUtils.PI2 / slot.orbitalPeriod;
+            slot.currentMeanAnomaly += n * scaledDt;
             slot.currentTrueAnomaly = OrbitalMechanics.trueAnomalyFromMean(
                 slot.currentMeanAnomaly, slot.eccentricity);
+
+            Planet planet = slot.planet;
+            if (planet != null) {
+                for (Moon moon : planet.moons) {
+                    if (moon.orbitalPeriod <= 0f || moon.orbitalPeriod >= Float.MAX_VALUE) continue;
+                    float moonN = MathUtils.PI2 / moon.orbitalPeriod;
+                    moon.currentMeanAnomaly += moonN * scaledDt;
+                    moon.currentTrueAnomaly = OrbitalMechanics.trueAnomalyFromMean(
+                        moon.currentMeanAnomaly, moon.orbitalEccentricity);
+                }
+            }
         }
 
         eventBus.publish(new OrbitTickEvent(activeSystem));

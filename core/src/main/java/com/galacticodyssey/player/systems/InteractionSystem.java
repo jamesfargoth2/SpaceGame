@@ -15,6 +15,10 @@ import com.galacticodyssey.npc.components.NpcIdentityComponent;
 import com.galacticodyssey.player.components.PlayerInputComponent;
 import com.galacticodyssey.player.components.PlayerStateComponent;
 import com.galacticodyssey.player.components.PlayerStateComponent.PlayerMode;
+import com.galacticodyssey.planet.terrain.GroundVehicleComponent;
+import com.galacticodyssey.planet.terrain.VehicleBayService;
+import com.galacticodyssey.planet.terrain.VehicleEntryPointComponent;
+import com.galacticodyssey.planet.terrain.VehicleTagComponent;
 import com.galacticodyssey.ship.components.*;
 
 public class InteractionSystem extends EntitySystem {
@@ -29,10 +33,19 @@ public class InteractionSystem extends EntitySystem {
     private final ComponentMapper<ShipInteriorComponent> interiorMapper = ComponentMapper.getFor(ShipInteriorComponent.class);
     private final ComponentMapper<NpcDialogComponent> npcDialogMapper = ComponentMapper.getFor(NpcDialogComponent.class);
     private final ComponentMapper<NpcIdentityComponent> npcIdentityMapper = ComponentMapper.getFor(NpcIdentityComponent.class);
+    private final ComponentMapper<VehicleEntryPointComponent> vehicleEntryMapper =
+        ComponentMapper.getFor(VehicleEntryPointComponent.class);
+    private final ComponentMapper<com.galacticodyssey.ship.components.VehicleBayComponent> bayMapper =
+        ComponentMapper.getFor(com.galacticodyssey.ship.components.VehicleBayComponent.class);
 
     private ImmutableArray<Entity> playerEntities;
     private ImmutableArray<Entity> shipEntities;
     private ImmutableArray<Entity> npcEntities;
+    private ImmutableArray<Entity> vehicleEntities;
+    private com.badlogic.ashley.utils.ImmutableArray<Entity> bayShipEntities;
+    private VehicleBayService bayService; // optional; set during GameWorld wiring
+
+    public void setVehicleBayService(VehicleBayService bayService) { this.bayService = bayService; }
     private final Vector3 tempVec = new Vector3();
     private final Vector3 worldPos = new Vector3();
     private final Matrix4 shipWorldMat = new Matrix4();
@@ -52,6 +65,11 @@ public class InteractionSystem extends EntitySystem {
             ShipEntryPointComponent.class, TransformComponent.class).get());
         npcEntities = engine.getEntitiesFor(Family.all(
             NpcDialogComponent.class, NpcIdentityComponent.class, TransformComponent.class).get());
+        vehicleEntities = engine.getEntitiesFor(Family.all(
+            VehicleTagComponent.class, VehicleEntryPointComponent.class, TransformComponent.class).get());
+        bayShipEntities = engine.getEntitiesFor(Family.all(
+            com.galacticodyssey.ship.components.VehicleBayComponent.class,
+            TransformComponent.class).get());
     }
 
     @Override
@@ -67,7 +85,9 @@ public class InteractionSystem extends EntitySystem {
         switch (state.currentMode) {
             case ON_FOOT_EXTERIOR:
                 if (!checkNpcDialog(player, playerTransform, input)) {
-                    checkShipEntry(player, playerTransform, state, input);
+                    if (!checkEnterVehicle(player, playerTransform, state, input)) {
+                        checkShipEntry(player, playerTransform, state, input);
+                    }
                 }
                 break;
             case ON_FOOT_INTERIOR:
@@ -75,6 +95,7 @@ public class InteractionSystem extends EntitySystem {
                 checkShipExit(player, state, input);
                 break;
             case PILOTING: checkStopPiloting(player, state, input); break;
+            case DRIVING: checkExitVehicle(player, state, input); break;
         }
         input.interactPressed = false;
     }
@@ -243,6 +264,85 @@ public class InteractionSystem extends EntitySystem {
             eventBus.publish(new PlayerStopPilotingEvent(player, ship));
             eventBus.publish(new PlayerExitShipEvent(player, ship));
         }
+    }
+
+    private boolean checkEnterVehicle(Entity player, TransformComponent playerTransform,
+                                      PlayerStateComponent state, PlayerInputComponent input) {
+        Entity nearest = null;
+        float nearestDist = Float.MAX_VALUE;
+        for (int i = 0; i < vehicleEntities.size(); i++) {
+            Entity v = vehicleEntities.get(i);
+            TransformComponent vt = transformMapper.get(v);
+            VehicleEntryPointComponent entry = vehicleEntryMapper.get(v);
+            float dist = tempVec.set(playerTransform.position).dst(vt.position);
+            if (dist < entry.triggerRadius && dist < nearestDist) {
+                nearestDist = dist;
+                nearest = v;
+            }
+        }
+        if (nearest == null) return false;
+
+        eventBus.publish(new InteractionPromptEvent("[F] Enter Vehicle", true));
+        if (input.interactPressed) {
+            state.currentMode = PlayerMode.DRIVING;
+            state.currentVehicle = nearest;
+            freezePlayerBody(player);
+            eventBus.publish(new PlayerEnterVehicleEvent(player, nearest));
+        }
+        return true;
+    }
+
+    private void checkExitVehicle(Entity player, PlayerStateComponent state, PlayerInputComponent input) {
+        if (state.currentVehicle == null) return;
+        Entity vehicle = state.currentVehicle;
+        TransformComponent vt = transformMapper.get(vehicle);
+
+        // Look for a nearby ship bay to retrieve into — retrieve takes priority over plain exit.
+        Entity bayShip = null;
+        if (vt != null && bayShipEntities != null) {
+            float best = Float.MAX_VALUE;
+            for (int i = 0; i < bayShipEntities.size(); i++) {
+                Entity s = bayShipEntities.get(i);
+                com.galacticodyssey.ship.components.VehicleBayComponent bay = bayMapper.get(s);
+                TransformComponent st = transformMapper.get(s);
+                float dist = tempVec.set(vt.position).dst(st.position);
+                if (dist < bay.triggerRadius && dist < best) { best = dist; bayShip = s; }
+            }
+        }
+
+        if (bayShip != null) {
+            eventBus.publish(new InteractionPromptEvent("[F] Retrieve Vehicle", true));
+            if (input.interactPressed) {
+                state.currentMode = PlayerMode.ON_FOOT_EXTERIOR;
+                state.currentVehicle = null;
+                unfreezePlayerBody(player);
+                TransformComponent st = transformMapper.get(bayShip);
+                if (st != null) { worldPos.set(st.position); teleportPlayer(player, worldPos); }
+                if (bayService != null) bayService.retrieve(bayShip, vehicle);
+            }
+            return;
+        }
+
+        // Plain exit (no nearby bay).
+        eventBus.publish(new InteractionPromptEvent("[F] Exit Vehicle", true));
+        if (!input.interactPressed) return;
+
+        state.currentMode = PlayerMode.ON_FOOT_EXTERIOR;
+        state.currentVehicle = null;
+        GroundVehicleComponent gv = vehicle.getComponent(GroundVehicleComponent.class);
+        if (gv != null) { gv.throttleInput = 0f; gv.steerInput = 0f; }
+
+        unfreezePlayerBody(player);
+        if (vt != null) {
+            VehicleEntryPointComponent entry = vehicleEntryMapper.get(vehicle);
+            if (entry != null) {
+                worldPos.set(vt.position).add(entry.localExitOffset);
+            } else {
+                worldPos.set(vt.position).add(2f, 0f, 0f);
+            }
+            teleportPlayer(player, worldPos);
+        }
+        eventBus.publish(new PlayerExitVehicleEvent(player, vehicle));
     }
 
     private void freezePlayerBody(Entity player) {

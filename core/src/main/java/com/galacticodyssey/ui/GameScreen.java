@@ -98,6 +98,7 @@ import com.galacticodyssey.mission.job.ReputationQuery;
 import com.galacticodyssey.mission.saga.SagaRegistry;
 import com.galacticodyssey.npc.events.RecruitmentOpenedEvent;
 import com.galacticodyssey.npc.events.RecruitmentClosedEvent;
+import com.galacticodyssey.ship.components.VehicleBayComponent;
 
 import java.util.Random;
 
@@ -152,6 +153,10 @@ public class GameScreen implements Screen {
     private float weaponSwayX;
     private float weaponSwayY;
 
+    private Model vehicleFallbackModel;
+    private final java.util.Map<com.badlogic.ashley.core.Entity, com.badlogic.gdx.graphics.g3d.ModelInstance> vehicleInstances =
+        new java.util.HashMap<>();
+
     // Muzzle flash screen-space overlay
     private static final float MUZZLE_FLASH_DURATION = 0.08f;
     private ShapeRenderer debugRenderer;
@@ -168,8 +173,12 @@ public class GameScreen implements Screen {
     private InventoryScreenSystem inventoryScreenSystem;
     private OutfitterScreenSystem outfitterScreenSystem;
     private QuestJournalOverlay questJournalOverlay;
+    private com.galacticodyssey.ui.CharacterScreen characterScreen;
+    private com.galacticodyssey.ui.LevelUpToastOverlay levelUpToast;
     private ScreenTabManager screenTabManager;
     private com.galacticodyssey.ui.systems.RecruitmentScreenSystem recruitmentScreen;
+    private VehicleBayPanel vehicleBayPanel;
+    private com.badlogic.gdx.scenes.scene2d.Stage vehicleBayStage;
 
     // Preserve existing constructor for load-game flow
     public GameScreen(GalacticOdyssey game) {
@@ -290,6 +299,21 @@ public class GameScreen implements Screen {
         gameWorld.getEventBus().subscribe(WeaponFiredEvent.class, e -> {
             muzzleFlashTimer = MUZZLE_FLASH_DURATION;
         });
+
+        // Vehicle bay rendering hooks
+        vehicleFallbackModel = new ModelBuilder().createBox(
+            2f, 1f, 4f,
+            new Material(ColorAttribute.createDiffuse(new Color(0.3f, 0.5f, 0.7f, 1f))),
+            VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
+        disposables.add(vehicleFallbackModel);
+        gameWorld.getEventBus().subscribe(com.galacticodyssey.planet.terrain.events.VehicleDeployedEvent.class, e -> {
+            com.badlogic.gdx.graphics.g3d.ModelInstance mi =
+                new com.badlogic.gdx.graphics.g3d.ModelInstance(vehicleFallbackModel);
+            vehicleInstances.put(e.vehicle, mi);
+        });
+        gameWorld.getEventBus().subscribe(com.galacticodyssey.planet.terrain.events.VehicleRetrievedEvent.class, e -> {
+            vehicleInstances.entrySet().removeIf(entry -> entry.getKey().getComponents().size() == 0);
+        });
         buildPauseMenu();
         buildDialogSystem();
         buildHackingSystem();
@@ -355,6 +379,24 @@ public class GameScreen implements Screen {
                             screenTabManager.closeActive();
                         } else {
                             screenTabManager.switchTo("journal");
+                        }
+                        return true;
+                    }
+                    if (keycode == Input.Keys.C) {
+                        if (isAnyScreenOpen() && "character".equals(screenTabManager.getActiveScreenName())) {
+                            screenTabManager.closeActive();
+                        } else {
+                            screenTabManager.switchTo("character");
+                        }
+                        return true;
+                    }
+                    if (keycode == Input.Keys.B) {
+                        if (vehicleBayPanel != null) {
+                            if (vehicleBayPanel.isVisible()) {
+                                vehicleBayPanel.hide();
+                            } else {
+                                vehicleBayPanel.show();
+                            }
                         }
                         return true;
                     }
@@ -686,6 +728,13 @@ public class GameScreen implements Screen {
         recruitmentScreen.initialize(gameWorld.getEngine());
         screenTabManager.register("recruitment", recruitmentScreen);
 
+        characterScreen = new com.galacticodyssey.ui.CharacterScreen(eventBus, skin);
+        characterScreen.initialize(gameWorld.getEngine(),
+            gameWorld.getRealTimeSkillSystem(), gameWorld.getPerkSystem(), gameWorld.getPerkRegistry());
+        screenTabManager.register("character", characterScreen);
+
+        levelUpToast = new com.galacticodyssey.ui.LevelUpToastOverlay(eventBus, skin);
+
         screenTabManager.setTransitionListener(new ScreenTabManager.ScreenTransitionListener() {
             @Override
             public void onScreenOpened(String name, ManagedScreen screen) {
@@ -701,6 +750,28 @@ public class GameScreen implements Screen {
                 setupInput();
             }
         });
+
+        // Vehicle bay overlay (standalone panel — not a ManagedScreen)
+        vehicleBayStage = new com.badlogic.gdx.scenes.scene2d.Stage(
+            new com.badlogic.gdx.utils.viewport.ScreenViewport());
+        java.util.function.Supplier<com.badlogic.ashley.core.Entity> bayShipSupplier = () -> {
+            com.badlogic.ashley.utils.ImmutableArray<com.badlogic.ashley.core.Entity> ships =
+                gameWorld.getEngine().getEntitiesFor(
+                    com.badlogic.ashley.core.Family.all(VehicleBayComponent.class).get());
+            return ships.size() > 0 ? ships.first() : null;
+        };
+        vehicleBayPanel = new VehicleBayPanel(
+            game.getSkin(),
+            gameWorld.getVehicleRegistry(),
+            gameWorld.getVehicleBayService(),
+            bayShipSupplier,
+            gameWorld.getEventBus());
+        vehicleBayPanel.setFillParent(true);
+        vehicleBayStage.addActor(vehicleBayPanel);
+        // Give the bay stage first dibs on input so its Deploy/close buttons are clickable when
+        // shown. While the panel is hidden the (invisible) stage hit-tests to nothing and passes
+        // all input through to the rest of the multiplexer.
+        inputMultiplexer.addProcessor(0, vehicleBayStage);
     }
     private void buildDialogSystem() {
         EventBus eventBus = gameWorld.getEventBus();
@@ -1140,7 +1211,12 @@ public class GameScreen implements Screen {
         gameWorld.getDebugHudSystem().render(delta);
         if (dialogHudSystem != null) dialogHudSystem.render(delta);
         if (hackingOverlay != null) hackingOverlay.render(delta);
+        if (levelUpToast != null) levelUpToast.render(delta);
         if (screenTabManager != null) screenTabManager.render(delta);
+        if (vehicleBayPanel != null && vehicleBayPanel.isVisible()) {
+            vehicleBayStage.act(delta);
+            vehicleBayStage.draw();
+        }
         if (paused) { pauseStage.act(delta); pauseStage.draw(); }
     }
 
@@ -1150,6 +1226,13 @@ public class GameScreen implements Screen {
             TransformComponent t = entity.getComponent(TransformComponent.class);
             boxInstances.get(i).transform.setToTranslation(t.position);
             boxInstances.get(i).transform.rotate(t.rotation);
+        }
+        for (var entry : vehicleInstances.entrySet()) {
+            TransformComponent t =
+                entry.getKey().getComponent(TransformComponent.class);
+            if (t != null) {
+                entry.getValue().transform.set(t.position, t.rotation);
+            }
         }
     }
 
@@ -1184,6 +1267,9 @@ public class GameScreen implements Screen {
         for (int i = 0; i < boxInstances.size; i++) {
             gbufferBatch.render(boxInstances.get(i));
         }
+        for (com.badlogic.gdx.graphics.g3d.ModelInstance mi : vehicleInstances.values()) {
+            gbufferBatch.render(mi);
+        }
         gbufferBatch.end();
     }
 
@@ -1217,7 +1303,9 @@ public class GameScreen implements Screen {
         pauseStage.getViewport().update(width, height, true);
         if (dialogHudSystem != null) dialogHudSystem.resize(width, height);
         if (hackingOverlay != null) hackingOverlay.resize(width, height);
+        if (levelUpToast != null) levelUpToast.resize(width, height);
         if (screenTabManager != null) screenTabManager.resize(width, height);
+        if (vehicleBayStage != null) vehicleBayStage.getViewport().update(width, height, true);
     }
 
     @Override
@@ -1295,6 +1383,19 @@ public class GameScreen implements Screen {
         if (questJournalOverlay != null) {
             questJournalOverlay.dispose();
             questJournalOverlay = null;
+        }
+        if (characterScreen != null) {
+            characterScreen.dispose();
+            characterScreen = null;
+        }
+        if (levelUpToast != null) { levelUpToast.dispose(); levelUpToast = null; }
+        if (vehicleBayPanel != null) {
+            vehicleBayPanel.dispose();
+            vehicleBayPanel = null;
+        }
+        if (vehicleBayStage != null) {
+            vehicleBayStage.dispose();
+            vehicleBayStage = null;
         }
         if (screenTabManager != null) {
             screenTabManager.dispose();

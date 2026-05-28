@@ -15,6 +15,7 @@ import com.galacticodyssey.ship.components.*;
 import com.galacticodyssey.ship.modules.*;
 import com.galacticodyssey.ship.modules.components.ShipCargoComponent;
 import com.galacticodyssey.ship.modules.components.ShipLoadoutComponent;
+import com.galacticodyssey.ship.boarding.ShipSubsystemsComponent;
 import com.galacticodyssey.ship.power.PowerStateComponent;
 import com.galacticodyssey.ship.power.ReactorSpec;
 import com.galacticodyssey.ship.power.ReactorSpecRegistry;
@@ -150,6 +151,9 @@ public class ShipFactory implements Disposable {
         shipData.currentHullHp = HULL_HP[si];
         shipData.hullGeometry = hull;
         entity.add(shipData);
+        ShipSubsystemsComponent subsystems = new ShipSubsystemsComponent();
+        subsystems.initDefaults(shipData.hullHp * 0.25f);
+        entity.add(subsystems);
 
         // Mesh component — hullMesh intentionally null until GL context available
         ShipMeshComponent meshComp = new ShipMeshComponent();
@@ -194,6 +198,12 @@ public class ShipFactory implements Disposable {
         ShipLoadoutComponent loadoutComp = buildLoadoutComponent(sizeClass);
         entity.add(loadoutComp);
         entity.add(new ShipCargoComponent());
+
+        // Vehicle bay — pre-stocked with a starter rover
+        VehicleBayComponent vehicleBay = new VehicleBayComponent();
+        vehicleBay.capacity = 2;
+        vehicleBay.storedVehicleIds.add("rover_light");
+        entity.add(vehicleBay);
 
         // Exterior physics body (dynamic, zero-gravity so it hovers in place until piloted)
         PhysicsBodyComponent physicsBody = buildExteriorPhysicsBody(hull, mass, x, adjustedY, z);
@@ -244,6 +254,9 @@ public class ShipFactory implements Disposable {
         data.currentHullHp = HULL_HP[si];
         data.hullGeometry = hull;
         entity.add(data);
+        ShipSubsystemsComponent subsystems2 = new ShipSubsystemsComponent();
+        subsystems2.initDefaults(data.hullHp * 0.25f);
+        entity.add(subsystems2);
 
         ShipMeshComponent meshComp = new ShipMeshComponent();
         meshComp.vertexStride = hull.vertexStride;
@@ -281,6 +294,12 @@ public class ShipFactory implements Disposable {
         ShipLoadoutComponent loadout = buildLoadoutComponent(design.sizeClass);
         entity.add(loadout);
         entity.add(new ShipCargoComponent());
+
+        // Vehicle bay — pre-stocked with a starter rover
+        VehicleBayComponent vehicleBay2 = new VehicleBayComponent();
+        vehicleBay2.capacity = 2;
+        vehicleBay2.storedVehicleIds.add("rover_light");
+        entity.add(vehicleBay2);
 
         PhysicsBodyComponent physComp = buildExteriorPhysicsBody(hull, mass, x, adjustedY, z);
         entity.add(physComp);

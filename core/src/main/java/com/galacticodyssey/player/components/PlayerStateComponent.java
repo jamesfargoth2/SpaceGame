@@ -10,15 +10,18 @@ public class PlayerStateComponent implements Component, Snapshotable<PlayerState
     public enum PlayerMode {
         ON_FOOT_EXTERIOR,
         ON_FOOT_INTERIOR,
-        PILOTING
+        PILOTING,
+        DRIVING
     }
 
     public PlayerMode currentMode = PlayerMode.ON_FOOT_EXTERIOR;
     public Entity currentShip;
+    public Entity currentVehicle;
     public Entity interactionTarget;
 
     /** Persisted alongside Entity references for save/load; resolved by ReferenceResolver. */
     public UUID currentShipId;
+    public UUID currentVehicleId;
     public UUID interactionTargetId;
 
     @Override

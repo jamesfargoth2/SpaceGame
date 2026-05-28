@@ -16,7 +16,9 @@ public enum RoomType {
     MEDBAY(3, 2, 2, 3, 2, 2,
         new Color(0.8f, 0.8f, 0.8f, 1f), new Color(0.3f, 0.7f, 0.6f, 1f)),
     ARMORY(2, 2, 2, 2, 2, 2,
-        new Color(0.25f, 0.25f, 0.25f, 1f), new Color(0.7f, 0.2f, 0.2f, 1f));
+        new Color(0.25f, 0.25f, 0.25f, 1f), new Color(0.7f, 0.2f, 0.2f, 1f)),
+    VEHICLE_BAY(4, 4, 2, 7, 6, 3,
+        new Color(0.22f, 0.24f, 0.26f, 1f), new Color(0.5f, 0.6f, 0.8f, 1f));
 
     public final int minSizeX, minSizeZ, minSizeY;
     public final int maxSizeX, maxSizeZ, maxSizeY;

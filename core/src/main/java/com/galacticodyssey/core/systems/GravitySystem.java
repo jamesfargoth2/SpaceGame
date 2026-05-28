@@ -11,6 +11,8 @@ import com.badlogic.gdx.utils.Pools;
 import com.galacticodyssey.core.components.GravityAffectedComponent;
 import com.galacticodyssey.core.components.GravitySourceComponent;
 import com.galacticodyssey.core.components.GravityZoneComponent;
+import com.galacticodyssey.core.components.OrbitalBodyComponent;
+import com.galacticodyssey.core.components.SOITrackerComponent;
 import com.galacticodyssey.core.components.TransformComponent;
 
 public class GravitySystem extends EntitySystem {
@@ -26,6 +28,10 @@ public class GravitySystem extends EntitySystem {
         ComponentMapper.getFor(GravityAffectedComponent.class);
     private static final ComponentMapper<GravityZoneComponent> zoneMapper =
         ComponentMapper.getFor(GravityZoneComponent.class);
+    private static final ComponentMapper<SOITrackerComponent> soiMapper =
+        ComponentMapper.getFor(SOITrackerComponent.class);
+    private static final ComponentMapper<OrbitalBodyComponent> orbitalMapper =
+        ComponentMapper.getFor(OrbitalBodyComponent.class);
 
     private ImmutableArray<Entity> sources;
     private ImmutableArray<Entity> affectedBodies;
@@ -59,13 +65,14 @@ public class GravitySystem extends EntitySystem {
             TransformComponent bodyTransform = transformMapper.get(body);
             GravityAffectedComponent affected = affectedMapper.get(body);
 
-            computeNetAccelerationInternal(bodyTransform.position, affected.mass, affected.lastAcceleration);
+            SOITrackerComponent soi = soiMapper.has(body) ? soiMapper.get(body) : null;
+            computeNetAccelerationInternal(bodyTransform.position, affected.mass, affected.lastAcceleration, soi);
         }
     }
 
     public Vector3 computeNetAcceleration(Vector3 position, float bodyMass) {
         Vector3 result = new Vector3();
-        computeNetAccelerationInternal(position, bodyMass, result);
+        computeNetAccelerationInternal(position, bodyMass, result, null);
         return result;
     }
 
@@ -87,14 +94,15 @@ public class GravitySystem extends EntitySystem {
             }
 
             // Check if net acceleration is below threshold
-            computeNetAccelerationInternal(position, 1f, tmp);
+            computeNetAccelerationInternal(position, 1f, tmp, null);
             return tmp.len() < ZERO_G_THRESHOLD;
         } finally {
             Pools.free(tmp);
         }
     }
 
-    private void computeNetAccelerationInternal(Vector3 position, float bodyMass, Vector3 out) {
+    private void computeNetAccelerationInternal(Vector3 position, float bodyMass, Vector3 out,
+                                                 SOITrackerComponent soi) {
         out.setZero();
 
         Vector3 direction = Pools.obtain(Vector3.class);
@@ -115,6 +123,11 @@ public class GravitySystem extends EntitySystem {
                 // F = G * m1 * m2 / r^e, acceleration = F / bodyMass = G * srcMass / r^e
                 float accelMag = G * src.mass / (float) Math.pow(clampedDist, src.falloffExponent);
 
+                if (soi != null) {
+                    float attenuation = computeSOIAttenuation(srcEntity, soi);
+                    accelMag *= attenuation;
+                }
+
                 if (dist > 0f) {
                     direction.scl(1f / dist); // normalize using original distance for direction
                 }
@@ -126,6 +139,20 @@ public class GravitySystem extends EntitySystem {
         } finally {
             Pools.free(direction);
         }
+    }
+
+    private float computeSOIAttenuation(Entity sourceEntity, SOITrackerComponent soi) {
+        if (sourceEntity == soi.dominantBody) return 1f;
+        if (sourceEntity == soi.secondaryBody) return 1f;
+
+        if (soi.dominantBody != null && orbitalMapper.has(soi.dominantBody)) {
+            OrbitalBodyComponent dominantOrbital = orbitalMapper.get(soi.dominantBody);
+            if (dominantOrbital.soiRadius > 0f) {
+                float ratio = soi.distanceToDominant / dominantOrbital.soiRadius;
+                return Math.max(0f, 1f - ratio * ratio);
+            }
+        }
+        return 1f;
     }
 
     private void applyZoneOverrides(Vector3 position, Vector3 acceleration) {

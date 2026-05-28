@@ -45,6 +45,13 @@ public class ShipFlightSystem extends EntitySystem {
     private final Matrix4 shipTransform = new Matrix4();
     private final Vector3 currentVelocity = new Vector3();
 
+    /** False when the ship has subsystems and its engines are non-operational. */
+    public static boolean canThrust(Entity ship) {
+        com.galacticodyssey.ship.boarding.ShipSubsystemsComponent subs =
+            ship.getComponent(com.galacticodyssey.ship.boarding.ShipSubsystemsComponent.class);
+        return subs == null || subs.enginesOperational();
+    }
+
     public ShipFlightSystem() {
         super(3);
     }
@@ -70,6 +77,11 @@ public class ShipFlightSystem extends EntitySystem {
         PhysicsBodyComponent physics = physicsMapper.get(ship);
         ShipFlightComponent flight = flightMapper.get(ship);
         if (physics == null || physics.body == null || flight == null) return;
+
+        // Engines disabled (destroyed or EMP) → ship coasts, ignore pilot thrust/turn input.
+        if (!canThrust(ship)) {
+            return;
+        }
 
         // Throttle management via EngineSpec
         EngineSpecComponent engineSpec = engineMapper.get(ship);

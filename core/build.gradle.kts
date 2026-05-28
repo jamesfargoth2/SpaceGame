@@ -13,6 +13,7 @@ sourceSets {
                 "com/galacticodyssey/economy/EconomyIntegrationTest.java",
                 "com/galacticodyssey/economy/procgen/SystemEconomyGeneratorTest.java",
                 // "com/galacticodyssey/hacking/PuzzleGridTest.java" — PuzzleGrid implemented
+                // VehicleBayComponentTest — VehicleBayComponent implemented, test re-enabled
             )
         }
     }

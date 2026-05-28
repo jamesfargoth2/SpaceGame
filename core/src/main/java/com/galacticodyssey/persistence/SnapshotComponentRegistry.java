@@ -29,6 +29,7 @@ import com.galacticodyssey.persistence.snapshots.InventorySnapshot;
 import com.galacticodyssey.persistence.snapshots.MeleeWeaponSnapshot;
 import com.galacticodyssey.persistence.snapshots.MovementStateSnapshot;
 import com.galacticodyssey.persistence.snapshots.PlayerStateSnapshot;
+import com.galacticodyssey.persistence.snapshots.PlayerStatsSnapshot;
 import com.galacticodyssey.persistence.snapshots.PlayerWalletSnapshot;
 import com.galacticodyssey.persistence.snapshots.PowerStateSnapshot;
 import com.galacticodyssey.persistence.snapshots.RangedWeaponSnapshot;
@@ -39,17 +40,24 @@ import com.galacticodyssey.persistence.snapshots.ShipFlightSnapshot;
 import com.galacticodyssey.persistence.snapshots.ShipLoadoutSnapshot;
 import com.galacticodyssey.persistence.snapshots.SquadSnapshot;
 import com.galacticodyssey.persistence.snapshots.StatusEffectsSnapshot;
+import com.galacticodyssey.persistence.snapshots.BoardingOperationSnapshot;
+import com.galacticodyssey.persistence.snapshots.ShipSubsystemsSnapshot;
 import com.galacticodyssey.persistence.snapshots.StructuralIntegritySnapshot;
 import com.galacticodyssey.persistence.snapshots.ThermalStateSnapshot;
 import com.galacticodyssey.persistence.snapshots.WeaponInventorySnapshot;
 import com.galacticodyssey.player.components.FPSCameraComponent;
 import com.galacticodyssey.player.components.MovementStateComponent;
 import com.galacticodyssey.player.components.PlayerStateComponent;
+import com.galacticodyssey.player.components.PlayerStatsComponent;
 import com.galacticodyssey.core.components.PlayerTagComponent;
 import com.galacticodyssey.ship.components.EngineSpecComponent;
 import com.galacticodyssey.ship.components.FuelTankComponent;
 import com.galacticodyssey.ship.components.ShipDataComponent;
 import com.galacticodyssey.ship.components.ShipFlightComponent;
+import com.galacticodyssey.ship.components.VehicleBayComponent;
+import com.galacticodyssey.persistence.snapshots.VehicleBaySnapshot;
+import com.galacticodyssey.ship.boarding.BoardingOperationComponent;
+import com.galacticodyssey.ship.boarding.ShipSubsystemsComponent;
 import com.galacticodyssey.ship.docking.DockingStateComponent;
 import com.galacticodyssey.ship.modules.components.ShipCargoComponent;
 import com.galacticodyssey.ship.modules.components.ShipLoadoutComponent;
@@ -86,6 +94,7 @@ public final class SnapshotComponentRegistry {
         register("MovementState", MovementStateSnapshot.class, MovementStateComponent::new);
         register("FPSCamera",     FPSCameraSnapshot.class,     FPSCameraComponent::new);
         register("PlayerWallet",  PlayerWalletSnapshot.class,  PlayerWalletComponent::new);
+        register("PlayerStats",   PlayerStatsSnapshot.class,   PlayerStatsComponent::new);
 
         // ----- Combat -----
         register("Shield",          ShieldSnapshot.class,          ShieldComponent::new);
@@ -117,6 +126,9 @@ public final class SnapshotComponentRegistry {
         register("CompartmentAtmosphere",  CompartmentAtmosphereSnapshot.class,  CompartmentAtmosphereComponent::new);
         register("DockingState",           DockingStateSnapshot.class,           DockingStateComponent::new);
         register("PowerState",             PowerStateSnapshot.class,             PowerStateComponent::new);
+        register("ShipSubsystems",         ShipSubsystemsSnapshot.class,         ShipSubsystemsComponent::new);
+        register("BoardingOperation",      BoardingOperationSnapshot.class,      BoardingOperationComponent::new);
+        register("VehicleBay",             VehicleBaySnapshot.class,             VehicleBayComponent::new);
 
         // ----- Tags -----
         TAG_REGISTRY.put("HostileTagComponent", HostileTagComponent::new);

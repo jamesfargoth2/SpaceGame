@@ -6,7 +6,10 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.galacticodyssey.core.EventBus;
+import com.galacticodyssey.core.components.GravitySourceComponent;
+import com.galacticodyssey.core.components.OrbitalBodyComponent;
 import com.galacticodyssey.core.components.PhysicsBodyComponent;
+import com.galacticodyssey.core.events.SOIChangedEvent;
 import com.galacticodyssey.galaxy.KeplerianOrbitSystem.OrbitTickEvent;
 import com.galacticodyssey.galaxy.KeplerOrbit;
 import com.galacticodyssey.galaxy.OrbitalMechanics;
@@ -87,6 +90,7 @@ public final class OrbitHUDPanel extends Table {
 
     public void subscribeToEventBus(EventBus eventBus) {
         eventBus.subscribe(OrbitTickEvent.class, this::onOrbitTick);
+        eventBus.subscribe(SOIChangedEvent.class, this::onSOIChanged);
     }
 
     // ------------------------------------------------------------------ public API
@@ -115,6 +119,22 @@ public final class OrbitHUDPanel extends Table {
     }
 
     // ------------------------------------------------------------------ event handler
+
+    private void onSOIChanged(SOIChangedEvent event) {
+        if (event.entity != shipEntity) return;
+        Entity newBody = event.newDominantBody;
+        if (newBody == null) return;
+
+        GravitySourceComponent gravity = newBody.getComponent(GravitySourceComponent.class);
+        if (gravity != null) {
+            primaryMass = gravity.mass;
+        }
+
+        OrbitalBodyComponent orbital = newBody.getComponent(OrbitalBodyComponent.class);
+        if (orbital != null) {
+            primaryRadius = orbital.bodyRadius;
+        }
+    }
 
     private void onOrbitTick(OrbitTickEvent event) {
         if (shipEntity == null) return;

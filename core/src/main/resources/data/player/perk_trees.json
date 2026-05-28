@@ -1,0 +1,37 @@
+[
+  { "id": "firearms_steady_hands", "name": "Steady Hands", "description": "Ballistic damage +5%.", "treeSkill": "FIREARMS", "tier": 0, "requiredSkillLevel": 0, "prerequisitePerkIds": [], "modifiers": [ { "target": "DAMAGE_BALLISTIC", "op": "MULT", "value": 1.05 } ] },
+  { "id": "firearms_marksman", "name": "Marksman", "description": "Ballistic damage +10%.", "treeSkill": "FIREARMS", "tier": 1, "requiredSkillLevel": 10, "prerequisitePerkIds": ["firearms_steady_hands"], "modifiers": [ { "target": "DAMAGE_BALLISTIC", "op": "MULT", "value": 1.10 } ] },
+  { "id": "firearms_rapid_reload", "name": "Rapid Reload", "description": "Reload speed greatly improved.", "treeSkill": "FIREARMS", "tier": 2, "requiredSkillLevel": 25, "prerequisitePerkIds": ["firearms_marksman"], "modifiers": [], "specialEffectId": "firearms_rapid_reload" },
+
+  { "id": "energy_overcharge", "name": "Overcharge", "description": "Energy damage +5%.", "treeSkill": "ENERGY_WEAPONS", "tier": 0, "requiredSkillLevel": 0, "prerequisitePerkIds": [], "modifiers": [ { "target": "DAMAGE_ENERGY", "op": "MULT", "value": 1.05 } ] },
+  { "id": "energy_focused_beam", "name": "Focused Beam", "description": "Energy damage +10%.", "treeSkill": "ENERGY_WEAPONS", "tier": 1, "requiredSkillLevel": 10, "prerequisitePerkIds": ["energy_overcharge"], "modifiers": [ { "target": "DAMAGE_ENERGY", "op": "MULT", "value": 1.10 } ] },
+  { "id": "energy_heat_sink", "name": "Heat Sink", "description": "Energy weapons run cool far longer.", "treeSkill": "ENERGY_WEAPONS", "tier": 2, "requiredSkillLevel": 25, "prerequisitePerkIds": ["energy_focused_beam"], "modifiers": [], "specialEffectId": "energy_heat_sink" },
+
+  { "id": "melee_brawler", "name": "Brawler", "description": "Melee damage +8%.", "treeSkill": "MELEE", "tier": 0, "requiredSkillLevel": 0, "prerequisitePerkIds": [], "modifiers": [ { "target": "DAMAGE_MELEE", "op": "MULT", "value": 1.08 } ] },
+  { "id": "melee_crusher", "name": "Crusher", "description": "Melee damage +15%.", "treeSkill": "MELEE", "tier": 1, "requiredSkillLevel": 10, "prerequisitePerkIds": ["melee_brawler"], "modifiers": [ { "target": "DAMAGE_MELEE", "op": "MULT", "value": 1.15 } ] },
+  { "id": "melee_executioner", "name": "Executioner", "description": "Heavy finishers on weakened foes.", "treeSkill": "MELEE", "tier": 2, "requiredSkillLevel": 25, "prerequisitePerkIds": ["melee_crusher"], "modifiers": [], "specialEffectId": "melee_executioner" },
+
+  { "id": "piloting_brace", "name": "Brace for Impact", "description": "Hazard resistance +5%.", "treeSkill": "PILOTING", "tier": 0, "requiredSkillLevel": 0, "prerequisitePerkIds": [], "modifiers": [ { "target": "HAZARD_RESIST", "op": "ADD", "value": 0.05 } ] },
+  { "id": "piloting_evasive", "name": "Evasive Maneuvers", "description": "Tighter handling under fire.", "treeSkill": "PILOTING", "tier": 1, "requiredSkillLevel": 10, "prerequisitePerkIds": ["piloting_brace"], "modifiers": [], "specialEffectId": "piloting_evasive" },
+  { "id": "piloting_ace", "name": "Ace Pilot", "description": "Higher G-tolerance and boost control.", "treeSkill": "PILOTING", "tier": 2, "requiredSkillLevel": 25, "prerequisitePerkIds": ["piloting_evasive"], "modifiers": [], "specialEffectId": "piloting_ace" },
+
+  { "id": "athletics_conditioning", "name": "Conditioning", "description": "Hazard resistance +5%.", "treeSkill": "ATHLETICS", "tier": 0, "requiredSkillLevel": 0, "prerequisitePerkIds": [], "modifiers": [ { "target": "HAZARD_RESIST", "op": "ADD", "value": 0.05 } ] },
+  { "id": "athletics_marathon", "name": "Marathon", "description": "Sprint far longer before tiring.", "treeSkill": "ATHLETICS", "tier": 1, "requiredSkillLevel": 10, "prerequisitePerkIds": ["athletics_conditioning"], "modifiers": [], "specialEffectId": "athletics_marathon" },
+  { "id": "athletics_free_runner", "name": "Free Runner", "description": "Higher jumps, faster climbs.", "treeSkill": "ATHLETICS", "tier": 2, "requiredSkillLevel": 25, "prerequisitePerkIds": ["athletics_marathon"], "modifiers": [], "specialEffectId": "athletics_free_runner" },
+
+  { "id": "stealth_evasion", "name": "Evasion Training", "description": "Hazard resistance +5%.", "treeSkill": "STEALTH", "tier": 0, "requiredSkillLevel": 0, "prerequisitePerkIds": [], "modifiers": [ { "target": "HAZARD_RESIST", "op": "ADD", "value": 0.05 } ] },
+  { "id": "stealth_shadow", "name": "Shadow", "description": "Reduced detection radius.", "treeSkill": "STEALTH", "tier": 1, "requiredSkillLevel": 10, "prerequisitePerkIds": ["stealth_evasion"], "modifiers": [], "specialEffectId": "stealth_shadow" },
+  { "id": "stealth_ghost", "name": "Ghost", "description": "Near-silent movement.", "treeSkill": "STEALTH", "tier": 2, "requiredSkillLevel": 25, "prerequisitePerkIds": ["stealth_shadow"], "modifiers": [], "specialEffectId": "stealth_ghost" },
+
+  { "id": "trading_haggler", "name": "Haggler", "description": "Trade prices 3% better.", "treeSkill": "TRADING", "tier": 0, "requiredSkillLevel": 0, "prerequisitePerkIds": [], "modifiers": [ { "target": "TRADE_PRICE", "op": "MULT", "value": 0.97 } ] },
+  { "id": "trading_broker", "name": "Broker", "description": "Trade prices a further 3% better.", "treeSkill": "TRADING", "tier": 1, "requiredSkillLevel": 10, "prerequisitePerkIds": ["trading_haggler"], "modifiers": [ { "target": "TRADE_PRICE", "op": "MULT", "value": 0.97 } ] },
+  { "id": "trading_magnate", "name": "Magnate", "description": "Reputation gains +10%.", "treeSkill": "TRADING", "tier": 2, "requiredSkillLevel": 25, "prerequisitePerkIds": ["trading_broker"], "modifiers": [ { "target": "REP_GAIN", "op": "MULT", "value": 1.10 } ] },
+
+  { "id": "mining_ore_sense", "name": "Ore Sense", "description": "Crafting quality +5%.", "treeSkill": "MINING", "tier": 0, "requiredSkillLevel": 0, "prerequisitePerkIds": [], "modifiers": [ { "target": "CRAFT_QUALITY", "op": "MULT", "value": 1.05 } ] },
+  { "id": "mining_rich_veins", "name": "Rich Veins", "description": "Higher rare-material yield.", "treeSkill": "MINING", "tier": 1, "requiredSkillLevel": 10, "prerequisitePerkIds": ["mining_ore_sense"], "modifiers": [], "specialEffectId": "mining_rich_veins" },
+  { "id": "mining_deep_core", "name": "Deep Core", "description": "Faster extraction of dense ores.", "treeSkill": "MINING", "tier": 2, "requiredSkillLevel": 25, "prerequisitePerkIds": ["mining_rich_veins"], "modifiers": [], "specialEffectId": "mining_deep_core" },
+
+  { "id": "repair_tinkerer", "name": "Tinkerer", "description": "Crafting quality +5%.", "treeSkill": "REPAIR", "tier": 0, "requiredSkillLevel": 0, "prerequisitePerkIds": [], "modifiers": [ { "target": "CRAFT_QUALITY", "op": "MULT", "value": 1.05 } ] },
+  { "id": "repair_field", "name": "Field Repair", "description": "Faster emergency repairs.", "treeSkill": "REPAIR", "tier": 1, "requiredSkillLevel": 10, "prerequisitePerkIds": ["repair_tinkerer"], "modifiers": [], "specialEffectId": "repair_field" },
+  { "id": "repair_overhaul", "name": "Overhaul", "description": "Repairs restore more integrity.", "treeSkill": "REPAIR", "tier": 2, "requiredSkillLevel": 25, "prerequisitePerkIds": ["repair_field"], "modifiers": [], "specialEffectId": "repair_overhaul" }
+]

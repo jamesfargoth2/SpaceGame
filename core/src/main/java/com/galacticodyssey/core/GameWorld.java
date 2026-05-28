@@ -67,7 +67,11 @@ import com.galacticodyssey.player.systems.InteractionSystem;
 import com.galacticodyssey.player.systems.PlayerAnimationSystem;
 import com.galacticodyssey.player.systems.PlayerInputSystem;
 import com.galacticodyssey.player.systems.PlayerMovementSystem;
+import com.galacticodyssey.player.systems.PerkSystem;
 import com.galacticodyssey.player.systems.RealTimeSkillSystem;
+import com.galacticodyssey.player.systems.SkillXpAwardSystem;
+import com.galacticodyssey.player.stats.PerkRegistry;
+import com.galacticodyssey.player.stats.PlayerStatQuery;
 import com.galacticodyssey.player.systems.RecoilSystem;
 import com.galacticodyssey.player.systems.ScreenShakeSystem;
 import com.galacticodyssey.player.systems.WeaponSwaySystem;
@@ -86,7 +90,21 @@ import com.galacticodyssey.ship.weapons.systems.ShipWeaponPilotSystem;
 import com.galacticodyssey.ship.weapons.systems.ShipWeaponSystem;
 import com.galacticodyssey.ship.weapons.systems.TargetingSystem;
 import com.galacticodyssey.ship.weapons.systems.TurretTrackingSystem;
+import com.galacticodyssey.core.components.CelestialBodyType;
+import com.galacticodyssey.core.components.GravitySourceComponent;
+import com.galacticodyssey.core.components.OrbitalBodyComponent;
+import com.galacticodyssey.core.components.SOITrackerComponent;
+import com.galacticodyssey.core.components.TrajectoryComponent;
+import com.galacticodyssey.core.systems.GravityForceSystem;
+import com.galacticodyssey.core.systems.OrbitalPositionSystem;
+import com.galacticodyssey.core.systems.SOITrackingSystem;
+import com.galacticodyssey.core.systems.TrajectoryPredictionSystem;
 import com.galacticodyssey.galaxy.KeplerianOrbitSystem;
+import com.galacticodyssey.galaxy.OrbitalConstants;
+import com.galacticodyssey.galaxy.OrbitalMechanics;
+import com.galacticodyssey.galaxy.OrbitalSlot;
+import com.galacticodyssey.galaxy.StarSystem;
+import com.galacticodyssey.planet.Moon;
 import com.galacticodyssey.ship.systems.RelativisticDopplerSystem;
 import com.galacticodyssey.ship.systems.VelocityTimeDilationSystem;
 import com.galacticodyssey.ui.CockpitHUDSystem;
@@ -134,6 +152,12 @@ import com.galacticodyssey.planet.terrain.SeismicSystem;
 import com.galacticodyssey.planet.terrain.SurfaceAnchorSystem;
 import com.galacticodyssey.planet.terrain.SurfaceVehicleSystem;
 import com.galacticodyssey.planet.terrain.TerrainChunk;
+import com.galacticodyssey.planet.terrain.VehicleBayService;
+import com.galacticodyssey.planet.terrain.VehicleCameraSystem;
+import com.galacticodyssey.planet.terrain.VehicleControlSystem;
+import com.galacticodyssey.planet.terrain.VehicleFactory;
+import com.galacticodyssey.planet.terrain.VehicleWeaponSystem;
+import com.galacticodyssey.data.VehicleRegistry;
 import com.galacticodyssey.audio.AudioSystem;
 import com.galacticodyssey.vfx.systems.ParticleRenderSystem;
 import com.galacticodyssey.vfx.systems.ParticleSpawnSystem;
@@ -174,8 +198,22 @@ import com.galacticodyssey.hacking.data.HackableTypeRegistry;
 import com.galacticodyssey.hacking.systems.HackingSystem;
 import com.galacticodyssey.hacking.systems.PlayerHackingSystem;
 import com.galacticodyssey.rendering.lighting.LightingSystem;
+import com.galacticodyssey.ship.boarding.systems.ShipSubsystemSystem;
+import com.galacticodyssey.ship.boarding.systems.BoardingOrchestratorSystem;
+import com.galacticodyssey.ship.boarding.systems.ShipProjectileImpactSystem;
+import com.galacticodyssey.core.scene.DeepSpaceLoader;
+import com.galacticodyssey.core.scene.EmptySceneLoader;
+import com.galacticodyssey.core.scene.SceneAssetSource;
+import com.galacticodyssey.core.scene.SceneLoader;
+import com.galacticodyssey.core.scene.SceneManager;
+import com.galacticodyssey.core.scene.SceneStreamingSystem;
+import com.galacticodyssey.core.scene.SceneTransitionRequest;
+import com.galacticodyssey.core.scene.SceneType;
+import com.galacticodyssey.data.AssetCategory;
 import java.io.File;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class GameWorld implements Disposable {
@@ -229,6 +267,9 @@ public class GameWorld implements Disposable {
     private SurfaceAnchorSystem surfaceAnchorSystem;
     private AudioSystem audioSystem;
     private RealTimeSkillSystem realTimeSkillSystem;
+    private PerkRegistry perkRegistry;
+    private PerkSystem perkSystem;
+    private SkillXpAwardSystem skillXpAwardSystem;
     private WaveSystem waveSystem;
     private WaterDataRegistry waterDataRegistry;
     private OceanSpawner oceanSpawner;
@@ -259,6 +300,12 @@ public class GameWorld implements Disposable {
     private ReactorSpecRegistry reactorSpecRegistry;
     private PowerSystem powerSystem;
     private LightingSystem lightingSystem;
+    private SceneManager sceneManager;
+    private SceneStreamingSystem sceneStreamingSystem;
+    private VehicleRegistry vehicleRegistry;
+    private VehicleBayService vehicleBayService;
+    private VehicleCameraSystem vehicleCameraSystem;
+    private InteractionSystem interactionSystem;
 
     private final Array<Disposable> disposables = new Array<>();
 
@@ -302,6 +349,16 @@ public class GameWorld implements Disposable {
 
         realTimeSkillSystem = new RealTimeSkillSystem(eventBus);
         engine.addSystem(realTimeSkillSystem);
+
+        perkRegistry = PerkRegistry.fromFile(com.badlogic.gdx.Gdx.files.internal("data/player/perk_trees.json"));
+        PlayerStatQuery.setPerkRegistry(perkRegistry);
+
+        perkSystem = new PerkSystem(eventBus, perkRegistry);
+        engine.addSystem(perkSystem);
+
+        skillXpAwardSystem = new SkillXpAwardSystem(eventBus, realTimeSkillSystem, engine);
+        engine.addSystem(skillXpAwardSystem);
+
         engine.addSystem(playerInputSystem);
         engine.addSystem(playerMovementSystem);
         engine.addSystem(bulletPhysicsSystem);
@@ -310,7 +367,7 @@ public class GameWorld implements Disposable {
         engine.addSystem(new PlayerAnimationSystem());
         engine.addSystem(debugHudSystem);
 
-        InteractionSystem interactionSystem = new InteractionSystem(eventBus);
+        interactionSystem = new InteractionSystem(eventBus);
         engine.addSystem(interactionSystem);
 
         ShipFlightSystem shipFlightSystem = new ShipFlightSystem();
@@ -366,9 +423,30 @@ public class GameWorld implements Disposable {
         engine.addSystem(hitscanSystem);
         engine.addSystem(projectileSystem);
         engine.addSystem(damageSystem);
+        engine.addSystem(new BoardingOrchestratorSystem(eventBus));
+        engine.addSystem(new ShipProjectileImpactSystem(eventBus));
+        engine.addSystem(new ShipSubsystemSystem(eventBus));
         engine.addSystem(statusEffectSystem);
         engine.addSystem(combatAISystem);
         engine.addSystem(squadTacticsSystem);
+
+        // Vehicle systems — added after input systems (PlayerInputSystem priority 0, CombatInputSystem
+        // priority 0) so VehicleControlSystem reads per-frame input components in the correct order.
+        VehicleControlSystem vehicleControlSystem = new VehicleControlSystem();
+        engine.addSystem(vehicleControlSystem);
+
+        VehicleWeaponSystem vehicleWeaponSystem = new VehicleWeaponSystem(eventBus);
+        engine.addSystem(vehicleWeaponSystem);
+
+        vehicleRegistry = new VehicleRegistry();
+        if (com.badlogic.gdx.Gdx.files != null) {
+            vehicleRegistry.load("data/vehicles/vehicles.json");
+        }
+
+        vehicleBayService = new VehicleBayService(
+            engine, bulletPhysicsSystem.getDynamicsWorld(),
+            vehicleRegistry, new VehicleFactory(), eventBus);
+        interactionSystem.setVehicleBayService(vehicleBayService);
 
         lightingSystem = new LightingSystem();
         engine.addSystem(lightingSystem);
@@ -412,6 +490,10 @@ public class GameWorld implements Disposable {
 
         keplerianOrbitSystem = new KeplerianOrbitSystem(eventBus);
         engine.addSystem(keplerianOrbitSystem);
+        engine.addSystem(new OrbitalPositionSystem());
+        engine.addSystem(new SOITrackingSystem(eventBus));
+        engine.addSystem(new GravityForceSystem());
+        engine.addSystem(new TrajectoryPredictionSystem());
 
         shipClassRegistry = new ShipClassRegistry();
         if (com.badlogic.gdx.Gdx.files != null) {
@@ -614,6 +696,30 @@ public class GameWorld implements Disposable {
             engine.addSystem(streamingSystem);
         }
 
+        // Scene orchestration: real asset source when the asset manager exists, else a no-op
+        // source so the engine still runs in headless contexts.
+        SceneAssetSource assetSource = (assetManager != null)
+            ? (id, cat) -> assetManager.enqueue(id, cat, 0f)
+            : (id, cat) -> new com.galacticodyssey.data.AssetHandle<net.mgsx.gltf.scene3d.scene.SceneAsset>(
+                id, cat, h -> {}).retain();
+        DeepSpaceLoader deepSpaceLoader = new DeepSpaceLoader(engine, assetSource);
+        Map<SceneType, SceneLoader> sceneLoaders = new EnumMap<>(SceneType.class);
+        sceneLoaders.put(SceneType.DEEP_SPACE, deepSpaceLoader);
+        // Every other scene type gets a complete empty loader until its bespoke procgen loader lands.
+        for (SceneType t : SceneType.values()) {
+            if (!sceneLoaders.containsKey(t)) {
+                sceneLoaders.put(t, new EmptySceneLoader(t, engine, assetSource, List.of(), AssetCategory.PROP_SMALL));
+            }
+        }
+        sceneManager = new SceneManager(eventBus, engine, sceneLoaders, deepSpaceLoader, 3);
+        sceneStreamingSystem = new SceneStreamingSystem(sceneManager);
+        engine.addSystem(sceneStreamingSystem);
+        // Boot into the deep-space scene so a primary scene always exists. There is no source
+        // scene to disguise the swap from, so skip the disguise wait and activate immediately
+        // (otherwise the boot scene would sit in READY_OVERLAP for the full disguise timeout).
+        sceneManager.requestTransition(new SceneTransitionRequest(SceneType.DEEP_SPACE, new double[]{0, 0, 0}));
+        sceneManager.notifyDisguiseComplete();
+
         playerInputSystem.setCombatInputSystem(combatInputSystem);
     }
 
@@ -624,6 +730,9 @@ public class GameWorld implements Disposable {
         debugHudSystem.initialize();
         shipCameraSystem.setCamera(camera);
         cockpitHUDSystem.initialize();
+
+        vehicleCameraSystem = new VehicleCameraSystem(camera);
+        engine.addSystem(vehicleCameraSystem);
 
         TargetingSystem targetingSystem = new TargetingSystem(eventBus, camera);
         engine.addSystem(targetingSystem);
@@ -869,6 +978,9 @@ public class GameWorld implements Disposable {
             if (camera != null) streamingSystem.setCameraPosition(camera.position);
             assetManager.update();
         }
+        if (sceneStreamingSystem != null && camera != null) {
+            sceneStreamingSystem.setPlayerPosition(camera.position);
+        }
         engine.update(delta);
 
         if (saveCoordinator != null) {
@@ -920,6 +1032,7 @@ public class GameWorld implements Disposable {
     public JobRegistry getJobRegistry() { return jobRegistry; }
     public SagaRegistry getSagaRegistry() { return sagaRegistry; }
     public CandidatePoolSystem getCandidatePoolSystem() { return candidatePoolSystem; }
+    public SceneManager getSceneManager() { return sceneManager; }
 
     /** Wire up the audio system. Call after GameWorld construction, before the first update(). */
     public void initAudio(AudioManager audioManager) {
@@ -946,6 +1059,85 @@ public class GameWorld implements Disposable {
         LocalFileSaveBackend saveBackend = new LocalFileSaveBackend(savesDir);
         this.saveCoordinator = new SaveCoordinator(
             eventBus, engine, saveBackend, galaxySeed, playerEntityId, coordinateManager);
+    }
+
+    public Entity createStarEntity(StarSystem system) {
+        Entity star = engine.createEntity();
+        TransformComponent transform = engine.createComponent(TransformComponent.class);
+        star.add(transform);
+
+        GravitySourceComponent gravity = engine.createComponent(GravitySourceComponent.class);
+        gravity.mass = system.mass * OrbitalConstants.SOLAR_MASS_KG;
+        gravity.influenceRadius = system.systemEdge * OrbitalConstants.AU_TO_GAME_UNITS;
+        gravity.minRadius = system.radius * 100f;
+        star.add(gravity);
+
+        OrbitalBodyComponent orbital = engine.createComponent(OrbitalBodyComponent.class);
+        orbital.bodyType = CelestialBodyType.STAR;
+        orbital.soiRadius = 0f;
+        orbital.bodyRadius = system.radius * 100f;
+        star.add(orbital);
+
+        engine.addEntity(star);
+        return star;
+    }
+
+    public Entity createPlanetEntity(OrbitalSlot slot, Entity starEntity, StarSystem system) {
+        Planet planet = slot.planet;
+        if (planet == null) return null;
+
+        Entity entity = engine.createEntity();
+        TransformComponent transform = engine.createComponent(TransformComponent.class);
+        entity.add(transform);
+
+        float planetMassKg = planet.mass * OrbitalConstants.EARTH_MASS_KG;
+
+        GravitySourceComponent gravity = engine.createComponent(GravitySourceComponent.class);
+        gravity.mass = planetMassKg;
+        gravity.influenceRadius = OrbitalMechanics.sphereOfInfluence(
+            slot.orbitalRadius * OrbitalConstants.AU_TO_GAME_UNITS,
+            planetMassKg,
+            system.mass * OrbitalConstants.SOLAR_MASS_KG);
+        gravity.minRadius = planet.radius * 10f;
+        entity.add(gravity);
+
+        OrbitalBodyComponent orbital = engine.createComponent(OrbitalBodyComponent.class);
+        orbital.bodyType = CelestialBodyType.PLANET;
+        orbital.orbitalSlot = slot;
+        orbital.parentBody = starEntity;
+        orbital.soiRadius = gravity.influenceRadius;
+        orbital.bodyRadius = planet.radius * 10f;
+        entity.add(orbital);
+
+        engine.addEntity(entity);
+        return entity;
+    }
+
+    public Entity createMoonEntity(Moon moon, Entity planetEntity, Planet planet) {
+        Entity entity = engine.createEntity();
+        TransformComponent transform = engine.createComponent(TransformComponent.class);
+        entity.add(transform);
+
+        float moonMassKg = moon.mass * OrbitalConstants.EARTH_MASS_KG;
+        float planetMassKg = planet.mass * OrbitalConstants.EARTH_MASS_KG;
+
+        GravitySourceComponent gravity = engine.createComponent(GravitySourceComponent.class);
+        gravity.mass = moonMassKg;
+        gravity.influenceRadius = OrbitalMechanics.sphereOfInfluence(
+            moon.orbitalRadius * OrbitalConstants.AU_TO_GAME_UNITS,
+            moonMassKg, planetMassKg);
+        gravity.minRadius = moon.radius * 5f;
+        entity.add(gravity);
+
+        OrbitalBodyComponent orbital = engine.createComponent(OrbitalBodyComponent.class);
+        orbital.bodyType = CelestialBodyType.MOON;
+        orbital.parentBody = planetEntity;
+        orbital.soiRadius = gravity.influenceRadius;
+        orbital.bodyRadius = moon.radius * 5f;
+        entity.add(orbital);
+
+        engine.addEntity(entity);
+        return entity;
     }
 
     public AudioSystem getAudioSystem() { return audioSystem; }
@@ -988,6 +1180,14 @@ public class GameWorld implements Disposable {
     }
 
     public LightingSystem getLightingSystem() { return lightingSystem; }
+
+    public VehicleRegistry getVehicleRegistry() { return vehicleRegistry; }
+
+    public VehicleBayService getVehicleBayService() { return vehicleBayService; }
+
+    public RealTimeSkillSystem getRealTimeSkillSystem() { return realTimeSkillSystem; }
+    public PerkSystem getPerkSystem() { return perkSystem; }
+    public PerkRegistry getPerkRegistry() { return perkRegistry; }
 
     @Override
     public void dispose() {
