@@ -126,10 +126,9 @@ public final class AtmosphericSkyRenderer implements Disposable {
         "    // Altitude ramp: peak at 0.3, fade at edges\n" +
         "    float altitudeRamp = smoothstep(0.0, 0.3, heightFrac) * smoothstep(1.0, 0.7, heightFrac);\n" +
         "    vec3 windOffset = vec3(u_windDirection.x, 0.0, u_windDirection.y) * u_time * 0.01;\n" +
-        "    float n = fbm(pos * 0.003 + windOffset);\n" +
-        "    // Domain warp\n" +
+        "    // Domain warp for shape variety\n" +
         "    float warp = fbm(pos * 0.001 + vec3(5.3, 1.7, 8.9) + windOffset * 0.5);\n" +
-        "    n = fbm(pos * 0.003 + windOffset + warp * 0.5);\n" +
+        "    float n = fbm(pos * 0.003 + windOffset + warp * 0.5);\n" +
         "    float density = smoothstep(1.0 - u_cloudCoverage, 1.0, n) * altitudeRamp;\n" +
         "    return density * 0.4;\n" +
         "}\n" +
