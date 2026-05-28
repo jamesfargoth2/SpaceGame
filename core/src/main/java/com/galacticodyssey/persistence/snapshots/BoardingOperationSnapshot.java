@@ -9,5 +9,8 @@ public class BoardingOperationSnapshot {
     public UUID aggressorShipId;
     public UUID targetShipId;
     public UUID entryPointId;
+    public float entryLocalX;
+    public float entryLocalY;
+    public float entryLocalZ;
     public BoardingOperationSnapshot() {}
 }
