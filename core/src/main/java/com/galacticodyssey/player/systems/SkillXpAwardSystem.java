@@ -26,8 +26,7 @@ import com.galacticodyssey.water.events.HullRepairEvent;
  * {@link RealTimeSkillSystem}. Keeps gameplay systems unaware of progression
  * (architectural rule #3). Only player-sourced actions award XP.
  *
- * <p>Accrual-based skills (Athletics, Piloting) are handled in {@link #update}
- * (added in a later task).</p>
+ * <p>Accrual-based skills (Athletics, Piloting) are handled in {@link #update}.</p>
  *
  * <p>TODO hook: Repair currently maps only to {@link HullRepairEvent} (water hull).
  * Ship-module repair XP awaits a dedicated repair-complete event.</p>
