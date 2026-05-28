@@ -1,0 +1,153 @@
+<style>
+  .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start; }
+  .panel { background:#0d0d0d; border:1px solid #2a2a2a; border-radius:10px; padding:0.9rem; }
+  .panel h4 { margin:0 0 0.6rem; font-size:0.82rem; color:#ccc; }
+
+  /* Top-down room diagram */
+  svg text { font-family: monospace; }
+
+  .detail-list { font-size:0.77rem; color:#bbb; line-height:1.7; margin:0; padding:0; list-style:none; }
+  .detail-list li::before { content:"→ "; color:#7c6af7; }
+
+  .note { background:#0d0d1a; border-left:3px solid #7c6af7; padding:0.6rem 0.8rem; font-size:0.77rem; color:#bbb; border-radius:0 6px 6px 0; margin-top:0.8rem; line-height:1.6; }
+  .tag { display:inline-block; background:#111; border:1px solid #333; border-radius:4px; padding:1px 6px; font-size:0.66rem; color:#999; margin-right:3px; font-family:monospace; }
+
+  .phase-row { display:flex; gap:0.6rem; margin-top:0.6rem; flex-wrap:wrap; }
+  .phase {
+    flex:1; min-width:120px;
+    background:#0a0a14; border:1px solid #2a2a3a;
+    border-radius:6px; padding:0.5rem 0.7rem;
+    font-size:0.72rem; color:#aaa; line-height:1.5;
+  }
+  .phase strong { color:#7c6af7; display:block; margin-bottom:2px; }
+</style>
+
+<h2>Occlusion Culling — Portal + Room System</h2>
+<p class="subtitle">The most important use case is dense ship interiors and space station corridors. A portal-based approach culls entire rooms behind closed walls in O(rooms) per frame — no GPU queries needed.</p>
+
+<div class="layout">
+
+  <!-- SVG DIAGRAM -->
+  <div class="panel">
+    <h4>Top-down view — what the PortalCullingSystem sees</h4>
+    <svg viewBox="0 0 320 280" width="100%" style="display:block">
+      <defs>
+        <marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 Z" fill="#7c6af7"/>
+        </marker>
+      </defs>
+
+      <!-- CULLED rooms (dark) -->
+      <!-- Room E - far left, fully culled -->
+      <rect x="10" y="80" width="70" height="80" fill="#111" stroke="#333" stroke-width="1" rx="3"/>
+      <text x="45" y="118" fill="#444" font-size="9" text-anchor="middle">Room E</text>
+      <text x="45" y="130" fill="#333" font-size="8" text-anchor="middle">CULLED</text>
+
+      <!-- Room D - top right, culled -->
+      <rect x="230" y="10" width="80" height="65" fill="#111" stroke="#333" stroke-width="1" rx="3"/>
+      <text x="270" y="42" fill="#444" font-size="9" text-anchor="middle">Room D</text>
+      <text x="270" y="54" fill="#333" font-size="8" text-anchor="middle">CULLED</text>
+
+      <!-- VISIBLE rooms (lit) -->
+      <!-- Room A - camera room -->
+      <rect x="90" y="140" width="90" height="90" fill="#1a2010" stroke="#4caf50" stroke-width="1.5" rx="3"/>
+      <text x="135" y="180" fill="#4caf50" font-size="9" text-anchor="middle" font-weight="bold">Room A</text>
+      <text x="135" y="193" fill="#4caf5088" font-size="7.5" text-anchor="middle">CAMERA HERE</text>
+
+      <!-- Room B - visible through portal -->
+      <rect x="190" y="100" width="100" height="90" fill="#1a1a30" stroke="#7c6af7" stroke-width="1.5" rx="3"/>
+      <text x="240" y="140" fill="#9988ff" font-size="9" text-anchor="middle">Room B</text>
+      <text x="240" y="153" fill="#7c6af766" font-size="7.5" text-anchor="middle">VISIBLE</text>
+
+      <!-- Room C - partially visible through B's portal -->
+      <rect x="200" y="198" width="100" height="70" fill="#221a10" stroke="#ff980066" stroke-width="1.5" stroke-dasharray="4,3" rx="3"/>
+      <text x="250" y="232" fill="#ff980088" font-size="9" text-anchor="middle">Room C</text>
+      <text x="250" y="245" fill="#ff980055" font-size="7.5" text-anchor="middle">PARTIALLY</text>
+
+      <!-- PORTALS -->
+      <!-- Portal between A and B -->
+      <rect x="185" y="152" width="6" height="26" fill="#7c6af7" rx="2" opacity="0.9"/>
+      <text x="175" y="163" fill="#7c6af7" font-size="7" text-anchor="middle">portal</text>
+
+      <!-- Portal between B and C -->
+      <rect x="212" y="192" width="40" height="6" fill="#ff9800" rx="2" opacity="0.7"/>
+      <text x="232" y="207" fill="#ff980088" font-size="7" text-anchor="middle">portal (partial)</text>
+
+      <!-- Portal between E and A - closed/wall -->
+      <rect x="84" y="152" width="6" height="26" fill="#333" rx="2"/>
+      <text x="74" y="162" fill="#444" font-size="7" text-anchor="middle">wall</text>
+
+      <!-- Portal between B and D - closed -->
+      <rect x="250" y="74" width="30" height="6" fill="#333" rx="2"/>
+      <text x="265" y="70" fill="#444" font-size="7" text-anchor="middle">door (closed)</text>
+
+      <!-- CAMERA + FOV -->
+      <circle cx="135" cy="175" r="5" fill="#4caf50"/>
+      <!-- FOV lines into B -->
+      <line x1="135" y1="175" x2="192" y2="152" stroke="#4caf5055" stroke-width="1" stroke-dasharray="3,2"/>
+      <line x1="135" y1="175" x2="192" y2="178" stroke="#4caf5055" stroke-width="1" stroke-dasharray="3,2"/>
+      <!-- frustum cone into B -->
+      <polygon points="135,175 192,148 290,108 290,200 192,182" fill="#7c6af711" stroke="none"/>
+
+      <!-- Props in culled room (greyed) -->
+      <rect x="22" y="100" width="10" height="8" fill="#1a1a1a" stroke="#2a2a2a" rx="1"/>
+      <rect x="40" y="105" width="8" height="12" fill="#1a1a1a" stroke="#2a2a2a" rx="1"/>
+
+      <!-- Props in visible rooms (bright) -->
+      <rect x="105" y="155" width="10" height="8" fill="#2a3a1a" stroke="#4caf5055" rx="1"/>
+      <rect x="130" y="200" width="12" height="10" fill="#2a3a1a" stroke="#4caf5055" rx="1"/>
+      <rect x="210" y="115" width="10" height="8" fill="#1a1a3a" stroke="#7c6af755" rx="1"/>
+      <rect x="240" y="120" width="12" height="10" fill="#1a1a3a" stroke="#7c6af755" rx="1"/>
+      <rect x="270" y="130" width="8" height="12" fill="#1a1a3a" stroke="#7c6af755" rx="1"/>
+
+      <!-- LEGEND -->
+      <rect x="10" y="245" width="10" height="8" fill="#1a2010" stroke="#4caf50" stroke-width="1" rx="1"/>
+      <text x="24" y="253" fill="#4caf50" font-size="8">camera room</text>
+      <rect x="90" y="245" width="10" height="8" fill="#1a1a30" stroke="#7c6af7" stroke-width="1" rx="1"/>
+      <text x="104" y="253" fill="#9988ff" font-size="8">visible</text>
+      <rect x="145" y="245" width="10" height="8" fill="#111" stroke="#333" stroke-width="1" rx="1"/>
+      <text x="159" y="253" fill="#444" font-size="8">culled (not submitted)</text>
+    </svg>
+  </div>
+
+  <!-- DETAILS -->
+  <div style="display:flex;flex-direction:column;gap:0.8rem">
+
+    <div class="panel">
+      <h4>How PortalCullingSystem works each frame</h4>
+      <div class="phase-row">
+        <div class="phase"><strong>1. Locate camera</strong>Point-in-AABB test across all rooms → camera's current room (fast, rooms are small)</div>
+        <div class="phase"><strong>2. BFS from camera</strong>Queue camera room. Dequeue room → test each portal: is it in frustum AND facing camera? If yes, enqueue adjacent room + clip frustum to portal rect</div>
+        <div class="phase"><strong>3. Collect visible</strong>All rooms reached during BFS go into a visible-room set</div>
+        <div class="phase"><strong>4. Cull props</strong>Only submit entities whose <code>RoomMemberComponent.roomId</code> is in the visible set to ModelBatch</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h4>Integration with existing systems</h4>
+      <ul class="detail-list">
+        <li><strong>ShipInteriorGenerator</strong> already builds rooms — it also records doorframe positions as <span class="tag">Portal</span> objects and stores the <span class="tag">RoomGraph</span> in <span class="tag">ShipInteriorComponent</span></li>
+        <li>Props placed by <strong>PropPlacementSystem</strong> get a <span class="tag">RoomMemberComponent</span> at placement time (which room they're in)</li>
+        <li>When a door opens/closes (event), its portal is flagged open/blocked — a closed door blocks BFS traversal into the next room</li>
+        <li>For <strong>exterior scenes</strong> (planets, space), this system is inactive — libGDX's built-in frustum culling via ModelBatch is sufficient</li>
+        <li>Characters moving between rooms trigger a room-membership update when they cross a portal rect</li>
+      </ul>
+    </div>
+
+    <div class="panel">
+      <h4>Exterior — frustum culling only</h4>
+      <ul class="detail-list">
+        <li>Outdoors: no occlusion system — ModelBatch already frustum-culls per-renderable</li>
+        <li>Foliage tiles (from Section 3) cull by tile AABB vs frustum — covers large outdoor areas</li>
+        <li>The <strong>StreamingSystem</strong> (Section 1) handles distance-based load/unload — effectively culls anything beyond the render radius before it's even in memory</li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+<div class="note">
+  <strong style="color:#7c6af7">Why not GPU occlusion queries?</strong> They introduce a 1-2 frame read-back latency, require careful management of conditional rendering, and add significant driver overhead. For compact ship interiors — where a closed wall should cull an entire room's worth of props instantly — portal traversal is O(visible rooms) and zero-latency. It also integrates naturally with the door-open/close event system already in the codebase.
+</div>
+
+<p class="subtitle" style="margin-top:1rem">That's all 6 design sections. Does the occlusion approach look right? Then I'll write up the full spec.</p>

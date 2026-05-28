@@ -17,6 +17,11 @@ public class FPSCameraComponent implements Component, Snapshotable<FPSCameraSnap
     public float mouseSensitivity = 0.15f;
     public float landingDipAmount;
 
+    public float leanAngle;
+    public float maxLeanAngle = 15f;
+    public float leanSpeed = 8f;
+    public float leanHorizontalOffset = 0.4f;
+
     public final Vector3 localUp = new Vector3(0, 1, 0);
 
     public float targetCameraDistance;

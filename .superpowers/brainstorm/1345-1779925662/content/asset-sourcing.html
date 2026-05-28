@@ -1,0 +1,69 @@
+<h2>Asset Sourcing Strategy</h2>
+<p class="subtitle">Right now, ships are fully procedural (no external model files exist). What's your intended approach for characters, buildings, interior props, and foliage?</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Hybrid — Procedural Ships + Imported Models for Everything Else</h3>
+      <p>Keep ships procedurally generated (infinite variety, zero art debt). Import hand-crafted or purchased .glTF models for characters, NPC crew, interior props (chairs, consoles, lockers), buildings, and foliage. This is the most practical path — huge variation where it matters, fidelity where the player actually looks closely.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul>
+          <li>Ships stay infinite / seeded</li>
+          <li>Characters and props get real fidelity</li>
+          <li>Can use asset store purchases</li>
+          <li>Skeletal animation works out of the box</li>
+        </ul></div>
+        <div class="cons"><h4>Cons</h4><ul>
+          <li>Two pipelines to maintain</li>
+          <li>Need to source/buy character models</li>
+          <li>glTF integration (gdx-gltf) not yet wired in</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Fully Procedural — Generate Everything in Code</h3>
+      <p>Extend the existing procedural approach to characters (parametric bodies), buildings (modular room packing), and props (primitive-built furniture). No external models at all — everything is seeded and generated at runtime.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul>
+          <li>Single unified pipeline</li>
+          <li>Truly infinite variation at all scales</li>
+          <li>No art asset dependency ever</li>
+        </ul></div>
+        <div class="cons"><h4>Cons</h4><ul>
+          <li>Procedural characters are very hard to make look good</li>
+          <li>Huge implementation complexity</li>
+          <li>Animation is extremely difficult without skeletal rigs</li>
+          <li>Risk: looks primitive or uncanny</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Full External Models — Import Everything Including Ships</h3>
+      <p>Abandon procedural ship generation and move to a full hand-crafted or purchased model pipeline. Ships, characters, props, and buildings all come from .glTF files. Procedural variation achieved via modular swapping (hull sections, weapon hardpoints, livery) rather than geometry generation.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul>
+          <li>Highest visual quality possible</li>
+          <li>Easiest animation pipeline</li>
+          <li>Single unified asset system</li>
+        </ul></div>
+        <div class="cons"><h4>Cons</h4>
+          <ul>
+          <li>Loses infinite procedural ship variety</li>
+          <li>Massive art production cost</li>
+          <li>Large rewrite of ship pipeline</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="subtitle" style="margin-top:1.5rem">Click your preferred approach, then reply in the terminal. You can also just describe what you have in mind — these aren't the only options.</p>

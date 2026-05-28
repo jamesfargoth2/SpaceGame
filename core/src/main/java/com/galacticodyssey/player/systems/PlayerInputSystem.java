@@ -111,7 +111,7 @@ public class PlayerInputSystem extends IteratingSystem {
                 jumpPressed = true;
                 return true;
             }
-            if (keycode == Input.Keys.E) {
+            if (keycode == Input.Keys.F) {
                 interactPressed = true;
                 return true;
             }
@@ -219,8 +219,8 @@ public class PlayerInputSystem extends IteratingSystem {
             if (Gdx.input.isKeyPressed(Input.Keys.D)) input.moveStrafe += 1f;
             input.sprint = Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT);
             input.crouch = Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT);
-            input.rollLeft = Gdx.input.isKeyPressed(Input.Keys.Z);
-            input.rollRight = Gdx.input.isKeyPressed(Input.Keys.C);
+            input.leanLeft = Gdx.input.isKeyPressed(Input.Keys.Q);
+            input.leanRight = Gdx.input.isKeyPressed(Input.Keys.E);
             input.thrustUp = Gdx.input.isKeyPressed(Input.Keys.SPACE);
             input.thrustDown = Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT);
         }
@@ -264,12 +264,13 @@ public class PlayerInputSystem extends IteratingSystem {
             if (Gdx.input.isKeyPressed(Input.Keys.D)) flight.strafe += 1f;
             if (Gdx.input.isKeyPressed(Input.Keys.SPACE)) flight.verticalThrust += 1f;
             if (Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT)) flight.verticalThrust -= 1f;
-            if (Gdx.input.isKeyPressed(Input.Keys.Z)) flight.rollInput += 1f;
-            if (Gdx.input.isKeyPressed(Input.Keys.C)) flight.rollInput -= 1f;
+            if (Gdx.input.isKeyPressed(Input.Keys.Q)) flight.rollInput -= 1f;
+            if (Gdx.input.isKeyPressed(Input.Keys.E)) flight.rollInput += 1f;
         }
 
-        flight.pitchInput = accumulatedMouseDeltaY;
-        flight.yawInput = accumulatedMouseDeltaX;
+        float sensitivity = 0.15f;
+        flight.pitchInput = accumulatedMouseDeltaY * sensitivity;
+        flight.yawInput = accumulatedMouseDeltaX * sensitivity;
         accumulatedMouseDeltaX = 0;
         accumulatedMouseDeltaY = 0;
 

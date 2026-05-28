@@ -1,0 +1,196 @@
+<style>
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .emitter-box {
+    background: #0d0d0d;
+    border: 1.5px solid #333;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .emitter-header {
+    padding: 0.6rem 0.9rem;
+    font-size: 0.8rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .bb-header { background: #1a1a2e; border-bottom: 1px solid #333; color: #90caf9; }
+  .mesh-header { background: #1a2010; border-bottom: 1px solid #333; color: #a5d6a7; }
+  .emitter-canvas {
+    height: 160px;
+    position: relative;
+    overflow: hidden;
+  }
+  .emitter-list {
+    padding: 0.6rem 0.9rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .sprite-tag {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 12px;
+    border: 1px solid #333;
+    color: #aaa;
+    background: #111;
+  }
+
+  /* Billboard particle sim */
+  .bb-particle {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  /* Mesh particle sim */
+  .spark {
+    position: absolute;
+    height: 2px;
+    border-radius: 1px;
+    transform-origin: left center;
+    pointer-events: none;
+  }
+
+  /* JSON block */
+  .json-split { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-top: 0.8rem; }
+  .json-block {
+    background: #0a0a12;
+    border: 1px solid #2a2a3a;
+    border-radius: 8px;
+    padding: 0.7rem 0.9rem;
+    font-family: monospace;
+    font-size: 0.68rem;
+    line-height: 1.6;
+    color: #8899bb;
+    overflow: auto;
+  }
+  .json-key { color: #7c6af7; }
+  .json-str { color: #a5d6a7; }
+  .json-num { color: #ffcc80; }
+  .json-block h4 { margin: 0 0 0.5rem; font-size: 0.75rem; color: #bbb; font-family: sans-serif; }
+
+  .atlas-row {
+    display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;
+    background: #0a0a0a; border: 1px solid #222; border-radius: 8px;
+    padding: 0.6rem 0.8rem; margin-top: 0.8rem;
+  }
+  .atlas-sprite {
+    width: 36px; height: 36px; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.6rem; color: rgba(255,255,255,0.5); text-align: center; line-height: 1.2;
+  }
+  .note { background: #0d0d1a; border-left: 3px solid #7c6af7; padding: 0.6rem 0.8rem; font-size: 0.78rem; color: #bbb; border-radius: 0 6px 6px 0; margin-top: 0.8rem; line-height: 1.6; }
+</style>
+
+<h2>Particle Effects Upgrade</h2>
+<p class="subtitle">The existing <code>ParticleRenderSystem</code> already handles billboard particles via <code>DecalBatch</code> — the upgrade adds a real texture atlas, GPU depth-sorting, and a second emitter type for mesh-based particles.</p>
+
+<div class="split">
+
+  <!-- BILLBOARD EMITTER -->
+  <div class="emitter-box">
+    <div class="emitter-header bb-header">
+      ◎ BillboardEmitter — soft, glowing, atmospheric
+    </div>
+    <div class="emitter-canvas" id="bb-canvas" style="background: radial-gradient(ellipse at 50% 80%, #1a0a00 0%, #050510 100%)">
+      <!-- engine exhaust sim -->
+      <div class="bb-particle" style="width:60px;height:60px;left:calc(50% - 30px);top:30px;background:radial-gradient(circle,#ff6600cc,transparent 70%);animation:pulse 1.2s ease-in-out infinite alternate"></div>
+      <div class="bb-particle" style="width:40px;height:40px;left:calc(50% - 20px);top:50px;background:radial-gradient(circle,#ffaa0099,transparent 70%);animation:pulse 0.9s ease-in-out infinite alternate 0.3s"></div>
+      <div class="bb-particle" style="width:80px;height:80px;left:calc(50% - 40px);top:60px;background:radial-gradient(circle,#ff440055,transparent 60%);animation:drift 2s ease-in-out infinite alternate"></div>
+      <div class="bb-particle" style="width:30px;height:30px;left:calc(50% + 10px);top:80px;background:radial-gradient(circle,#ff880077,transparent 70%);animation:drift 1.5s ease-in-out infinite alternate 0.6s"></div>
+      <div class="bb-particle" style="width:25px;height:25px;left:calc(50% - 30px);top:90px;background:radial-gradient(circle,#ffcc0066,transparent 70%);animation:drift 1.8s ease-in-out infinite alternate 0.2s"></div>
+      <div style="position:absolute;bottom:8px;left:8px;font-size:0.65rem;color:#ff6600;opacity:0.7">engine_exhaust — additive blend</div>
+    </div>
+    <div class="emitter-list">
+      <span class="sprite-tag" style="border-color:#ff6600;color:#ff9944">flame</span>
+      <span class="sprite-tag" style="border-color:#888">smoke</span>
+      <span class="sprite-tag" style="border-color:#4488ff;color:#88aaff">glow</span>
+      <span class="sprite-tag" style="border-color:#ffff44;color:#ffff88">flash</span>
+      <span class="sprite-tag" style="border-color:#aaddff;color:#cceeff">shockwave</span>
+      <span class="sprite-tag" style="border-color:#8866ff;color:#aa88ff">dust</span>
+      <span class="sprite-tag" style="border-color:#44aaff;color:#88ccff">droplet</span>
+      <span class="sprite-tag" style="border-color:#555">debris_soft</span>
+    </div>
+  </div>
+
+  <!-- MESH EMITTER -->
+  <div class="emitter-box">
+    <div class="emitter-header mesh-header">
+      ◈ MeshParticleEmitter — sharp, physical, reactive
+    </div>
+    <div class="emitter-canvas" style="background:#050505">
+      <!-- sparks sim -->
+      <div class="spark" style="width:28px;background:#ff8800;left:50%;top:80px;transform:rotate(-40deg)"></div>
+      <div class="spark" style="width:22px;background:#ffcc00;left:calc(50% + 8px);top:78px;transform:rotate(15deg)"></div>
+      <div class="spark" style="width:35px;background:#ff6600;left:calc(50% - 15px);top:82px;transform:rotate(-70deg)"></div>
+      <div class="spark" style="width:18px;background:#ffaa00;left:calc(50% + 5px);top:75px;transform:rotate(60deg)"></div>
+      <div class="spark" style="width:30px;background:#ff4400;left:calc(50% - 5px);top:85px;transform:rotate(-20deg)"></div>
+      <div class="spark" style="width:14px;background:#ffee00;left:calc(50% + 18px);top:90px;transform:rotate(80deg)"></div>
+      <div class="spark" style="width:40px;background:#ff550088;left:calc(50% - 20px);top:72px;transform:rotate(-55deg)"></div>
+      <!-- shell casing sim -->
+      <div style="position:absolute;width:6px;height:14px;background:#887755;border-radius:2px;left:calc(50% + 40px);top:100px;transform:rotate(25deg)"></div>
+      <div style="position:absolute;width:6px;height:14px;background:#998866;border-radius:2px;left:calc(50% + 55px);top:110px;transform:rotate(-10deg)"></div>
+      <div style="position:absolute;bottom:8px;left:8px;font-size:0.65rem;color:#4caf50;opacity:0.7">impact_sparks + shell_eject — physics bounce</div>
+    </div>
+    <div class="emitter-list">
+      <span class="sprite-tag" style="border-color:#ffaa00;color:#ffcc66">spark_line</span>
+      <span class="sprite-tag" style="border-color:#887755;color:#bbaa88">shell_casing</span>
+      <span class="sprite-tag" style="border-color:#888">debris_chunk</span>
+      <span class="sprite-tag" style="border-color:#aa4422;color:#cc6644">blood_drop</span>
+      <span class="sprite-tag" style="border-color:#445566;color:#6688aa">glass_shard</span>
+      <span class="sprite-tag" style="border-color:#555">rock_chip</span>
+    </div>
+  </div>
+</div>
+
+<!-- TEXTURE ATLAS -->
+<div class="atlas-row">
+  <span style="font-size:0.75rem;color:#888;margin-right:0.3rem">Texture atlas regions:</span>
+  <div class="atlas-sprite" style="background:radial-gradient(circle,#ffffff88,transparent 70%)">smoke</div>
+  <div class="atlas-sprite" style="background:radial-gradient(circle,#ff660099,transparent 65%)">flame</div>
+  <div class="atlas-sprite" style="background:radial-gradient(circle,#4488ffaa,transparent 60%)">glow</div>
+  <div class="atlas-sprite" style="background:radial-gradient(circle,#ffffff,transparent 40%)">flash</div>
+  <div class="atlas-sprite" style="background:radial-gradient(ellipse,#ffffff33,transparent 80%);border:1px solid #ffffff22">shock<br>wave</div>
+  <div class="atlas-sprite" style="background:radial-gradient(circle,#aa8866aa,transparent 70%)">dust</div>
+  <div class="atlas-sprite" style="background:radial-gradient(circle,#44aaffaa,transparent 70%)">droplet</div>
+  <div class="atlas-sprite" style="background:radial-gradient(circle,#88888866,transparent 60%)">debris</div>
+  <span style="font-size:0.7rem;color:#555;margin-left:0.3rem">→ <code>particles/atlas.png</code> + <code>particles/atlas.atlas</code></span>
+</div>
+
+<!-- JSON CONFIGS -->
+<div class="json-split">
+  <div class="json-block">
+    <h4>engine_exhaust.json (Billboard)</h4>
+<span class="json-key">"type"</span>: <span class="json-str">"BILLBOARD"</span>,<br>
+<span class="json-key">"sprite"</span>: <span class="json-str">"flame"</span>,<br>
+<span class="json-key">"blendMode"</span>: <span class="json-str">"ADDITIVE"</span>,<br>
+<span class="json-key">"maxParticles"</span>: <span class="json-num">200</span>,<br>
+<span class="json-key">"emitRate"</span>: <span class="json-num">60</span>,<br>
+<span class="json-key">"lifetime"</span>: { <span class="json-key">"min"</span>: <span class="json-num">0.3</span>, <span class="json-key">"max"</span>: <span class="json-num">0.8</span> },<br>
+<span class="json-key">"size"</span>: { <span class="json-key">"start"</span>: <span class="json-num">0.4</span>, <span class="json-key">"end"</span>: <span class="json-num">0.0</span>, <span class="json-key">"curve"</span>: <span class="json-str">"EASE_OUT"</span> },<br>
+<span class="json-key">"color"</span>: { <span class="json-key">"start"</span>: <span class="json-str">"#ff8800ff"</span>, <span class="json-key">"end"</span>: <span class="json-str">"#ff220000"</span> }
+  </div>
+  <div class="json-block">
+    <h4>impact_sparks.json (Mesh)</h4>
+<span class="json-key">"type"</span>: <span class="json-str">"MESH"</span>,<br>
+<span class="json-key">"mesh"</span>: <span class="json-str">"spark_line"</span>,<br>
+<span class="json-key">"maxParticles"</span>: <span class="json-num">50</span>,<br>
+<span class="json-key">"emitOnce"</span>: <span class="json-num">true</span>,<br>
+<span class="json-key">"speed"</span>: { <span class="json-key">"min"</span>: <span class="json-num">3.0</span>, <span class="json-key">"max"</span>: <span class="json-num">12.0</span> },<br>
+<span class="json-key">"lifetime"</span>: { <span class="json-key">"min"</span>: <span class="json-num">0.2</span>, <span class="json-key">"max"</span>: <span class="json-num">0.6</span> },<br>
+<span class="json-key">"gravity"</span>: <span class="json-num">-9.8</span>,<br>
+<span class="json-key">"bounce"</span>: <span class="json-num">0.3</span>
+  </div>
+</div>
+
+<div class="note">
+  <strong style="color:#7c6af7">Depth sorting:</strong> Each frame, all billboard particles across all active emitters are collected into a single array and sorted back-to-front by camera distance — one <code>Arrays.sort()</code> call, then one <code>DecalBatch.flush()</code>. Mesh particles render separately via <code>ModelBatch</code> with depth write enabled — no sort needed. Existing <code>ParticleRenderSystem</code> and all current VFX JSON files stay compatible; only the texture paths get populated.
+</div>
+
+<style>
+  @keyframes pulse { from { transform: scale(0.9); opacity: 0.7; } to { transform: scale(1.1); opacity: 1.0; } }
+  @keyframes drift { from { transform: translateY(0px) scale(1); } to { transform: translateY(-8px) scale(1.05); } }
+</style>
+
+<p class="subtitle" style="margin-top:1rem">Does this cover the particle types you have in mind? Let me know in the terminal if you want different sprite categories or a different approach to mesh particles.</p>

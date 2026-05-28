@@ -136,8 +136,8 @@ public final class AtmosphericSkyRenderer implements Disposable {
         "void main() {\n" +
         "    vec3 ray = normalize(v_rayDir);\n" +
         "    \n" +
-        "    // Camera position on the planet surface (at planetRadius)\n" +
-        "    vec3 origin = vec3(0.0, u_planetRadius + u_cameraPos.y, 0.0);\n" +
+        "    // Camera position on the planet surface (game units -> km scale)\n" +
+        "    vec3 origin = vec3(0.0, u_planetRadius + u_cameraPos.y * 0.001, 0.0);\n" +
         "    \n" +
         "    // Intersect with atmosphere\n" +
         "    vec2 atmoHit = raySphere(origin, ray, u_atmosphereRadius);\n" +

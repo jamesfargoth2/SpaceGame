@@ -27,7 +27,9 @@ import com.galacticodyssey.combat.components.StatusEffectsComponent;
 import com.galacticodyssey.combat.components.WeaponInventoryComponent;
 import com.galacticodyssey.combat.data.AIArchetypeData;
 import com.galacticodyssey.combat.data.CombatDataRegistry;
+import com.galacticodyssey.combat.data.WeaponAssembly;
 import com.galacticodyssey.combat.data.WeaponDataRegistry;
+import com.galacticodyssey.combat.data.WeaponStatsResolver;
 import com.galacticodyssey.combat.systems.CombatAISystem;
 import com.galacticodyssey.combat.systems.CombatInputSystem;
 import com.galacticodyssey.combat.systems.DamageSystem;
@@ -269,6 +271,18 @@ public class GameWorld implements Disposable {
         // Combat systems
         WeaponDataRegistry weaponData = new WeaponDataRegistry();
         CombatDataRegistry combatData = new CombatDataRegistry();
+        if (com.badlogic.gdx.Gdx.files != null) {
+            try {
+                weaponData.loadFromFiles();
+            } catch (Exception e) {
+                com.badlogic.gdx.Gdx.app.error("GameWorld", "Failed to load weapon data", e);
+            }
+            try {
+                combatData.loadFromFiles();
+            } catch (Exception e) {
+                com.badlogic.gdx.Gdx.app.error("GameWorld", "Failed to load combat data", e);
+            }
+        }
         this.weaponDataRegistry = weaponData;
         this.combatDataRegistry = combatData;
 
@@ -513,6 +527,8 @@ public class GameWorld implements Disposable {
         player.add(new InventoryComponent(8, 6, 50f));
         player.add(new EquipmentSlotsComponent());
 
+        equipStarterWeapons(player);
+
         bulletPhysicsSystem.getDynamicsWorld().addRigidBody(physics.body);
         bulletPhysicsSystem.addManagedBody(physics.body);
 
@@ -524,6 +540,47 @@ public class GameWorld implements Disposable {
         });
 
         return player;
+    }
+
+    private void equipStarterWeapons(Entity player) {
+        WeaponInventoryComponent inventory = player.getComponent(WeaponInventoryComponent.class);
+        RangedWeaponComponent ranged = player.getComponent(RangedWeaponComponent.class);
+        if (inventory == null || ranged == null) return;
+
+        WeaponAssembly assaultRifle = WeaponAssembly.ranged(
+            "assault_rifle", "standard_barrel", "standard_round", null,
+            com.galacticodyssey.combat.CombatEnums.QualityTier.COMMON);
+        inventory.slots[0] = assaultRifle;
+        inventory.activeSlotIndex = 0;
+
+        WeaponAssembly sidearm = WeaponAssembly.ranged(
+            "pistol_standard", "standard_barrel", "standard_round", null,
+            com.galacticodyssey.combat.CombatEnums.QualityTier.COMMON);
+        inventory.slots[1] = sidearm;
+
+        WeaponAssembly melee = WeaponAssembly.melee("combat_blade",
+            com.galacticodyssey.combat.CombatEnums.QualityTier.COMMON);
+        inventory.slots[2] = melee;
+
+        if (weaponDataRegistry != null && weaponDataRegistry.getFrame("assault_rifle") != null) {
+            WeaponStatsResolver.RangedStats stats =
+                WeaponStatsResolver.resolveRanged(assaultRifle, weaponDataRegistry);
+            ranged.damage = stats.damage;
+            ranged.fireRate = stats.fireRate;
+            ranged.spread = stats.spread;
+            ranged.range = stats.range;
+            ranged.recoil = stats.recoil;
+            ranged.magSize = stats.magSize;
+            ranged.currentAmmo = stats.magSize;
+            ranged.reloadTime = stats.reloadTime;
+            ranged.firingMode = stats.firingMode;
+            ranged.hitscan = stats.hitscan;
+            ranged.damageType = stats.damageType;
+            ranged.statusEffect = stats.statusEffect;
+            ranged.statusEffectChance = stats.statusEffectChance;
+            ranged.projectileSpeed = stats.projectileSpeed;
+            ranged.ammoTypeId = stats.ammoTypeId;
+        }
     }
 
     public Entity createHostileNPC(Vector3 position, String archetypeId, int squadId,

@@ -16,5 +16,7 @@ public class PlayerInputComponent implements Component {
     public boolean rollRight;
     public boolean thrustUp;
     public boolean thrustDown;
+    public boolean leanLeft;
+    public boolean leanRight;
     public float scrollDelta;
 }

@@ -1,0 +1,186 @@
+<style>
+  .tier-bar {
+    display: flex;
+    align-items: stretch;
+    border-radius: 8px;
+    overflow: hidden;
+    height: 56px;
+    font-size: 0.78rem;
+    margin-bottom: 0.5rem;
+  }
+  .tier-seg {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 0.7rem;
+    gap: 2px;
+  }
+  .tier-seg strong { font-size: 0.82rem; }
+  .tier-seg span { opacity: 0.65; font-size: 0.7rem; }
+  .t0 { background: #1a3a1a; border-right: 1px solid #2e6e2e; color: #a5d6a7; }
+  .t1 { background: #1a2e3a; border-right: 1px solid #2e5e7e; color: #90caf9; }
+  .t2 { background: #2a2a1a; border-right: 1px solid #6e5e2e; color: #ffe082; }
+  .tcull { background: #1a1a1a; color: #555; }
+
+  .cat-row { display: flex; align-items: center; gap: 0.7rem; margin-bottom: 0.6rem; }
+  .cat-label { width: 110px; font-size: 0.78rem; color: #ccc; text-align: right; flex-shrink: 0; }
+
+  .render-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem; margin-top: 1rem; }
+  .render-card {
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 0.8rem;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    color: #bbb;
+  }
+  .render-card h4 { margin: 0 0 0.4rem; font-size: 0.85rem; }
+  .render-card .tag {
+    display: inline-block;
+    background: #1a1a2e;
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 0.68rem;
+    margin-right: 3px;
+    margin-bottom: 4px;
+    color: #999;
+  }
+  .highlight { color: #7c6af7; }
+  .highlight-g { color: #4caf50; }
+  .highlight-o { color: #ff9800; }
+  .highlight-b { color: #2196f3; }
+
+  .note { background: #0d0d1a; border-left: 3px solid #7c6af7; padding: 0.6rem 0.8rem; font-size: 0.78rem; color: #bbb; border-radius: 0 6px 6px 0; margin-top: 0.8rem; line-height: 1.6; }
+
+  .mockup-tier { display: flex; gap: 1.2rem; align-items: flex-end; justify-content: center; margin: 0.8rem 0; }
+  .tier-example {
+    display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
+  }
+  .mesh-icon {
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.6rem; color: #888; font-family: monospace; line-height: 1.2;
+    text-align: center;
+  }
+  .tier-dist { font-size: 0.7rem; color: #888; }
+  .tier-name { font-size: 0.75rem; font-weight: bold; }
+</style>
+
+<h2>LOD + Rendering Systems</h2>
+<p class="subtitle">Three tiers per asset, per-category distance thresholds, and three different rendering strategies depending on asset type.</p>
+
+<!-- TIER VISUAL -->
+<div style="margin: 1rem auto; max-width: 700px;">
+  <div class="mockup-tier">
+    <div class="tier-example">
+      <div class="mesh-icon t0" style="width:70px;height:80px;border:1.5px solid #4caf50">
+        <div style="color:#4caf50;font-size:1.2rem">▲▲<br><span style="font-size:0.55rem">full mesh<br>PBR mat<br>shadows<br>anim</span></div>
+      </div>
+      <div class="tier-name" style="color:#4caf50">Tier 0 — Near</div>
+      <div class="tier-dist">Full detail</div>
+    </div>
+    <div style="color:#444;font-size:1.5rem;padding-bottom:40px">→</div>
+    <div class="tier-example">
+      <div class="mesh-icon t1" style="width:55px;height:64px;border:1.5px solid #2196f3">
+        <div style="color:#2196f3;font-size:1.0rem">▲<br><span style="font-size:0.55rem">reduced<br>simple mat<br>no anim</span></div>
+      </div>
+      <div class="tier-name" style="color:#2196f3">Tier 1 — Mid</div>
+      <div class="tier-dist">~50% polys</div>
+    </div>
+    <div style="color:#444;font-size:1.5rem;padding-bottom:40px">→</div>
+    <div class="tier-example">
+      <div class="mesh-icon t2" style="width:40px;height:50px;border:1.5px solid #ff9800">
+        <div style="color:#ff9800;font-size:0.9rem">◆<br><span style="font-size:0.55rem">billboard<br>impostor</span></div>
+      </div>
+      <div class="tier-name" style="color:#ff9800">Tier 2 — Far</div>
+      <div class="tier-dist">Camera-facing quad</div>
+    </div>
+    <div style="color:#444;font-size:1.5rem;padding-bottom:40px">→</div>
+    <div class="tier-example">
+      <div class="mesh-icon tcull" style="width:30px;height:40px;border:1.5px solid #333">
+        <div style="font-size:0.55rem;color:#555">culled</div>
+      </div>
+      <div class="tier-name" style="color:#555">Culled</div>
+      <div class="tier-dist">Not rendered</div>
+    </div>
+  </div>
+
+  <!-- PER-CATEGORY DISTANCE TABLE -->
+  <div style="margin-top:0.5rem">
+    <div class="cat-row">
+      <div class="cat-label">Characters</div>
+      <div style="flex:1">
+        <div class="tier-bar">
+          <div class="tier-seg t0" style="flex:15">  <strong>T0</strong><span>0–15 m</span></div>
+          <div class="tier-seg t1" style="flex:35">  <strong>T1</strong><span>15–50 m</span></div>
+          <div class="tier-seg t2" style="flex:50">  <strong>T2 billboard</strong><span>50–120 m</span></div>
+          <div class="tier-seg tcull" style="flex:20"><strong>cull</strong><span>> 120 m</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="cat-row">
+      <div class="cat-label">Interior Props</div>
+      <div style="flex:1">
+        <div class="tier-bar">
+          <div class="tier-seg t0" style="flex:20"><strong>T0</strong><span>0–8 m</span></div>
+          <div class="tier-seg t1" style="flex:30"><strong>T1</strong><span>8–25 m</span></div>
+          <div class="tier-seg tcull" style="flex:50"><strong>cull</strong><span>> 25 m</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="cat-row">
+      <div class="cat-label">Foliage</div>
+      <div style="flex:1">
+        <div class="tier-bar">
+          <div class="tier-seg t0" style="flex:20"><strong>T0</strong><span>0–20 m</span></div>
+          <div class="tier-seg t1" style="flex:30"><strong>T1</strong><span>20–60 m</span></div>
+          <div class="tier-seg t2" style="flex:30"><strong>T2 billboard</strong><span>60–150 m</span></div>
+          <div class="tier-seg tcull" style="flex:20"><strong>cull</strong><span>> 150 m</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="cat-row">
+      <div class="cat-label">Buildings</div>
+      <div style="flex:1">
+        <div class="tier-bar">
+          <div class="tier-seg t0" style="flex:25"><strong>T0</strong><span>0–100 m</span></div>
+          <div class="tier-seg t1" style="flex:35"><strong>T1</strong><span>100–400 m</span></div>
+          <div class="tier-seg t2" style="flex:25"><strong>T2 billboard</strong><span>400–1 km</span></div>
+          <div class="tier-seg tcull" style="flex:15"><strong>cull</strong><span>> 1 km</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <span class="highlight">Hysteresis:</span> Tier transitions use separate upgrade/downgrade distances (e.g., upgrade to T0 at 12m, downgrade back to T1 at 18m) to prevent visual popping when the player hovers near a threshold. All thresholds are JSON-configurable per category.
+  </div>
+</div>
+
+<!-- THREE RENDERING STRATEGIES -->
+<h3 style="text-align:center;margin-top:1.4rem;font-size:0.9rem;color:#888;text-transform:uppercase;letter-spacing:1px">Rendering Strategy Per Asset Type</h3>
+<div class="render-cards">
+
+  <div class="render-card">
+    <h4 class="highlight-g">Foliage — GPU Instancing</h4>
+    <div><span class="tag">FoliageRenderSystem</span><span class="tag">instanced</span><span class="tag">wind shader</span></div>
+    <p>World divided into <strong>tiles</strong>. Each tile holds an instance buffer (Matrix4 array) for every foliage type in it. One <code>glDrawArraysInstanced</code> call per foliage type per tile. Wind: vertex shader applies a sine-wave XZ displacement scaled by vertex Y and a time uniform — grass bends at the tips, trunks barely move. Tile culling: skip any tile whose AABB is outside the camera frustum. No per-blade physics — pure visual.</p>
+  </div>
+
+  <div class="render-card">
+    <h4 class="highlight-b">Props & Interior Objects — Pooled Instances + Selective Instancing</h4>
+    <div><span class="tag">PropCatalog</span><span class="tag">Pool&lt;ModelInstance&gt;</span><span class="tag">PropPlacementSystem</span></div>
+    <p><strong>PropCatalog</strong> JSON registry: each prop has an ID, mesh path, LOD tier paths, and category tags (<code>SEATING</code>, <code>CONSOLE</code>, <code>DECORATION</code>, <code>STORAGE</code>, <code>TECH</code>). <strong>Pooled ModelInstances</strong> via libGDX <code>Pool&lt;T&gt;</code> — reused when props enter/leave visibility. For high-repetition props (chairs, crates, lockers): GPU instancing. For hero props (captain's chair, unique consoles): individual ModelInstance. <strong>PropPlacementSystem</strong> populates rooms at interior-enter time based on room archetype + tag filter.</p>
+  </div>
+
+  <div class="render-card">
+    <h4 class="highlight-o">Buildings — Modular Assembly + Static Bake</h4>
+    <div><span class="tag">BuildingAssembler</span><span class="tag">snap points</span><span class="tag">static mesh</span></div>
+    <p>Each building panel (wall section, floor, roof, doorframe, window) is a glTF model with defined <strong>snap point</strong> metadata (attachment position + orientation). <strong>BuildingAssembler</strong> reads a building definition JSON, instantiates panels, connects them via snap points, then <strong>merges into a single static mesh</strong> (one ModelInstance per building, one draw call). Once assembled, the building never re-draws individual panels. Procedurally varied via panel swapping per seed — different wall styles, window counts, roof shapes.</p>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:1.2rem">Does this look right? Any distance thresholds you'd adjust, or rendering strategies you'd change?</p>

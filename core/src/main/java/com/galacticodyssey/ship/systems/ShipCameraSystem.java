@@ -38,7 +38,6 @@ public class ShipCameraSystem extends EntitySystem {
     private final ComponentMapper<PilotSeatComponent> seatMapper =
         ComponentMapper.getFor(PilotSeatComponent.class);
 
-    private static final float COCKPIT_LAG = 8f;
     private static final float CHASE_POS_LERP = 4f;
     private static final float CHASE_ROT_LERP = 6f;
 
@@ -94,14 +93,11 @@ public class ShipCameraSystem extends EntitySystem {
 
         tempMat.set(shipTransform.position, shipTransform.rotation);
 
-        // Transform seat's local interior position into world space
         tempVec.set(seat.interiorPosition).mul(tempMat);
         camera.position.set(tempVec);
 
-        // Compute ship forward in world space and lerp camera direction toward it
-        Vector3 shipForward = new Vector3(0, 0, -1).rot(tempMat).nor();
-        camera.direction.lerp(shipForward, COCKPIT_LAG * deltaTime).nor();
-
+        // Lock camera to ship orientation — no lag, direct steering
+        camera.direction.set(0, 0, -1).rot(tempMat).nor();
         camera.up.set(0, 1, 0).rot(tempMat).nor();
         camera.update();
     }

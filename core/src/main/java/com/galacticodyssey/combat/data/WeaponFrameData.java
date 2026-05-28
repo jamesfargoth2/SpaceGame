@@ -5,6 +5,7 @@ import com.galacticodyssey.combat.CombatEnums.WeaponCategory;
 
 public class WeaponFrameData {
     public String id;
+    public String name;
     public WeaponCategory category;
     public float baseDamage;
     public float baseFireRate;

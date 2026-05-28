@@ -68,13 +68,13 @@ public final class ScatteringParams {
         float pR = 6371f;
         float scaleH = 8.5f;
         return new ScatteringParams(
-            5.5e-6f, 13.0e-6f, 22.4e-6f,   // Rayleigh RGB (blue > red)
-            21e-6f, 0.76f,                   // Mie coeff + asymmetry
-            2.1e-6f, 0.0f, 0.0f,            // Absorption (ozone-like, mostly red channel)
-            scaleH, 1.2f,                    // Scale heights
-            pR, pR + scaleH * 6f,            // Planet + atmosphere radius
+            5.5e-3f, 13.0e-3f, 22.4e-3f,   // Rayleigh RGB per-km (blue > red)
+            21e-3f, 0.76f,                   // Mie coeff per-km + asymmetry
+            2.1e-3f, 0.0f, 0.0f,            // Absorption per-km (ozone-like, mostly red channel)
+            scaleH, 1.2f,                    // Scale heights (km)
+            pR, pR + scaleH * 6f,            // Planet + atmosphere radius (km)
             22.0f, 0.00465f,                 // Sun intensity + angular radius (radians)
-            1.5f, 4.0f, 0.45f,              // Cloud base, top, coverage
+            1.5f, 4.0f, 0.45f,              // Cloud base, top, coverage (km)
             0.004f                           // Fog density
         );
     }
@@ -99,9 +99,9 @@ public final class ScatteringParams {
         // Rayleigh: wavelength-dependent, scaled by pressure and composition.
         // CO2/SO2 shift toward red; N2/O2 favour blue.
         float pressureScale = pressure;
-        float rBase = 5.5e-6f  * earthLikeFrac + 18.0e-6f * heavyFrac;
-        float gBase = 13.0e-6f * earthLikeFrac + 14.0e-6f * heavyFrac;
-        float bBase = 22.4e-6f * earthLikeFrac +  8.0e-6f * heavyFrac;
+        float rBase = 5.5e-3f  * earthLikeFrac + 18.0e-3f * heavyFrac;
+        float gBase = 13.0e-3f * earthLikeFrac + 14.0e-3f * heavyFrac;
+        float bBase = 22.4e-3f * earthLikeFrac +  8.0e-3f * heavyFrac;
 
         float rayleighR = rBase * pressureScale;
         float rayleighG = gBase * pressureScale;

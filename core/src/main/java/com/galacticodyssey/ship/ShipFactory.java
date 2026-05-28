@@ -58,7 +58,7 @@ public class ShipFactory implements Disposable {
     private static final float[] PITCH_YAW_TORQUE    = { 20_000f,  50_000f,  100_000f };
     private static final float[] ROLL_TORQUE         = { 15_000f,  30_000f,   60_000f };
     private static final float[] LINEAR_DRAG         = { 0.6f,     0.7f,     0.85f };
-    private static final float[] ANGULAR_DRAG        = { 3.0f,     4.0f,     6.0f };
+    private static final float[] ANGULAR_DRAG        = { 0.5f,     0.6f,     0.7f };
 
     /**
      * Maximum number of hull vertices sampled when building the exterior
