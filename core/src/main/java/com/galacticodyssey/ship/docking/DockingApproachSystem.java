@@ -12,9 +12,13 @@ import com.badlogic.gdx.utils.Pool;
 import com.galacticodyssey.core.EventBus;
 import com.galacticodyssey.core.components.PhysicsBodyComponent;
 import com.galacticodyssey.core.components.TransformComponent;
+import com.galacticodyssey.economy.components.MarketComponent;
+import com.galacticodyssey.galaxy.faction.ReputationManager;
+import com.galacticodyssey.galaxy.faction.ReputationTier;
 import com.galacticodyssey.ship.docking.DockingStateComponent.DockingPhase;
 import com.galacticodyssey.ship.docking.events.DockingAbortEvent;
 import com.galacticodyssey.ship.docking.events.DockingAbortEvent.DockingAbortReason;
+import com.galacticodyssey.ship.docking.events.DockingDeniedEvent;
 
 /**
  * Monitors entities performing a docking approach and enforces the approach
@@ -47,8 +51,11 @@ public class DockingApproachSystem extends EntitySystem {
         ComponentMapper.getFor(TransformComponent.class);
     private static final ComponentMapper<PhysicsBodyComponent> PHYSICS_M =
         ComponentMapper.getFor(PhysicsBodyComponent.class);
+    private static final ComponentMapper<MarketComponent> MARKET_M =
+        ComponentMapper.getFor(MarketComponent.class);
 
     private final EventBus eventBus;
+    private ReputationManager reputationManager;
     private ImmutableArray<Entity> entities;
 
     private final Pool<Vector3> vectorPool = new Pool<Vector3>() {
@@ -61,6 +68,10 @@ public class DockingApproachSystem extends EntitySystem {
     public DockingApproachSystem(EventBus eventBus) {
         super(PRIORITY);
         this.eventBus = eventBus;
+    }
+
+    public void setReputationManager(ReputationManager reputationManager) {
+        this.reputationManager = reputationManager;
     }
 
     @Override
@@ -85,14 +96,34 @@ public class DockingApproachSystem extends EntitySystem {
     private void processEntity(Entity entity, float deltaTime) {
         DockingStateComponent state = STATE_M.get(entity);
 
-        // Only check corridor during an active approach
-        if (state.dockingPhase != DockingPhase.FINAL_APPROACH
-            && state.dockingPhase != DockingPhase.MIDRANGE) {
+        if (state.dockingPhase == DockingPhase.NONE
+            || state.dockingPhase == DockingPhase.CONTACT
+            || state.dockingPhase == DockingPhase.HARD_DOCK) {
             return;
         }
 
         Entity target = state.targetEntity;
         if (target == null) return;
+
+        // Reputation check: deny docking at HOSTILE faction stations
+        if (reputationManager != null) {
+            MarketComponent targetMarket = MARKET_M.get(target);
+            if (targetMarket != null && targetMarket.ownerFactionId != null) {
+                if (reputationManager.getTier(targetMarket.ownerFactionId) == ReputationTier.HOSTILE) {
+                    state.dockingPhase = DockingPhase.NONE;
+                    eventBus.publish(new DockingDeniedEvent(
+                        targetMarket.stationId, targetMarket.ownerFactionId,
+                        "HOSTILE reputation"));
+                    return;
+                }
+            }
+        }
+
+        // Only check corridor during FINAL_APPROACH or MIDRANGE
+        if (state.dockingPhase != DockingPhase.FINAL_APPROACH
+            && state.dockingPhase != DockingPhase.MIDRANGE) {
+            return;
+        }
 
         TransformComponent chaserTransform = TRANSFORM_M.get(entity);
         TransformComponent targetTransform = TRANSFORM_M.get(target);
