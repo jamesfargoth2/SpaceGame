@@ -1,0 +1,27 @@
+{
+  "on_foot": {
+    "RISE_RATE": 2.0,
+    "DECAY_RATE": 0.8,
+    "DECAY_FLOOR": 0.05,
+    "SUSPICION_LIMIT": 4.0,
+    "CURIOUS_COOLDOWN": 2.0,
+    "SEARCH_DURATION": 15.0,
+    "HUD_UPDATE_HZ": 4.0
+  },
+  "ship": {
+    "RISE_RATE": 2.0,
+    "DECAY_RATE": 0.8,
+    "FALLOFF_K": 0.0001,
+    "SUSPICION_LIMIT": 8.0,
+    "CURIOUS_COOLDOWN": 5.0,
+    "SEARCH_DURATION": 30.0,
+    "DECAY_FLOOR": 0.05
+  },
+  "signature": {
+    "BASE_EM": 0.05,
+    "SHIELD_EM": 0.40,
+    "SCANNER_EM": 0.30,
+    "HEAT_FACTOR": 0.80,
+    "DARK_MODE_EM_FACTOR": 0.05
+  }
+}

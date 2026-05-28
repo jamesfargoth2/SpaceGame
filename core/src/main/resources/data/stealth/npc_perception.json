@@ -1,0 +1,27 @@
+{
+  "guard_standard": {
+    "viewRange": 20, "viewAngle": 110, "hearingRange": 12,
+    "curiousThreshold": 0.25, "alertThreshold": 0.65,
+    "effectiveness": 1.0, "pingMultiplier": 1.0
+  },
+  "guard_elite": {
+    "viewRange": 30, "viewAngle": 130, "hearingRange": 18,
+    "curiousThreshold": 0.15, "alertThreshold": 0.50,
+    "effectiveness": 1.0, "pingMultiplier": 1.0
+  },
+  "patrol_ship_light": {
+    "viewRange": 800, "viewAngle": 60, "hearingRange": 0,
+    "curiousThreshold": 0.20, "alertThreshold": 0.55,
+    "effectiveness": 1.0, "pingMultiplier": 2.0
+  },
+  "patrol_ship_heavy": {
+    "viewRange": 1500, "viewAngle": 90, "hearingRange": 0,
+    "curiousThreshold": 0.15, "alertThreshold": 0.45,
+    "effectiveness": 1.5, "pingMultiplier": 3.0
+  },
+  "customs_scanner": {
+    "viewRange": 500, "viewAngle": 360, "hearingRange": 0,
+    "curiousThreshold": 0.15, "alertThreshold": 0.45,
+    "effectiveness": 1.5, "pingMultiplier": 3.0
+  }
+}
