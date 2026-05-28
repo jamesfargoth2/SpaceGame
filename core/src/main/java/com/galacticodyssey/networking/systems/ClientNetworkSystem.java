@@ -1,5 +1,6 @@
 package com.galacticodyssey.networking.systems;
 
+import com.badlogic.ashley.core.ComponentMapper;
 import com.badlogic.ashley.core.Engine;
 import com.badlogic.ashley.core.Entity;
 import com.badlogic.ashley.core.EntitySystem;
@@ -10,9 +11,8 @@ import com.galacticodyssey.networking.components.NetworkIdComponent;
 import com.galacticodyssey.networking.interpolation.EntitySnapshot;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
+import java.nio.ByteOrder;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -32,6 +32,11 @@ public class ClientNetworkSystem extends EntitySystem {
     private final ConcurrentLinkedQueue<EntityBatchUpdate> batchQueue = new ConcurrentLinkedQueue<>();
     private final ConcurrentLinkedQueue<EntitySpawnMessage> spawnQueue = new ConcurrentLinkedQueue<>();
     private final ConcurrentLinkedQueue<EntityDestroyMessage> destroyQueue = new ConcurrentLinkedQueue<>();
+
+    private static final ComponentMapper<InterpolationComponent> INTERP_M =
+            ComponentMapper.getFor(InterpolationComponent.class);
+    private static final ComponentMapper<TransformComponent> TRANSFORM_M =
+            ComponentMapper.getFor(TransformComponent.class);
 
     private final Map<Integer, Entity> remoteEntities = new HashMap<>();
     private int localPlayerNetworkId = -1;
@@ -125,31 +130,6 @@ public class ClientNetworkSystem extends EntitySystem {
     }
 
     // -------------------------------------------------------------------------
-    // Public API — drain methods (for callers outside the engine update cycle)
-    // -------------------------------------------------------------------------
-
-    public List<EntityBatchUpdate> drainBatchUpdates() {
-        List<EntityBatchUpdate> result = new ArrayList<>();
-        EntityBatchUpdate item;
-        while ((item = batchQueue.poll()) != null) result.add(item);
-        return result;
-    }
-
-    public List<EntitySpawnMessage> drainSpawnMessages() {
-        List<EntitySpawnMessage> result = new ArrayList<>();
-        EntitySpawnMessage item;
-        while ((item = spawnQueue.poll()) != null) result.add(item);
-        return result;
-    }
-
-    public List<EntityDestroyMessage> drainDestroyMessages() {
-        List<EntityDestroyMessage> result = new ArrayList<>();
-        EntityDestroyMessage item;
-        while ((item = destroyQueue.poll()) != null) result.add(item);
-        return result;
-    }
-
-    // -------------------------------------------------------------------------
     // Engine update
     // -------------------------------------------------------------------------
 
@@ -216,13 +196,13 @@ public class ClientNetworkSystem extends EntitySystem {
         Entity entity = remoteEntities.get(update.networkId);
         if (entity == null) return;
 
-        InterpolationComponent ic = entity.getComponent(InterpolationComponent.class);
+        InterpolationComponent ic = INTERP_M.get(entity);
         if (ic == null) return;
 
         // Decode position from first 12 bytes of payload
         float posX = 0f, posY = 0f, posZ = 0f;
         if (update.payload != null && update.payload.length >= 12) {
-            ByteBuffer bb = ByteBuffer.wrap(update.payload);
+            ByteBuffer bb = ByteBuffer.wrap(update.payload).order(ByteOrder.BIG_ENDIAN);
             posX = bb.getFloat();
             posY = bb.getFloat();
             posZ = bb.getFloat();
@@ -230,7 +210,7 @@ public class ClientNetworkSystem extends EntitySystem {
 
         // Handle unfreeze: blend from the current rendered position
         if (ic.frozen) {
-            TransformComponent transform = entity.getComponent(TransformComponent.class);
+            TransformComponent transform = TRANSFORM_M.get(entity);
             if (transform != null) {
                 ic.blendFromX = transform.position.x;
                 ic.blendFromY = transform.position.y;

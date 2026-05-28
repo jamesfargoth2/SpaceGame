@@ -29,7 +29,7 @@ import com.galacticodyssey.networking.interpolation.SnapshotBuffer;
 public class InterpolationSystem extends EntitySystem {
 
     private final float tickInterval;
-    private int currentServerTick;
+    private volatile int currentServerTick;
 
     private final ComponentMapper<TransformComponent> transformMapper =
             ComponentMapper.getFor(TransformComponent.class);
@@ -95,13 +95,13 @@ public class InterpolationSystem extends EntitySystem {
                         interp.blendFromY + (lerped.posY - interp.blendFromY) * blendT,
                         interp.blendFromZ + (lerped.posZ - interp.blendFromZ) * blendT
                 );
-                // Blend rotation similarly.
-                transform.rotation.set(
-                        interp.blendFromRotX + (lerped.rotX - interp.blendFromRotX) * blendT,
-                        interp.blendFromRotY + (lerped.rotY - interp.blendFromRotY) * blendT,
-                        interp.blendFromRotZ + (lerped.rotZ - interp.blendFromRotZ) * blendT,
-                        interp.blendFromRotW + (lerped.rotW - interp.blendFromRotW) * blendT
-                );
+                // Blend rotation with normalization to preserve unit quaternion.
+                float rx = interp.blendFromRotX + (lerped.rotX - interp.blendFromRotX) * blendT;
+                float ry = interp.blendFromRotY + (lerped.rotY - interp.blendFromRotY) * blendT;
+                float rz = interp.blendFromRotZ + (lerped.rotZ - interp.blendFromRotZ) * blendT;
+                float rw = interp.blendFromRotW + (lerped.rotW - interp.blendFromRotW) * blendT;
+                float invLen = 1f / (float) Math.sqrt(rx * rx + ry * ry + rz * rz + rw * rw);
+                transform.rotation.set(rx * invLen, ry * invLen, rz * invLen, rw * invLen);
                 interp.blendFramesRemaining--;
             } else {
                 transform.position.set(lerped.posX, lerped.posY, lerped.posZ);

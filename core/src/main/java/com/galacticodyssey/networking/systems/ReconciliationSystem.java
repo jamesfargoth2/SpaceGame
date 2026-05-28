@@ -11,6 +11,7 @@ import com.galacticodyssey.networking.prediction.PredictedState;
 import com.galacticodyssey.networking.prediction.TimestampedInput;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -78,7 +79,7 @@ public class ReconciliationSystem extends EntitySystem {
             // Decode server position from payload
             float serverX = 0, serverY = 0, serverZ = 0;
             if (myUpdate.payload != null && myUpdate.payload.length >= 12) {
-                ByteBuffer bb = ByteBuffer.wrap(myUpdate.payload);
+                ByteBuffer bb = ByteBuffer.wrap(myUpdate.payload).order(ByteOrder.BIG_ENDIAN);
                 serverX = bb.getFloat();
                 serverY = bb.getFloat();
                 serverZ = bb.getFloat();

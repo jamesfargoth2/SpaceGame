@@ -24,7 +24,7 @@ public class ClientPredictionSystem extends EntitySystem {
     private ImmutableArray<Entity> predictedEntities;
 
     public ClientPredictionSystem() {
-        super(0);
+        super(-1);
     }
 
     @Override

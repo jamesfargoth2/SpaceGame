@@ -1,10 +1,9 @@
 package com.galacticodyssey.networking.systems;
 
+import com.badlogic.ashley.core.Engine;
 import com.galacticodyssey.common.protocol.*;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -44,44 +43,65 @@ class ClientNetworkSystemTest {
     }
 
     @Test
-    void entityBatchUpdateIsQueued() {
+    void spawnCreatesRemoteEntity() {
+        Engine engine = new Engine();
         ClientNetworkSystem system = new ClientNetworkSystem();
-
-        EntityBatchUpdate batch = new EntityBatchUpdate();
-        batch.serverTick = 10;
-        batch.lastProcessedInputSequence = 5;
-        batch.updates = new EntityStateUpdate[0];
-        system.handleEntityBatchUpdate(batch);
-
-        var queued = system.drainBatchUpdates();
-        assertEquals(1, queued.size());
-        assertEquals(10, queued.get(0).serverTick);
-    }
-
-    @Test
-    void entitySpawnMessageIsQueued() {
-        ClientNetworkSystem system = new ClientNetworkSystem();
+        engine.addSystem(system);
 
         EntitySpawnMessage spawn = new EntitySpawnMessage();
         spawn.networkId = 42;
         spawn.entityType = "ship";
         system.handleEntitySpawn(spawn);
 
-        var queued = system.drainSpawnMessages();
-        assertEquals(1, queued.size());
-        assertEquals(42, queued.get(0).networkId);
+        system.update(0.016f);
+
+        assertNotNull(system.getRemoteEntity(42));
     }
 
     @Test
-    void entityDestroyMessageIsQueued() {
+    void destroyRemovesRemoteEntity() {
+        Engine engine = new Engine();
         ClientNetworkSystem system = new ClientNetworkSystem();
+        engine.addSystem(system);
+
+        EntitySpawnMessage spawn = new EntitySpawnMessage();
+        spawn.networkId = 42;
+        spawn.entityType = "ship";
+        system.handleEntitySpawn(spawn);
+        system.update(0.016f);
+        assertNotNull(system.getRemoteEntity(42));
 
         EntityDestroyMessage destroy = new EntityDestroyMessage();
         destroy.networkId = 42;
         system.handleEntityDestroy(destroy);
+        system.update(0.016f);
 
-        var queued = system.drainDestroyMessages();
-        assertEquals(1, queued.size());
-        assertEquals(42, queued.get(0).networkId);
+        assertNull(system.getRemoteEntity(42));
+    }
+
+    @Test
+    void batchUpdateProcessedByUpdate() {
+        Engine engine = new Engine();
+        ClientNetworkSystem system = new ClientNetworkSystem();
+        engine.addSystem(system);
+
+        EntitySpawnMessage spawn = new EntitySpawnMessage();
+        spawn.networkId = 10;
+        spawn.entityType = "ship";
+        system.handleEntitySpawn(spawn);
+        system.update(0.016f);
+
+        EntityBatchUpdate batch = new EntityBatchUpdate();
+        batch.serverTick = 5;
+        batch.lastProcessedInputSequence = 1;
+        EntityStateUpdate upd = new EntityStateUpdate();
+        upd.networkId = 10;
+        upd.payload = new byte[12];
+        batch.updates = new EntityStateUpdate[]{upd};
+        system.handleEntityBatchUpdate(batch);
+
+        system.update(0.016f);
+
+        assertNotNull(system.getRemoteEntity(10));
     }
 }
