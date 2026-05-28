@@ -23,7 +23,7 @@ public class AssetHandle<T> {
     }
 
     public void release() {
-        if (refCount.decrementAndGet() <= 0 && onZero != null) {
+        if (refCount.decrementAndGet() == 0 && onZero != null) {
             onZero.accept(this);
         }
     }
