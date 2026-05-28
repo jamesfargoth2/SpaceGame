@@ -5,6 +5,7 @@ import com.badlogic.ashley.core.Engine;
 import com.badlogic.ashley.core.Entity;
 import com.badlogic.ashley.core.Family;
 import com.badlogic.ashley.utils.ImmutableArray;
+import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
@@ -61,7 +62,7 @@ public class RecruitmentScreenSystem implements ManagedScreen {
     private Stage stage;
     private Engine engine;
     private CantinaSceneActor cantinaScene;
-    private Table portraitGroup;
+    private Group portraitGroup;
     private CandidateDetailOverlay detailOverlay;
     private HiringBoardOverlay hiringBoard;
     private HireConfirmationDialog confirmDialog;
@@ -69,13 +70,15 @@ public class RecruitmentScreenSystem implements ManagedScreen {
     private final List<NpcPortraitActor> portraitActors = new ArrayList<>();
     private Entity selectedEntity;
     private boolean inDialog;
+    private final com.galacticodyssey.core.EventBus.EventListener<RecruitmentOpenedEvent> openedListener = this::onOpened;
+    private final com.galacticodyssey.core.EventBus.EventListener<DialogClosedEvent> dialogClosedListener = this::onDialogClosed;
 
     public RecruitmentScreenSystem(EventBus eventBus, Skin skin) {
         this.eventBus = eventBus;
         this.skin = skin;
 
-        eventBus.subscribe(RecruitmentOpenedEvent.class, this::onOpened);
-        eventBus.subscribe(DialogClosedEvent.class, this::onDialogClosed);
+        eventBus.subscribe(RecruitmentOpenedEvent.class, openedListener);
+        eventBus.subscribe(DialogClosedEvent.class, dialogClosedListener);
     }
 
     public void initialize(Engine engine) {
@@ -86,9 +89,8 @@ public class RecruitmentScreenSystem implements ManagedScreen {
         cantinaScene = new CantinaSceneActor(WORLD_WIDTH, WORLD_HEIGHT);
         stage.addActor(cantinaScene);
 
-        portraitGroup = new Table();
-        portraitGroup.setFillParent(true);
-        portraitGroup.top().padTop(120);
+        portraitGroup = new Group();
+        portraitGroup.setSize(WORLD_WIDTH, WORLD_HEIGHT);
         stage.addActor(portraitGroup);
 
         detailOverlay = new CandidateDetailOverlay(skin, this::onTalk, this::onDismissDetail);
@@ -155,6 +157,8 @@ public class RecruitmentScreenSystem implements ManagedScreen {
 
     @Override
     public void dispose() {
+        eventBus.unsubscribe(RecruitmentOpenedEvent.class, openedListener);
+        eventBus.unsubscribe(DialogClosedEvent.class, dialogClosedListener);
         clearPortraits();
         if (cantinaScene != null) cantinaScene.dispose();
         if (detailOverlay != null) detailOverlay.dispose();
@@ -179,7 +183,7 @@ public class RecruitmentScreenSystem implements ManagedScreen {
             CantinaSeatComponent seat = SEAT_M.get(npc);
 
             NpcPortraitActor portrait = new NpcPortraitActor(npc, skin, this::onPortraitClicked);
-            portrait.setPosition(seat.sceneX, seat.sceneY);
+            portrait.setPosition(seat.sceneX * WORLD_WIDTH, seat.sceneY * WORLD_HEIGHT);
             portraitActors.add(portrait);
             portraitGroup.addActor(portrait);
         }

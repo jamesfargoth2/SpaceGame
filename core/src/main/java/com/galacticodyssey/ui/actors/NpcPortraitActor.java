@@ -37,6 +37,7 @@ public class NpcPortraitActor extends Group implements Disposable {
 
     private final Entity entity;
     private Texture portraitTexture;
+    private Texture nameTagBgTexture;
     private boolean selected;
 
     public NpcPortraitActor(Entity entity, Skin skin, Consumer<Entity> onClick) {
@@ -146,9 +147,9 @@ public class NpcPortraitActor extends Group implements Disposable {
         Pixmap pm = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
         pm.setColor(color);
         pm.fill();
-        Texture tex = new Texture(pm);
+        nameTagBgTexture = new Texture(pm);
         pm.dispose();
-        return new TextureRegionDrawable(new TextureRegion(tex));
+        return new TextureRegionDrawable(new TextureRegion(nameTagBgTexture));
     }
 
     private Color getSpeciesColor(String species) {
@@ -165,6 +166,10 @@ public class NpcPortraitActor extends Group implements Disposable {
         if (portraitTexture != null) {
             portraitTexture.dispose();
             portraitTexture = null;
+        }
+        if (nameTagBgTexture != null) {
+            nameTagBgTexture.dispose();
+            nameTagBgTexture = null;
         }
     }
 }

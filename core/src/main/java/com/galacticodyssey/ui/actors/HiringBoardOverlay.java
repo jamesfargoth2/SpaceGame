@@ -103,7 +103,9 @@ public class HiringBoardOverlay extends Table implements Disposable {
             .filter(e -> {
                 if (filterValue == null) return true;
                 NpcIdentityComponent id = IDENTITY_M.get(e);
-                return id.role != null && id.role.name().equalsIgnoreCase(filterValue);
+                if (id.role == null) return false;
+                com.galacticodyssey.npc.crew.CrewRole cr = id.role.toCrewRole();
+                return cr != null && cr.name().equalsIgnoreCase(filterValue);
             }).count();
 
         TextButton tab = new TextButton(label + "(" + count + ")", skin, "default");
@@ -122,9 +124,10 @@ public class HiringBoardOverlay extends Table implements Disposable {
 
         for (Entity entity : allCandidates) {
             NpcIdentityComponent identity = IDENTITY_M.get(entity);
-            if (activeFilter != null && (identity.role == null ||
-                !identity.role.name().equalsIgnoreCase(activeFilter))) {
-                continue;
+            if (activeFilter != null) {
+                if (identity.role == null) continue;
+                com.galacticodyssey.npc.crew.CrewRole cr = identity.role.toCrewRole();
+                if (cr == null || !cr.name().equalsIgnoreCase(activeFilter)) continue;
             }
 
             NpcStatsComponent stats = STATS_M.get(entity);

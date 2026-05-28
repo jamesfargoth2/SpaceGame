@@ -6,6 +6,7 @@ import com.badlogic.ashley.core.EntitySystem;
 import com.badlogic.ashley.core.Family;
 import com.badlogic.ashley.utils.ImmutableArray;
 import com.galacticodyssey.core.EventBus;
+import com.galacticodyssey.npc.NPCRole;
 import com.galacticodyssey.npc.components.*;
 import com.galacticodyssey.npc.crew.CrewRank;
 import com.galacticodyssey.npc.data.*;
@@ -21,6 +22,15 @@ public class CandidatePoolSystem extends EntitySystem {
     private final EventBus eventBus;
     private final NpcGenerator generator;
     private final RecruitmentDataRegistry recruitRegistry;
+    private static final NPCRole[] CREW_ROLES;
+    static {
+        java.util.List<NPCRole> roles = new java.util.ArrayList<>();
+        for (NPCRole r : NPCRole.values()) {
+            if (r.isCrewRole()) roles.add(r);
+        }
+        CREW_ROLES = roles.toArray(new NPCRole[0]);
+    }
+
     private final Set<String> activeStations = new HashSet<>();
     private Engine engine;
 
@@ -62,6 +72,11 @@ public class CandidatePoolSystem extends EntitySystem {
 
             NpcStatsComponent stats = npc.getComponent(NpcStatsComponent.class);
             NpcIdentityComponent identity = npc.getComponent(NpcIdentityComponent.class);
+
+            Random roleRng = new Random(seed ^ 0xCAFE);
+            NPCRole role = CREW_ROLES[roleRng.nextInt(CREW_ROLES.length)];
+            identity.role = role;
+            identity.recruitable = true;
 
             RecruitableComponent rc = new RecruitableComponent();
             float baseWage = CrewRank.RECRUIT.baseWage;
