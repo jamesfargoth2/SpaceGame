@@ -118,6 +118,8 @@ public final class TectonicModel {
         return e;
     }
 
+    public int plateCount() { return plates.size(); }
+
     public float continentalFraction() { return continentalFraction; }
 
     public List<TectonicFeature> features() { return java.util.Collections.unmodifiableList(features); }
