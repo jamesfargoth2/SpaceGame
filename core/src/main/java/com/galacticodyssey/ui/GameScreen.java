@@ -751,6 +751,10 @@ public class GameScreen implements Screen {
             gameWorld.getEventBus());
         vehicleBayPanel.setFillParent(true);
         vehicleBayStage.addActor(vehicleBayPanel);
+        // Give the bay stage first dibs on input so its Deploy/close buttons are clickable when
+        // shown. While the panel is hidden the (invisible) stage hit-tests to nothing and passes
+        // all input through to the rest of the multiplexer.
+        inputMultiplexer.addProcessor(0, vehicleBayStage);
     }
     private void buildDialogSystem() {
         EventBus eventBus = gameWorld.getEventBus();
