@@ -54,6 +54,7 @@ public class QuestJournalScreen implements Screen {
     private final TextButton[] tabButtons;
     private int activeTabIndex = 0;
     private final Table[] tabContents;
+    private boolean inputListenerAdded;
 
     private final EventBus.EventListener<ObjectiveUpdatedEvent> onObjectiveUpdated;
     private final EventBus.EventListener<QuestCompletedEvent> onQuestCompleted;
@@ -169,16 +170,19 @@ public class QuestJournalScreen implements Screen {
         Gdx.input.setCursorCatched(false);
         eventBus.publish(new JournalOpenedEvent());
 
-        stage.addListener(new InputListener() {
-            @Override
-            public boolean keyDown(InputEvent event, int keycode) {
-                if (keycode == Input.Keys.ESCAPE || keycode == Input.Keys.J) {
-                    close();
-                    return true;
+        if (!inputListenerAdded) {
+            inputListenerAdded = true;
+            stage.addListener(new InputListener() {
+                @Override
+                public boolean keyDown(InputEvent event, int keycode) {
+                    if (keycode == Input.Keys.ESCAPE || keycode == Input.Keys.J) {
+                        close();
+                        return true;
+                    }
+                    return false;
                 }
-                return false;
-            }
-        });
+            });
+        }
     }
 
     @Override
