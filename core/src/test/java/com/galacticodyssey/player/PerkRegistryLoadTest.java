@@ -1,7 +1,9 @@
 package com.galacticodyssey.player;
 
+import com.galacticodyssey.player.stats.ModifierOp;
 import com.galacticodyssey.player.stats.PerkNodeDef;
 import com.galacticodyssey.player.stats.PerkRegistry;
+import com.galacticodyssey.player.stats.PerkTarget;
 import com.galacticodyssey.player.stats.RealTimeSkill;
 import org.junit.jupiter.api.Test;
 
@@ -30,5 +32,15 @@ class PerkRegistryLoadTest {
         assertEquals("FIREARMS", node.treeSkill);
         assertEquals(1, node.tier);
         assertTrue(node.prerequisitePerkIds.contains("firearms_steady_hands"));
+    }
+
+    @Test
+    void deserializesModifierFields() {
+        PerkRegistry reg = load();
+        PerkNodeDef node = reg.get("firearms_steady_hands");
+        assertEquals(1, node.modifiers.size());
+        assertEquals(PerkTarget.DAMAGE_BALLISTIC, node.modifiers.get(0).target);
+        assertEquals(ModifierOp.MULT, node.modifiers.get(0).op);
+        assertEquals(1.05f, node.modifiers.get(0).value, 0.0001f);
     }
 }

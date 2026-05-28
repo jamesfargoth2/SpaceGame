@@ -45,6 +45,7 @@ public final class PerkRegistry {
     private static PerkRegistry parse(String jsonText) {
         PerkRegistry reg = new PerkRegistry();
         Json json = new Json();
+        json.setIgnoreUnknownFields(true);
         // PerkNodeDef uses java.util.List<String> and java.util.List<PerkModifier>;
         // libGDX Json needs element type hints to deserialise these correctly.
         json.setElementType(PerkNodeDef.class, "prerequisitePerkIds", String.class);
@@ -52,8 +53,17 @@ public final class PerkRegistry {
         PerkNodeDef[] nodes = json.fromJson(PerkNodeDef[].class, jsonText);
         if (nodes == null) return reg;
         for (PerkNodeDef node : nodes) {
+            if (reg.byId.containsKey(node.id)) {
+                throw new IllegalArgumentException("Duplicate perk id: " + node.id);
+            }
             reg.byId.put(node.id, node);
-            RealTimeSkill skill = RealTimeSkill.valueOf(node.treeSkill);
+            RealTimeSkill skill;
+            try {
+                skill = RealTimeSkill.valueOf(node.treeSkill);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException(
+                    "unknown treeSkill '" + node.treeSkill + "' on perk '" + node.id + "'", e);
+            }
             reg.trees.get(skill).nodes.add(node);
         }
         return reg;
@@ -64,6 +74,6 @@ public final class PerkRegistry {
     }
 
     public Array<PerkNodeDef> getTree(RealTimeSkill skill) {
-        return trees.get(skill).nodes;
+        return new Array<>(trees.get(skill).nodes);
     }
 }
