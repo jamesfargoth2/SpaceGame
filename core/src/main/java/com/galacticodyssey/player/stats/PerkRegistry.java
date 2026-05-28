@@ -4,6 +4,7 @@ import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Json;
 import com.badlogic.gdx.utils.ObjectMap;
+import com.galacticodyssey.player.components.PlayerStatsComponent;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -75,5 +76,18 @@ public final class PerkRegistry {
 
     public Array<PerkNodeDef> getTree(RealTimeSkill skill) {
         return new Array<>(trees.get(skill).nodes);
+    }
+
+    /** True iff not already owned, skill-level gate met, and all prerequisite perks owned. */
+    public boolean canSelect(PlayerStatsComponent stats, String perkId) {
+        PerkNodeDef node = byId.get(perkId);
+        if (node == null) return false;
+        if (stats.perks.contains(perkId, false)) return false;
+        RealTimeSkill skill = RealTimeSkill.valueOf(node.treeSkill);
+        if (stats.realTimeSkills.get(skill).level < node.requiredSkillLevel) return false;
+        for (String prereq : node.prerequisitePerkIds) {
+            if (!stats.perks.contains(prereq, false)) return false;
+        }
+        return true;
     }
 }
