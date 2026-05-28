@@ -5,6 +5,8 @@ import java.util.List;
 
 public class JobTemplate {
     public String id;
+    public String name;
+    public String description;
     public JobType type;
     public String giverFactionTag;
     public float requiredStanding = -100f;

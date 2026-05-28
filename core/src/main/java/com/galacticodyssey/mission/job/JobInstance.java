@@ -10,6 +10,8 @@ import java.util.List;
 public class JobInstance {
     public String instanceId;
     public String templateId;
+    public String displayName;
+    public String displayDescription;
     public JobType type;
     public JobState state = JobState.AVAILABLE;
     public String giverNpcId;
