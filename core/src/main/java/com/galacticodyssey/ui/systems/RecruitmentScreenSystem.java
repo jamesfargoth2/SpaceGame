@@ -8,9 +8,9 @@ import com.badlogic.ashley.utils.ImmutableArray;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.galacticodyssey.core.EventBus;
+import com.galacticodyssey.ui.ManagedScreen;
 import com.galacticodyssey.core.components.PlayerTagComponent;
 import com.galacticodyssey.economy.components.PlayerWalletComponent;
 import com.galacticodyssey.npc.components.CantinaSeatComponent;
@@ -36,7 +36,7 @@ import com.galacticodyssey.ui.actors.ResultToast;
 import java.util.ArrayList;
 import java.util.List;
 
-public class RecruitmentScreenSystem implements Disposable {
+public class RecruitmentScreenSystem implements ManagedScreen {
 
     private static final float WORLD_WIDTH = 1280f;
     private static final float WORLD_HEIGHT = 720f;
@@ -110,10 +110,23 @@ public class RecruitmentScreenSystem implements Disposable {
         stage.addActor(toast);
     }
 
+    @Override
+    public String getDisplayName() { return "Recruitment"; }
+
+    @Override
+    public void open() {
+        if (open) return;
+        open = true;
+        populatePortraits();
+    }
+
+    @Override
     public boolean isOpen() { return open; }
 
+    @Override
     public Stage getStage() { return stage; }
 
+    @Override
     public void close() {
         if (!open) return;
         open = false;
@@ -126,12 +139,14 @@ public class RecruitmentScreenSystem implements Disposable {
         eventBus.publish(new RecruitmentClosedEvent());
     }
 
+    @Override
     public void render(float delta) {
         if (!open || stage == null) return;
         stage.act(delta);
         stage.draw();
     }
 
+    @Override
     public void resize(int width, int height) {
         if (stage != null) {
             stage.getViewport().update(width, height, true);
@@ -149,8 +164,7 @@ public class RecruitmentScreenSystem implements Disposable {
     }
 
     private void onOpened(RecruitmentOpenedEvent event) {
-        open = true;
-        populatePortraits();
+        open();
     }
 
     private void populatePortraits() {
