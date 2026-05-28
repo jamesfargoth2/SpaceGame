@@ -73,6 +73,28 @@ class CreatureAssemblerTest {
     }
 
     @Test
+    void sizeMultiplierScalesSocketOffsets() {
+        // Build an archetype identical to "quad" but with size 2x to isolate scaling.
+        reg.loadArchetypesFromJson("{ \"archetypes\":[" +
+          "{ \"id\":\"quad2x\",\"bodyPlan\":\"QUADRUPED\",\"minSize\":2,\"maxSize\":2,\"density\":900," +
+          "  \"root\":{\"partType\":\"TORSO\",\"children\":[{\"socketId\":\"hd\",\"partType\":\"HEAD\"}]} }" +
+          "] }");
+        com.galacticodyssey.fauna.CreatureSpec s1 = new CreatureAssembler(reg).assemble(reg.getArchetype("quad"), 3L);
+        com.galacticodyssey.fauna.CreatureSpec s2 = new CreatureAssembler(reg).assemble(reg.getArchetype("quad2x"), 3L);
+        com.badlogic.gdx.math.Vector3 h1 = headPos(s1), h2 = headPos(s2);
+        // head socket is at local z=1.0; at size 2 the head must sit ~2x farther from the root.
+        assertEquals(2f * h1.z, h2.z, 1e-3f, "socket offset must scale with sizeMultiplier");
+        assertTrue(h1.z > 0.5f, "sanity: unit-size head offset is the unscaled socket z");
+    }
+
+    private static com.badlogic.gdx.math.Vector3 headPos(com.galacticodyssey.fauna.CreatureSpec s) {
+        for (AssembledNode n : s.allNodes)
+            if (n.part.partType == PartType.HEAD)
+                return n.worldTransform.getTranslation(new com.badlogic.gdx.math.Vector3());
+        throw new IllegalStateException("no head");
+    }
+
+    @Test
     void assemblyIsDeterministic() {
         CreatureSpec a = new CreatureAssembler(reg).assemble(reg.getArchetype("quad"), 99L);
         CreatureSpec b = new CreatureAssembler(reg).assemble(reg.getArchetype("quad"), 99L);

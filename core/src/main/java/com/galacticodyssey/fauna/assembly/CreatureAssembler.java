@@ -50,7 +50,7 @@ public final class CreatureAssembler {
             // Last segment needs no further continuation socket; intermediates do.
             String need = (i + 1 < rootRepeat) ? arch.root.continuationSocketId : null;
             CreaturePartDef next = pick(arch.root.partType, arch, rng, need);
-            AssembledNode n = newNode(next, socketMatrix(cont, false), last.scale, false, spec);
+            AssembledNode n = newNode(next, socketMatrix(cont, false, last.scale), last.scale, false, spec);
             last.children.add(n);
             n.worldTransform.set(last.worldTransform).mul(n.localTransform);
             last = n;
@@ -89,7 +89,7 @@ public final class CreatureAssembler {
         AssembledNode last = null;
         CreaturePartDef lastPart = null;
         for (int i = 0; i < repeat; i++) {
-            Matrix4 local = socketMatrix(anchorSocket, false);
+            Matrix4 local = socketMatrix(anchorSocket, false, anchor.scale);
             last = newNode(chosen, local, parentNode.scale, false, spec);
             anchor.children.add(last);
             last.worldTransform.set(anchor.worldTransform).mul(last.localTransform);
@@ -105,7 +105,7 @@ public final class CreatureAssembler {
 
         // Mirror copy (same chosen variant) across YZ plane, attached to the same parent socket.
         if (tpl.mirror && socket.mirrorGroup != null) {
-            Matrix4 mlocal = socketMatrix(socket, true);
+            Matrix4 mlocal = socketMatrix(socket, true, parentNode.scale);
             AssembledNode m = newNode(chosen, mlocal, parentNode.scale, true, spec);
             parentNode.children.add(m);
             m.worldTransform.set(parentNode.worldTransform).mul(m.localTransform);
@@ -117,11 +117,10 @@ public final class CreatureAssembler {
         attachChildren(tpl, last, lastPart, arch, rng, spec);
     }
 
-    private Matrix4 socketMatrix(Socket socket, boolean mirrored) {
-        Vector3 p = new Vector3(socket.localPosition);
+    private Matrix4 socketMatrix(Socket socket, boolean mirrored, float scale) {
+        Vector3 p = new Vector3(socket.localPosition).scl(scale);
         if (mirrored) p.x = -p.x;
-        Matrix4 m = new Matrix4().set(p, socket.localRotation);
-        return m;
+        return new Matrix4().set(p, socket.localRotation);
     }
 
     /** Deterministic variant pick: stable id-sorted list, indexed by rng. Throws if none eligible. */
