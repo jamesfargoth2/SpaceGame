@@ -24,6 +24,7 @@ val gdxAiVersion: String by project
 val junitVersion: String by project
 
 dependencies {
+    api(project(":common"))
     api("com.badlogicgames.gdx:gdx:$gdxVersion")
     api("com.badlogicgames.gdx:gdx-freetype:$gdxVersion")
     api("com.badlogicgames.gdx:gdx-bullet:$gdxVersion")
