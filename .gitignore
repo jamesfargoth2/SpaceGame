@@ -40,3 +40,20 @@ bin/
 
 ### JVM crash logs ###
 hs_err_pid*.log
+
+### Claude session artifacts ###
+.claude/*.png
+.claude/*.jpg
+.claude/*.log
+.claude/*.txt
+.claude/skills/*-workspace/
+.claire/
+.superpowers/
+
+### Scratch files ###
+*.bak
+apply_*.py
+fix_*.py
+gateway_test_output.txt
+test_output.txt
+null

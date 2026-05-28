@@ -1,266 +1,119 @@
 # Remaining Systems — TODO
 
-Systems described in [DESIGN.md](DESIGN.md) that are not yet implemented. Organised by domain. Cross-reference the implemented system docs in [systems/](systems/).
+Last updated: 2026-05-28. Cross-reference implemented system docs in [systems/](systems/).
+
+Systems marked ✅ are implemented on the `procgen` branch (landed in PR #23 or earlier,
+or in PR #24). Systems below are what is **still missing**.
 
 ---
 
-## Rendering Pipeline
+## High Impact — Core Gameplay Loop Blockers
 
-The game currently has placeholder rendering (`SkyRenderer`, `AtmosphericSkyRenderer`, `FogShaderProvider`, `StarfieldBackground`). The design calls for a full custom deferred PBR pipeline.
-
-| System | What's needed |
+| System | Gap |
 |---|---|
-| Deferred rendering pipeline | G-buffer pass (albedo, normals, roughness/metallic, emissive), lighting pass, HDR tone-mapping |
-| Volumetric lighting | Atmospheric scattering, god rays, volumetric fog in nebulae |
-| Screen-space reflections (SSR) | Reflective surfaces on ships, wet planetary terrain |
-| Bloom + post-processing stack | HDR bloom, lens flare, chromatic aberration at extreme speeds |
-| LOD terrain streaming | Per-planet: render as dot → sphere with atmosphere → textured terrain → ground-level detail as player approaches |
-| Scene streaming / SceneManager | Additive loading/unloading of zones (deep space, orbital, planet surface, station interior). Currently no `SceneManager` class exists. |
-| Cockpit HUD rendering | In-world cockpit instruments rendered as 3D mesh overlays, not Scene2D. Currently only a placeholder `CockpitHUDSystem` exists. |
+| **Scene / Sector streaming** | No `SceneManager` that additively loads/unloads zones (deep space → orbit → planet surface → station interior). `StreamingSystem` distance-enqueues assets but no zone transition state machine exists. |
+| **Orbital mechanics** | No Keplerian orbit integration. Planets are stationary. No HUD trajectory prediction arc. |
+| **Player levelling & perks** | `RealTimeSkillSystem` and `PointSkillComponent` exist. No character level accumulation from aggregate XP, no skill point allocation UI, no perk system or perk selection overlay. |
+| **Vehicle bay & deployment** | Mech locomotion works. No `VehicleBayComponent`, no bay slot UI, no ramp open/deploy/retrieve flow, no `VehicleRegistry`. |
+| **Boarding flow** | Docking exists. The full pipeline — disable engines → approach → breach/dock → FPS interior combat → capture resolution (hijack / scrap / ransom / tow) — is not implemented. |
 
 ---
 
-## Networking & Multiplayer
+## Combat & Weapons
 
-The `networking/` package exists but no transport, replication, or prediction code was found.
-
-| System | What's needed |
+| System | Gap |
 |---|---|
-| KryoNet transport layer | Connection management, message serialisation, heartbeat |
-| Server-authoritative game loop | Dedicated server runs the simulation; clients receive state snapshots |
-| Client-side prediction | Player inputs applied locally, reconciled against server state |
-| Entity interpolation | Smooth rendering of remotely-controlled entities between server ticks |
-| Zone-based synchronisation | Only sync entities within a configurable radius of each connected player |
-| Server module | The `server/` Gradle module is scaffolded but needs a headless game loop, player session manager, and PostgreSQL/Redis persistence |
+| **NPC pilot AI (ship-scale)** | No dogfighting AI. NPC ships don't manoeuvre, strafe, or engage in combat flight. |
+| **Capital ship subsystem targeting** | No per-subsystem health pools (engines, shields, bridge, weapons) for precision disabling. |
+| **Broadside batteries** | Fixed-arc weapon mounts for capital ships that fire coordinated salvoes are missing. |
+| **Fighter carrier operations** | No launch/recover mechanic for fighter wings from carrier bays. |
+| **Power armour locomotion** | Late-game personal armour type with its own movement and stamina modifiers. |
+| **Heavy weapons** | No distinct component/system for shoulder-fired heavy weapons (rocket launchers, miniguns). |
 
 ---
 
-## Asset & Scene Streaming
+## Economy & World Simulation
 
-`AssetHandle` and `AssetCategory` exist as data classes but the streaming manager was not found.
-
-| System | What's needed |
+| System | Gap |
 |---|---|
-| Streaming AssetManager | Extends libGDX `AssetManager` with async priority loading, ref-counting, and eviction |
-| LOD streaming coordinator | Triggers mesh/texture swaps as distance changes; works with `DebrisLODSystem` pattern |
-| Sector Manager | Loads/unloads sector scenes around the player's galaxy-space position |
+| **SectorEconomySystem** | Aggregates planetary production/consumption per sector; updates inter-planet trade route baselines. Only the planetary tier is implemented. |
+| **GalacticEconomySystem** | Daily galaxy-wide tick that sets sector supply baselines from aggregate demand. |
+| **NPC freighter simulation** | NPC ships travel trade routes and shift local station stock as they deliver/pick up cargo. |
+| **Faction economic control** | Faction territory should affect tax rates, tariffs, and contraband classification at stations. |
 
 ---
 
-## Crafting & Resource Gathering
+## Cities & Settlements
 
-Weapon assembly (`WeaponAssemblySystem`) exists, but the broader crafting and resource loop is missing.
-
-| System | What's needed |
+| System | Gap |
 |---|---|
-| Mining system | Handheld and ship-mounted mining: target a deposit, beam duration, resource extraction quantity |
-| Salvage system | Strip components from derelict ships and battlefield debris |
-| Refinery system | Convert raw ore → refined materials at a station or ship refinery module |
-| Crafting UI | Workbench-style UI for combining materials into components, equipment, and ship modules |
-| Resource data | `ResourceRegistry` with all material tiers (common → exotic), yield rates, refinery recipes |
-| Harvesting | Biological resources from planet fauna/flora; alien specimens |
+| **City layout generator** | Landmark district placement (spaceport, commercial, slums) + procedural street and building fill. |
+| **Building interior generation** | Key buildings (shops, cantinas, faction HQs) with functional rooms and interactables. |
+| **NPC population seeding** | Spawn NPCs with appropriate roles and assign schedule routes through the city grid. |
+| **City market integration** | Physical market (`MarketComponent`) scoped to each city with its own stock and prices. |
 
 ---
 
-## Faction & Reputation System
+## Rare Astronomical Phenomena
 
-The galaxy package has `FactionEthos` and `PoliticalRelation` enums but no runtime system to track or mutate player reputation.
-
-| System | What's needed |
+| Phenomenon | Status |
 |---|---|
-| `FactionRegistry` | Loads faction definitions (name, ethos, territory, allied/hostile factions) from data |
-| `FactionReputationComponent` | Player reputation score (−100 to +100) per faction |
-| `ReputationSystem` | Applies reputation deltas from events (mission completed, ship destroyed, trade) |
-| Access control integration | Check reputation before allowing docking, job acceptance, and hardware purchases |
-| Faction-controlled space | Mark system/station ownership; hostile factions scramble patrols on entry |
-| Smuggling detection | Contraband scan at checkpoints; failure triggers reputation loss and combat |
+| Nebula volumetric rendering | Region hazards and procgen exist; no volumetric visual rendering |
+| Pulsars | Missing — periodic radiation burst events, navigation hazard zone |
+| Binary / trinary star systems | Missing — multi-star orbital dynamics at system generation |
+| Neutron stars | Missing — FTL supercharge interaction, unique material spawning |
+| Wormholes | Missing — unstable transit point, entry/exit pair, collapse timer |
+| Supernova remnants | Missing — radiation field, artifact spawning, ruins POI |
+| Dyson structures | Missing — mega-structure POI, associated quest chain |
+| Rogue planets | Missing — interstellar wandering body generation |
 
 ---
 
-## Dialogue System
+## UI & UX
 
-No dialogue system was found. The design calls for NPC conversations with branching and quest-giving.
-
-| System | What's needed |
+| System | Gap |
 |---|---|
-| Dialogue data model | `DialogueNode`, `DialogueChoice`, `DialogueCondition` (reputation, inventory, quest state) |
-| `DialogueRegistry` | Loads dialogue trees from JSON/Ink-style scripts |
-| `DialogueSystem` | Drives active conversation: presents node text, filters choices by condition, advances the tree |
-| Dialogue UI | Scene2D panel: portrait, speaker name, body text, choice buttons |
-| Quest-give integration | Dialogue nodes can create `JobInstance` or advance `SagaInstance` |
+| **Power priority sliders** | No player-adjustable power redistribution UI (weapons / shields / engines balance). `PowerSystem` exists but has no UI surface. |
+| **Level-up overlay** | No UI for character level notification, skill point award, or perk selection. |
+| **Ship exterior customisation UI** | `ShipColorPalette` exists; no player-driven paint scheme, decal, or hull mod flow. |
+| **Ship room customisation** | No interior room placement, resizing, or decoration UI. |
+| **Debug / editor imgui overlay** | imgui-java overlay for in-editor spawning, stat inspection, and economy tuning — planned but not started. |
 
 ---
 
-## Stealth System
+## Authored Content (Data)
 
-Stealth is listed as a real-time skill and mentioned as part of the smuggling loadout, but no stealth mechanics exist.
-
-| System | What's needed |
+| Area | Gap |
 |---|---|
-| `StealthComponent` | Current detection level, visibility signature, noise signature |
-| `DetectionSystem` | NPC perception: tests line-of-sight + light level + movement noise vs. NPC awareness |
-| Visibility modifiers | Crouching, dim lighting, stealth suit bonus reduce signature |
-| Alert state machine | NPC transitions: unaware → suspicious → alert → searching → combat |
+| **Main story arc JSON** | `SagaRunner` and the graph structure exist. No authored Act I–III saga data beyond stubs. |
+| **Faction quest chains** | No per-faction `SagaData` unlocking at reputation thresholds. |
+| **Companion quests** | `HookType` defined on crew members; no authored crew backstory sagas. |
+| **Encyclopedia entries** | `EncyclopediaScreen` exists; zero data entries for species, factions, locations, or equipment. |
 
 ---
 
-## Hacking System
+## Already Implemented (for reference)
 
-Listed as a point-based skill in the design. No implementation found.
+These were listed as missing in earlier drafts of this file but are now done:
 
-| System | What's needed |
+| System | PR / branch |
 |---|---|
-| `HackableComponent` | Tags a terminal/door/ship system as hackable, with difficulty rating |
-| `HackingMinigame` | In-world UI puzzle for hacking (can be simple — timed, word, or circuit variant) |
-| Outcome effects | Unlock doors, disable ship systems remotely, access restricted data, plant malware |
-
----
-
-## Energy & Power Management
-
-The design describes a reactor module that constrains the ship loadout. No `ReactorModule` or power budget system was found.
-
-| System | What's needed |
-|---|---|
-| `ReactorComponent` | Max power output, current draw, efficiency curve |
-| `PowerGridSystem` | Sums draw from all active subsystems (weapons, shields, engines, life support); throttles or sheds load when over budget |
-| Power priority UI | Player-adjustable sliders to redistribute power between systems (combat: more weapons/shields; travel: more engines) |
-
----
-
-## Boarding System
-
-Ship docking exists (`DockingSystem`). The full boarding flow — breaching, FPS combat through enemy corridors, and post-capture choices — is not implemented.
-
-| System | What's needed |
-|---|---|
-| Breaching pod | Deployable one-way docking: burns through hull at target point, creates entry breach |
-| Boarding initiation flow | State machine: disable target engines → approach → dock/breach → FPS interior combat |
-| Enemy crew spawning | Procedurally spawn defending crew in the target ship's interior on boarding |
-| Capture resolution | Post-combat choices: hijack (take control), scrap (strip components), ransom (faction reputation), tow |
-
----
-
-## Fleet & Capital Ship Combat
-
-Individual ship combat exists. Large-scale fleet coordination and capital ship broadsides are not implemented.
-
-| System | What's needed |
-|---|---|
-| Fleet command UI | Issue orders to NPC wing-mates (attack, defend, withdraw, form up) |
-| Broadside weapons | Fixed-arc batteries that fire in coordinated salvoes |
-| NPC pilot AI (ship-scale) | NPC ships use steering behaviours + threat assessment to dogfight and escort |
-| Capital ship subsystem targeting | Target specific subsystems (engines, shields, bridge) for precision disabling |
-| Fighter carrier operations | Launch/recover fighter wings from carrier bays |
-
----
-
-## Vehicle Bay & Deployment
-
-Mech locomotion (`mech/`) exists. The vehicle bay system for storing and deploying vehicles from ship bays is not implemented.
-
-| System | What's needed |
-|---|---|
-| `VehicleBayComponent` | Bay slots, stored vehicle entities, ramp state |
-| Vehicle deployment flow | Player selects vehicle in bay UI, ramp opens, vehicle is placed at the ramp exit |
-| Vehicle retrieval | Drive back to ship, trigger retrieval interaction, vehicle stowed |
-| Ground vehicle data | `VehicleRegistry` with rover, tank, mech loadout configurations |
-
----
-
-## Player Levelling & Perks
-
-`RealTimeSkillSystem` and `PointSkill` exist. The character level and perk system do not.
-
-| System | What's needed |
-|---|---|
-| Character level accumulation | Aggregate XP from all real-time skills; milestone grants a character level |
-| Skill point allocation | Each character level awards 2–3 points spendable on point-based skills via a UI |
-| Perk system | Every 5 character levels, player picks one `PerkDefinition` from a filtered list (eligibility based on skill levels) |
-| Perk application | Perks apply passive modifiers to stats, unlock abilities, or modify system behaviour |
-| Level-up UI | Screen or overlay showing level-up, skill point award, perk selection |
-
----
-
-## Alien Species & Pre-FTL Civilisations
-
-`SpeciesDefinition` in `NpcDataRegistry` holds crew species data, but the full alien civilisation model is missing.
-
-| System | What's needed |
-|---|---|
-| `AlienCivilisationData` | Tech level, culture, economy tier, hostility, government type (per design §4.10) |
-| Civilisation registry | Loads 5–8 major species + procedurally generated minor species |
-| Pre-FTL detection | Flag planets containing pre-FTL civilisations; disable standard trade/docking UI |
-| Interaction choices | Uplift / Observe / Exploit / Ignore — each a quest branch with faction and story consequences |
-
----
-
-## City & Settlement Generation
-
-NPC schedules exist (`NpcScheduleComponent`). The city/settlement layout generation and population placement are not implemented.
-
-| System | What's needed |
-|---|---|
-| City layout generator | Landmark district placement (spaceport, commercial, slums) + procedural street fill |
-| Building interior generation | Key buildings (shops, cantinas, faction HQs) with functional rooms |
-| NPC population seeding | Spawn NPCs with appropriate roles and assign schedule routes through city |
-| Day/night cycle | Time-of-day that drives NPC schedule execution and lighting |
-| City market integration | Planetary city provides a physical market (`MarketComponent`) with its own stock |
-
----
-
-## Sector-Level & Galactic Economy
-
-`PlanetaryEconomyManager` and `PlanetaryStockSystem` cover the local tier. The sector and galactic simulation tiers are not implemented.
-
-| System | What's needed |
-|---|---|
-| `SectorEconomySystem` | Aggregates planetary production/consumption per sector; updates inter-planet trade routes |
-| `GalacticEconomySystem` | Daily tick; sets sector-level supply baselines from galaxy-wide demand |
-| Trade route simulation | NPC freighters travel between stations; their cargo loads shift local stock |
-| Faction economic control | Faction territory affects tax rates, tariffs, and contraband classification |
-
----
-
-## Companion & Story Quests
-
-The saga system provides the graph structure. Authored content is not yet present.
-
-| System | What's needed |
-|---|---|
-| Main story arc data | `SagaData` JSON files for the galaxy-spanning narrative |
-| Faction quest chains | Per-faction `SagaData` unlocking at reputation thresholds |
-| Companion quests | `SagaData` driven by individual crew member backstory hooks (`HookType`) |
-| Discovery-triggered quests | `DiscoveryLead` → saga trigger when the player investigates a site |
-
----
-
-## Rare Astronomical Phenomena (Partial)
-
-Black holes and nebulae are implemented. Several phenomena from design §4.13 are missing.
-
-| Phenomenon | Status | What's needed |
-|---|---|---|
-| Black holes | Implemented | — |
-| Nebulae | Implemented (region type + hazards) | Volumetric visual rendering |
-| Pulsars | Missing | Periodic radiation burst events, navigation hazard zone |
-| Binary/trinary star systems | Missing | Multi-star orbital dynamics at system generation |
-| Neutron stars | Missing | FTL supercharge interaction, unique material spawning |
-| Wormholes | Missing | Unstable transit point: entry/exit pair, collapse timer |
-| Supernova remnants | Missing | Radiation field, precursor artifact spawning, ruins POI |
-| Dyson structures | Missing | Mega-structure POI, associated quest chain |
-| Rogue planets | Missing | Interstellar wandering body generation |
-
----
-
-## Miscellaneous Missing Systems
-
-| System | Notes |
-|---|---|
-| Grenade system | Grenade item types in the design (frag, EMP, incendiary, flash) — no `GrenadeSystem` or `GrenadeComponent` found |
-| Ship exterior customisation | Paint schemes, decals, hull mods — `ShipColorPalette` exists but no player-driven customisation flow |
-| Ship room customisation | Player placing/moving room modules and decorations within the interior grid |
-| Heavy weapons | Rocket launchers, miniguns — categories in design but no distinct component for shoulder-fired heavy weapons |
-| Power armour | Late-game personal armour type with its own locomotion modifiers |
-| Encyclopedia content | `EncyclopediaScreen` exists; needs data population (species, factions, locations, equipment) |
-| Debug / editor tooling | imgui-java overlay for in-editor spawning, stat inspection, and economy tuning — planned in the design |
+| Deferred PBR rendering pipeline (GBuffer, lighting, post-processing) | procgen |
+| KryoNet networking, client prediction, entity interpolation, zone routing | procgen |
+| Server module (gateway, zone server, PostgreSQL/Redis persistence) | procgen |
+| Stealth (signature, NPC awareness FSM, LOS) | procgen |
+| Hacking (puzzle grid, controller, overlay UI) | procgen |
+| Faction reputation (ReputationManager, price modifiers, docking denial) | procgen |
+| Fleet combat (formation, fleet AI, admiral BT, squadron coordination) | procgen |
+| Crafting / refinery pipeline | procgen |
+| Grenade system (cook, bounce, fuse types, VFX) | procgen |
+| Mission / quest system (saga, job board, objective tracking, rewards) | procgen |
+| Asset streaming (GalacticAssetManager, priority queue) | procgen |
+| Dialogue system (DialogTree, DialogSystem, DialogHudSystem, JSON data) | PR #24 |
+| Ship power management (PowerSystem, PowerPenaltySystem, ReactorSpec) | PR #24 |
+| Swimming / water mechanics | procgen |
+| Ship builder (hull sculpt, room layout, module fit) | procgen |
+| Outfitter / loadout screen | procgen |
+| Crew recruitment screen | procgen |
+| Quest journal / job board screen | procgen |
+| Inventory / equipment screen | procgen |
