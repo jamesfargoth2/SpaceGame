@@ -135,7 +135,12 @@ public class BoardingAttachSystem extends EntitySystem {
         Entity target = pod.target;
         if (target == null) return;
         BoardingOperationComponent op = OP_M.get(target);
-        if (op == null || op.phase != BoardingPhase.VULNERABLE) return;
+        // launchPod() advances the target to ATTACHING; a pod may also impact a ship still
+        // VULNERABLE (e.g. a pod fired without going through launchPod). Either is a valid breach.
+        if (op == null
+            || (op.phase != BoardingPhase.ATTACHING && op.phase != BoardingPhase.VULNERABLE)) {
+            return;
+        }
 
         // Entry point in ship-local space = impactPoint relative to ship origin.
         TransformComponent targetTransform = TRANSFORM_M.get(target);
