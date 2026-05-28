@@ -4,6 +4,7 @@ import com.badlogic.ashley.core.*;
 import com.galacticodyssey.combat.fleet.components.*;
 import com.galacticodyssey.combat.fleet.data.*;
 import com.galacticodyssey.combat.fleet.events.*;
+import com.galacticodyssey.combat.fleet.ai.AdmiralBehaviorTree;
 import com.galacticodyssey.core.EventBus;
 import java.util.ArrayList;
 import java.util.List;
@@ -71,6 +72,14 @@ public class FleetCommandSystem extends EntitySystem {
         accumulator += deltaTime;
         if (accumulator < TICK_INTERVAL) return;
         accumulator -= TICK_INTERVAL;
+
+        for (Entity e : engine.getEntitiesFor(FLEET_FAMILY)) {
+            FleetComponent fc = FLEET_M.get(e);
+            if (!fc.expanded) continue;
+            if (fc.admiralEntity != null) {
+                AdmiralBehaviorTree.evaluate(e, engine, eventBus);
+            }
+        }
 
         for (Entity e : engine.getEntitiesFor(FLEET_FAMILY)) {
             FleetComponent fc = FLEET_M.get(e);
