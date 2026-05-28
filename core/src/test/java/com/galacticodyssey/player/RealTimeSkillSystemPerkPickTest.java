@@ -22,7 +22,7 @@ class RealTimeSkillSystemPerkPickTest {
         // totalXP for character level 5 = (5-1)^2 * 250 = 4000. Award enough to reach level >=5.
         system.awardSkillXP(player, RealTimeSkill.FIREARMS, 4000f, 1f);
 
-        assertTrue(stats.characterLevel >= 5);
+        assertEquals(5, stats.characterLevel);
         assertEquals(1, stats.unspentPerkPicks,
             "exactly one perk pick granted when crossing the level-5 boundary once");
     }
@@ -37,7 +37,22 @@ class RealTimeSkillSystemPerkPickTest {
 
         system.awardSkillXP(player, RealTimeSkill.FIREARMS, 500f, 1f); // level ~2-3
 
-        assertTrue(stats.characterLevel < 5);
+        assertEquals(2, stats.characterLevel);
         assertEquals(0, stats.unspentPerkPicks);
+    }
+
+    @Test
+    void crossingTwoMilestonesGrantsTwoPerkPicks() {
+        EventBus bus = new EventBus();
+        RealTimeSkillSystem system = new RealTimeSkillSystem(bus);
+        Entity player = new Entity();
+        PlayerStatsComponent stats = new PlayerStatsComponent();
+        player.add(stats);
+
+        // Level 10 requires totalXP = (10-1)^2 * 250 = 20250. Crosses both level 5 and level 10.
+        system.awardSkillXP(player, RealTimeSkill.FIREARMS, 20250f, 1f);
+
+        assertEquals(10, stats.characterLevel);
+        assertEquals(2, stats.unspentPerkPicks);
     }
 }
