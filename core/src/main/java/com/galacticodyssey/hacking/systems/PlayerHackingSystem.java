@@ -78,6 +78,11 @@ public class PlayerHackingSystem extends EntitySystem {
             // Physical hack: cancel if player moved out of range
             if (!hackState.isRemoteHack) {
                 TransformComponent targetTransform = transformMapper.get(hackState.currentTarget);
+                if (targetTransform == null) {
+                    controller.cancel();
+                    clearHack(hackState);
+                    return;
+                }
                 float dist = tempVec.set(playerTransform.position).dst(targetTransform.position);
                 if (dist > hackable.interactionRange + 0.5f) {
                     controller.cancel();
