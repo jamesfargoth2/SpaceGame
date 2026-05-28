@@ -3,6 +3,8 @@ package com.galacticodyssey.equipment.items;
 import com.galacticodyssey.combat.CombatEnums.DamageType;
 import com.galacticodyssey.combat.CombatEnums.QualityTier;
 import com.galacticodyssey.combat.data.WeaponAssembly;
+import com.galacticodyssey.crafting.MaterialCategory;
+import com.galacticodyssey.crafting.MaterialTier;
 import com.galacticodyssey.equipment.EquipmentEnums.EquipmentSlot;
 import com.galacticodyssey.equipment.EquipmentEnums.ItemType;
 import com.galacticodyssey.persistence.snapshots.ItemSnapshot;
@@ -161,6 +163,16 @@ public abstract class Item {
                 }
                 JunkItem item = new JunkItem(s.itemId, s.displayName, "", "",
                         quality, s.weight, sellValue, salvageYields);
+                item.currentStack = s.stackCount;
+                return item;
+            }
+            case "MATERIAL": {
+                String materialId    = (String) cd.getOrDefault("materialId", "");
+                MaterialTier tier    = MaterialTier.valueOf((String) cd.getOrDefault("tier", "RAW"));
+                MaterialCategory cat = MaterialCategory.valueOf((String) cd.getOrDefault("category", "METAL"));
+                String commodityLink = (String) cd.get("commodityLink");
+                MaterialItem item = new MaterialItem(s.itemId, s.displayName, "", "",
+                        quality, s.weight, s.maxStack, materialId, tier, cat, commodityLink);
                 item.currentStack = s.stackCount;
                 return item;
             }
