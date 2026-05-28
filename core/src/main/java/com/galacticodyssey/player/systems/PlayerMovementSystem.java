@@ -80,7 +80,9 @@ public class PlayerMovementSystem extends IteratingSystem {
     @Override
     protected void processEntity(Entity entity, float deltaTime) {
         PlayerStateComponent playerState = entity.getComponent(PlayerStateComponent.class);
-        if (playerState != null && playerState.currentMode == PlayerStateComponent.PlayerMode.PILOTING) {
+        if (playerState != null
+                && (playerState.currentMode == PlayerStateComponent.PlayerMode.PILOTING
+                        || playerState.currentMode == PlayerStateComponent.PlayerMode.DRIVING)) {
             return;
         }
 
