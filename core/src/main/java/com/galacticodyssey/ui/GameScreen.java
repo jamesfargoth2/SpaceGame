@@ -27,6 +27,7 @@ import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.galacticodyssey.combat.events.WeaponFiredEvent;
 import com.badlogic.gdx.math.Interpolation;
+import com.badlogic.gdx.math.Matrix3;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.bullet.collision.btBvhTriangleMeshShape;
@@ -76,9 +77,11 @@ import com.galacticodyssey.npc.events.DialogOpenedEvent;
 import com.galacticodyssey.npc.systems.DialogSystem;
 import com.galacticodyssey.ui.systems.DialogHudSystem;
 import com.galacticodyssey.ui.systems.InventoryScreenSystem;
+import com.galacticodyssey.ui.systems.RecruitmentScreenSystem;
 import com.galacticodyssey.ui.outfitter.OutfitterScreenSystem;
 import com.galacticodyssey.ui.events.OutfitterOpenedEvent;
 import com.galacticodyssey.ui.events.OutfitterClosedEvent;
+import com.galacticodyssey.ui.events.JournalClosedEvent;
 import com.galacticodyssey.ship.modules.ShipModuleRegistry;
 import com.galacticodyssey.hacking.ui.HackingOverlay;
 import com.galacticodyssey.hacking.HackingStateComponent;
@@ -86,17 +89,15 @@ import com.galacticodyssey.hacking.events.HackStartedEvent;
 import com.galacticodyssey.hacking.events.HackSucceededEvent;
 import com.galacticodyssey.hacking.events.HackFailedEvent;
 import com.galacticodyssey.rendering.DeferredRenderer;
-import com.galacticodyssey.ui.systems.RecruitmentScreenSystem;
-import com.galacticodyssey.npc.events.RecruitmentOpenedEvent;
-import com.galacticodyssey.npc.events.RecruitmentClosedEvent;
+import com.galacticodyssey.rendering.GBufferBatchShaderProvider;
 import com.galacticodyssey.rendering.lighting.LightComponent;
-import com.galacticodyssey.ui.QuestJournalScreen;
 import com.galacticodyssey.mission.shared.QuestJournal;
 import com.galacticodyssey.mission.job.JobBoard;
 import com.galacticodyssey.mission.job.JobRegistry;
 import com.galacticodyssey.mission.job.ReputationQuery;
 import com.galacticodyssey.mission.saga.SagaRegistry;
-import com.galacticodyssey.ui.events.JournalClosedEvent;
+import com.galacticodyssey.npc.events.RecruitmentOpenedEvent;
+import com.galacticodyssey.npc.events.RecruitmentClosedEvent;
 
 import java.util.Random;
 
@@ -123,7 +124,11 @@ public class GameScreen implements Screen {
     private Mesh terrainMesh;
     private ShaderProgram terrainShader;
     private ModelBatch modelBatch;
+    private ModelBatch gbufferBatch;
     private Environment environment;
+    private final Matrix4 tmpMat4 = new Matrix4();
+    private final Matrix4 tmpViewModelMat4 = new Matrix4();
+    private final Matrix3 tmpNormalMat3 = new Matrix3();
     private final Array<ModelInstance> boxInstances = new Array<>();
     private final Array<Entity> boxEntities = new Array<>();
     private final Array<Disposable> disposables = new Array<>();
@@ -161,14 +166,10 @@ public class GameScreen implements Screen {
     private InputAdapter dialogInputAdapter;
     private HackingOverlay hackingOverlay;
     private InventoryScreenSystem inventoryScreenSystem;
-    private boolean inInventory;
     private OutfitterScreenSystem outfitterScreenSystem;
-    private boolean inOutfitter;
-    private RecruitmentScreenSystem recruitmentScreen;
-    private boolean inRecruitment;
-    private boolean inJournal;
     private QuestJournalOverlay questJournalOverlay;
     private ScreenTabManager screenTabManager;
+    private com.galacticodyssey.ui.systems.RecruitmentScreenSystem recruitmentScreen;
 
     // Preserve existing constructor for load-game flow
     public GameScreen(GalacticOdyssey game) {
@@ -278,9 +279,11 @@ public class GameScreen implements Screen {
         buildShipMeshes();
 
         modelBatch = new ModelBatch();
+        gbufferBatch = new ModelBatch(new GBufferBatchShaderProvider(deferredRenderer.getShaderCache()));
         environment = new Environment();
         environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.3f, 0.3f, 0.35f, 1f));
         environment.add(new DirectionalLight().set(0.8f, 0.8f, 0.75f, -0.4f, -0.8f, -0.3f));
+        deferredRenderer.setDeferredEnabled(true);
 
         buildFirstPersonWeaponModel();
         debugRenderer = new ShapeRenderer();
@@ -290,6 +293,7 @@ public class GameScreen implements Screen {
         buildPauseMenu();
         buildDialogSystem();
         buildHackingSystem();
+        buildScreenTabManager();
 
         atmosphericSkyRenderer = new AtmosphericSkyRenderer();
         dayNightCycle = new DayNightCycle(600f, 23.5f, false);
@@ -518,9 +522,9 @@ public class GameScreen implements Screen {
         camera.near = 0.01f;
         camera.update();
 
-        modelBatch.begin(camera);
-        modelBatch.render(fpWeaponInstance, environment);
-        modelBatch.end();
+        gbufferBatch.begin(camera);
+        gbufferBatch.render(fpWeaponInstance);
+        gbufferBatch.end();
 
         camera.near = savedNear;
         camera.update();
@@ -647,7 +651,7 @@ public class GameScreen implements Screen {
         });
     }
 
-    private void buildInventorySystem() {
+    private void buildScreenTabManager() {
         EventBus eventBus = gameWorld.getEventBus();
         Skin skin = game.getSkin();
 
@@ -658,110 +662,46 @@ public class GameScreen implements Screen {
         screenTabManager.register("inventory", inventoryScreenSystem);
 
         eventBus.subscribe(com.galacticodyssey.ui.events.InventoryOpenedEvent.class, event -> {
-            inInventory = true;
-            Gdx.input.setCursorCatched(false);
-            gameWorld.getPlayerInputSystem().setEnabled(false);
-            inputMultiplexer.clear();
-            inputMultiplexer.addProcessor(new InputAdapter() {
-                @Override
-                public boolean keyDown(int keycode) {
-                    if (keycode == Input.Keys.TAB || keycode == Input.Keys.ESCAPE) {
-                        inventoryScreenSystem.close();
-                        return true;
-                    }
-                    return false;
-                }
-            });
-            inputMultiplexer.addProcessor(inventoryScreenSystem.getStage());
             inventoryScreenSystem.refreshAll();
         });
 
-        eventBus.subscribe(com.galacticodyssey.ui.events.InventoryClosedEvent.class, event -> {
-            inInventory = false;
-            Gdx.input.setCursorCatched(true);
-            gameWorld.getPlayerInputSystem().setEnabled(true);
-            setupInput();
-        });
-    }
-
-    private void buildOutfitterSystem() {
-        EventBus eventBus = gameWorld.getEventBus();
         ShipModuleRegistry moduleRegistry = new ShipModuleRegistry();
         moduleRegistry.loadModules("data/modules/ship_modules.json");
         moduleRegistry.loadSlotLayouts("data/modules/ship_module_slots.json");
 
-        outfitterScreenSystem = new OutfitterScreenSystem(eventBus, game.getSkin(), moduleRegistry);
+        outfitterScreenSystem = new OutfitterScreenSystem(eventBus, skin, moduleRegistry);
         outfitterScreenSystem.initialize(gameWorld.getEngine());
-
         shipFactory.setModuleRegistry(moduleRegistry);
+        screenTabManager.register("outfitter", outfitterScreenSystem);
 
-        eventBus.subscribe(OutfitterOpenedEvent.class, event -> {
-            inOutfitter = true;
-            Gdx.input.setCursorCatched(false);
-            gameWorld.getPlayerInputSystem().setEnabled(false);
-            inputMultiplexer.clear();
-            inputMultiplexer.addProcessor(new InputAdapter() {
-                @Override
-                public boolean keyDown(int keycode) {
-                    if (keycode == Input.Keys.ESCAPE) {
-                        outfitterScreenSystem.close();
-                        return true;
-                    }
-                    return false;
-                }
-            });
-            inputMultiplexer.addProcessor(outfitterScreenSystem.getStage());
-        });
+        questJournalOverlay = new QuestJournalOverlay(eventBus, skin);
+        QuestJournal journal = gameWorld.getQuestJournal();
+        JobRegistry jobRegistry = gameWorld.getJobRegistry();
+        SagaRegistry sagaRegistry = gameWorld.getSagaRegistry();
+        ReputationQuery reputation = tag -> 0f;
+        questJournalOverlay.initialize(journal, null, jobRegistry, sagaRegistry, reputation);
+        screenTabManager.register("journal", questJournalOverlay);
 
-        eventBus.subscribe(OutfitterClosedEvent.class, event -> {
-            inOutfitter = false;
-            Gdx.input.setCursorCatched(true);
-            gameWorld.getPlayerInputSystem().setEnabled(true);
-            setupInput();
-        });
-    }
-
-    private void buildRecruitmentSystem() {
-        EventBus eventBus = gameWorld.getEventBus();
-        recruitmentScreen = new RecruitmentScreenSystem(eventBus, game.getSkin());
+        recruitmentScreen = new com.galacticodyssey.ui.systems.RecruitmentScreenSystem(eventBus, skin);
         recruitmentScreen.initialize(gameWorld.getEngine());
+        screenTabManager.register("recruitment", recruitmentScreen);
 
-        eventBus.subscribe(RecruitmentOpenedEvent.class, event -> {
-            inRecruitment = true;
-            Gdx.input.setCursorCatched(false);
-            gameWorld.getPlayerInputSystem().setEnabled(false);
-            inputMultiplexer.clear();
-            inputMultiplexer.addProcessor(new InputAdapter() {
-                @Override
-                public boolean keyDown(int keycode) {
-                    if (keycode == Input.Keys.ESCAPE) {
-                        recruitmentScreen.close();
-                        return true;
-                    }
-                    return false;
-                }
-            });
-            inputMultiplexer.addProcessor(recruitmentScreen.getStage());
-        });
+        screenTabManager.setTransitionListener(new ScreenTabManager.ScreenTransitionListener() {
+            @Override
+            public void onScreenOpened(String name, ManagedScreen screen) {
+                Gdx.input.setCursorCatched(false);
+                gameWorld.getPlayerInputSystem().setEnabled(false);
+                setupInput();
+            }
 
-        eventBus.subscribe(RecruitmentClosedEvent.class, event -> {
-            inRecruitment = false;
-            Gdx.input.setCursorCatched(true);
-            gameWorld.getPlayerInputSystem().setEnabled(true);
-            setupInput();
+            @Override
+            public void onAllScreensClosed() {
+                Gdx.input.setCursorCatched(true);
+                gameWorld.getPlayerInputSystem().setEnabled(true);
+                setupInput();
+            }
         });
     }
-
-    private void buildJournalEventHandler() {
-        EventBus eventBus = gameWorld.getEventBus();
-        eventBus.subscribe(JournalClosedEvent.class, event -> {
-            inJournal = false;
-            Gdx.input.setCursorCatched(true);
-            gameWorld.getPlayerInputSystem().setEnabled(true);
-            setupInput();
-        });
-    }
-
     private void buildDialogSystem() {
         EventBus eventBus = gameWorld.getEventBus();
         DialogSystem dialogSystem = gameWorld.getDialogSystem();
@@ -1063,17 +1003,15 @@ public class GameScreen implements Screen {
 
         Entity pilotedShip = getPilotedShip();
 
-        ShaderProgram shader = getShipShader();
+        ShaderProgram shader = deferredRenderer.getShaderCache()
+            .get("gbuffer.vert", "gbuffer.frag", "HAS_VERTEX_COLOR", "HAS_EMISSIVE_ATTRIB");
         shader.bind();
         shader.setUniformMatrix("u_projViewTrans", camera.combined);
-        Vector3 sunDir = dayNightCycle.getSunDirection();
-        shader.setUniformf("u_lightDir", -sunDir.x, -sunDir.y, -sunDir.z);
-        float amb = dayNightCycle.getAmbientIntensity();
-        shader.setUniformf("u_ambientColor", amb, amb, amb + 0.05f, 1f);
-        shader.setUniformf("u_cameraPos", camera.position.x, camera.position.y, camera.position.z);
-        shader.setUniformf("u_fogDensity", atmosphericSkyRenderer.getFogDensity());
-        Vector3 fogCol = atmosphericSkyRenderer.getHorizonColor();
-        shader.setUniformf("u_fogColor", fogCol.x, fogCol.y, fogCol.z);
+        shader.setUniformf("u_albedoTint", 1f, 1f, 1f, 1f);
+        shader.setUniformf("u_metallicScale", 0.3f);
+        shader.setUniformf("u_roughnessScale", 0.5f);
+        shader.setUniformf("u_emissiveIntensity", 3f);
+        shader.setUniformf("u_tiling", 1f, 1f);
 
         for (int i = 0; i < shipEntities.size; i++) {
             Entity ship = shipEntities.get(i);
@@ -1083,9 +1021,12 @@ public class GameScreen implements Screen {
             ShipMeshComponent meshComp = ship.getComponent(ShipMeshComponent.class);
             if (meshComp == null || meshComp.hullMesh == null) continue;
 
-            Matrix4 modelMat = new Matrix4();
-            modelMat.set(t.position, t.rotation);
-            shader.setUniformMatrix("u_worldTrans", modelMat);
+            tmpMat4.set(t.position, t.rotation);
+            shader.setUniformMatrix("u_worldTrans", tmpMat4);
+
+            tmpViewModelMat4.set(camera.view).mul(tmpMat4);
+            tmpNormalMat3.set(tmpViewModelMat4).inv().transpose();
+            shader.setUniformMatrix("u_normalMatrix", tmpNormalMat3);
 
             meshComp.hullMesh.render(shader, GL20.GL_TRIANGLES);
         }
@@ -1199,9 +1140,7 @@ public class GameScreen implements Screen {
         gameWorld.getDebugHudSystem().render(delta);
         if (dialogHudSystem != null) dialogHudSystem.render(delta);
         if (hackingOverlay != null) hackingOverlay.render(delta);
-        if (inventoryScreenSystem != null) inventoryScreenSystem.render(delta);
-        if (outfitterScreenSystem != null) outfitterScreenSystem.render(delta);
-        if (recruitmentScreen != null && recruitmentScreen.isOpen()) recruitmentScreen.render(delta);
+        if (screenTabManager != null) screenTabManager.render(delta);
         if (paused) { pauseStage.act(delta); pauseStage.draw(); }
     }
 
@@ -1219,63 +1158,53 @@ public class GameScreen implements Screen {
         Gdx.gl.glDepthFunc(GL20.GL_LEQUAL);
         Gdx.gl.glDepthMask(true);
 
-        Vector3 fogCol = atmosphericSkyRenderer.getHorizonColor();
-        float fogDens = atmosphericSkyRenderer.getFogDensity();
-        Vector3 sunDir = dayNightCycle.getSunDirection();
-        float ambientScale = dayNightCycle.getAmbientIntensity();
-
-        ShaderProgram shader = getTerrainShader();
+        ShaderProgram shader = deferredRenderer.getShaderCache()
+            .get("gbuffer.vert", "gbuffer.frag", "HAS_VERTEX_COLOR");
         shader.bind();
         shader.setUniformMatrix("u_projViewTrans", camera.combined);
 
-        Matrix4 modelMat = new Matrix4();
-        shader.setUniformMatrix("u_worldTrans", modelMat);
-        shader.setUniformf("u_lightDir", -sunDir.x, -sunDir.y, -sunDir.z);
-        shader.setUniformf("u_ambientColor", ambientScale, ambientScale, ambientScale + 0.05f, 1f);
-        shader.setUniformf("u_cameraPos", camera.position.x, camera.position.y, camera.position.z);
-        shader.setUniformf("u_fogDensity", fogDens);
-        shader.setUniformf("u_fogColor", fogCol.x, fogCol.y, fogCol.z);
+        tmpMat4.idt();
+        shader.setUniformMatrix("u_worldTrans", tmpMat4);
+
+        tmpMat4.set(camera.view);
+        tmpNormalMat3.set(tmpMat4).inv().transpose();
+        shader.setUniformMatrix("u_normalMatrix", tmpNormalMat3);
+
+        shader.setUniformf("u_albedoTint", 1f, 1f, 1f, 1f);
+        shader.setUniformf("u_metallicScale", 0f);
+        shader.setUniformf("u_roughnessScale", 0.85f);
+        shader.setUniformf("u_emissiveIntensity", 0f);
+        shader.setUniformf("u_tiling", 1f, 1f);
 
         terrainMesh.render(shader, GL20.GL_TRIANGLES);
     }
 
     private void renderBoxes() {
-        modelBatch.begin(camera);
+        gbufferBatch.begin(camera);
         for (int i = 0; i < boxInstances.size; i++) {
-            modelBatch.render(boxInstances.get(i), environment);
+            gbufferBatch.render(boxInstances.get(i));
         }
-        modelBatch.end();
+        gbufferBatch.end();
     }
 
     private void renderWorldObjects() {
         Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
         Gdx.gl.glDepthMask(true);
 
-        modelBatch.begin(camera);
+        gbufferBatch.begin(camera);
         for (int i = 0; i < populatedWorld.treeInstances.size; i++) {
-            modelBatch.render(populatedWorld.treeInstances.get(i), environment);
+            gbufferBatch.render(populatedWorld.treeInstances.get(i));
         }
         for (int i = 0; i < populatedWorld.rockInstances.size; i++) {
-            modelBatch.render(populatedWorld.rockInstances.get(i), environment);
+            gbufferBatch.render(populatedWorld.rockInstances.get(i));
         }
         for (int i = 0; i < populatedWorld.grassInstances.size; i++) {
-            modelBatch.render(populatedWorld.grassInstances.get(i), environment);
+            gbufferBatch.render(populatedWorld.grassInstances.get(i));
         }
         for (int i = 0; i < populatedWorld.animalInstances.size; i++) {
-            modelBatch.render(populatedWorld.animalInstances.get(i), environment);
+            gbufferBatch.render(populatedWorld.animalInstances.get(i));
         }
-        modelBatch.end();
-
-        if (populatedWorld.waterInstance != null) {
-            Gdx.gl.glEnable(GL20.GL_BLEND);
-            Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-            Gdx.gl.glDepthMask(false);
-            modelBatch.begin(camera);
-            modelBatch.render(populatedWorld.waterInstance, environment);
-            modelBatch.end();
-            Gdx.gl.glDepthMask(true);
-            Gdx.gl.glDisable(GL20.GL_BLEND);
-        }
+        gbufferBatch.end();
     }
 
     @Override
@@ -1288,9 +1217,7 @@ public class GameScreen implements Screen {
         pauseStage.getViewport().update(width, height, true);
         if (dialogHudSystem != null) dialogHudSystem.resize(width, height);
         if (hackingOverlay != null) hackingOverlay.resize(width, height);
-        if (inventoryScreenSystem != null) inventoryScreenSystem.resize(width, height);
-        if (outfitterScreenSystem != null) outfitterScreenSystem.resize(width, height);
-        if (recruitmentScreen != null) recruitmentScreen.resize(width, height);
+        if (screenTabManager != null) screenTabManager.resize(width, height);
     }
 
     @Override
@@ -1341,6 +1268,10 @@ public class GameScreen implements Screen {
             modelBatch.dispose();
             modelBatch = null;
         }
+        if (gbufferBatch != null) {
+            gbufferBatch.dispose();
+            gbufferBatch = null;
+        }
         if (dialogHudSystem != null) {
             dialogHudSystem.dispose();
             dialogHudSystem = null;
@@ -1348,10 +1279,6 @@ public class GameScreen implements Screen {
         if (hackingOverlay != null) {
             hackingOverlay.dispose();
             hackingOverlay = null;
-        }
-        if (screenTabManager != null) {
-            screenTabManager.dispose();
-            screenTabManager = null;
         }
         if (inventoryScreenSystem != null) {
             inventoryScreenSystem.dispose();
@@ -1361,9 +1288,17 @@ public class GameScreen implements Screen {
             outfitterScreenSystem.dispose();
             outfitterScreenSystem = null;
         }
+        if (recruitmentScreen != null) {
+            recruitmentScreen.dispose();
+            recruitmentScreen = null;
+        }
         if (questJournalOverlay != null) {
             questJournalOverlay.dispose();
             questJournalOverlay = null;
+        }
+        if (screenTabManager != null) {
+            screenTabManager.dispose();
+            screenTabManager = null;
         }
         if (pauseStage != null) {
             pauseStage.dispose();
