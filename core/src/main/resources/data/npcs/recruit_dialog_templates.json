@@ -1,0 +1,102 @@
+{
+  "recruitment_standard": {
+    "entryNode": "greeting",
+    "nodes": {
+      "greeting": {
+        "speaker": "npc",
+        "text": "{{npc.hookLine}}",
+        "choices": [
+          { "text": "Tell me about your combat experience.", "next": "combat_reveal", "reveals": ["COMBAT", "ACCURACY"] },
+          { "text": "What's your technical background?", "next": "tech_reveal", "reveals": ["REPAIR", "SCIENCE"] },
+          { "text": "Ever piloted a ship?", "next": "pilot_reveal", "reveals": ["PILOTING"] },
+          { "text": "How do you handle people?", "next": "social_reveal", "reveals": ["PERSUASION"] },
+          { "text": "Can you move quietly when needed?", "next": "stealth_reveal", "reveals": ["STEALTH"] },
+          { "text": "What medical training do you have?", "next": "medical_reveal", "reveals": ["MEDICAL"] },
+          { "text": "What's your asking wage?", "next": "wage_discuss" },
+          { "text": "I'd like to offer you a position.", "next": "offer" },
+          { "text": "Not interested. Good luck.", "next": "exit" }
+        ]
+      },
+      "combat_reveal": {
+        "speaker": "npc",
+        "text": "{{npc.combatResponse}}",
+        "choices": [
+          { "text": "Impressive. What else can you tell me?", "next": "greeting" },
+          { "text": "Let's talk terms.", "next": "wage_discuss" }
+        ]
+      },
+      "tech_reveal": {
+        "speaker": "npc",
+        "text": "{{npc.techResponse}}",
+        "choices": [
+          { "text": "Good to know. What else?", "next": "greeting" },
+          { "text": "Let's talk terms.", "next": "wage_discuss" }
+        ]
+      },
+      "pilot_reveal": {
+        "speaker": "npc",
+        "text": "{{npc.pilotResponse}}",
+        "choices": [
+          { "text": "Interesting. Tell me more about yourself.", "next": "greeting" },
+          { "text": "Let's talk terms.", "next": "wage_discuss" }
+        ]
+      },
+      "social_reveal": {
+        "speaker": "npc",
+        "text": "{{npc.socialResponse}}",
+        "choices": [
+          { "text": "Good. Anything else I should know?", "next": "greeting" },
+          { "text": "Let's talk terms.", "next": "wage_discuss" }
+        ]
+      },
+      "stealth_reveal": {
+        "speaker": "npc",
+        "text": "{{npc.stealthResponse}}",
+        "choices": [
+          { "text": "Noted. What else?", "next": "greeting" },
+          { "text": "Let's talk terms.", "next": "wage_discuss" }
+        ]
+      },
+      "medical_reveal": {
+        "speaker": "npc",
+        "text": "{{npc.medicalResponse}}",
+        "choices": [
+          { "text": "Thanks. Tell me more.", "next": "greeting" },
+          { "text": "Let's talk terms.", "next": "wage_discuss" }
+        ]
+      },
+      "wage_discuss": {
+        "speaker": "npc",
+        "text": "I'm looking for {{npc.wageMin}} to {{npc.wageMax}} credits a week. Fair for what I bring.",
+        "choices": [
+          { "text": "That's steep. Can we work something out?", "next": "negotiate", "action": "NEGOTIATE" },
+          { "text": "That sounds fair.", "next": "offer" },
+          { "text": "I need to think about it.", "next": "exit_friendly" }
+        ]
+      },
+      "negotiate": {
+        "speaker": "npc",
+        "text": "{{npc.negotiateResponse}}",
+        "choices": [
+          { "text": "I'd like to offer you a position.", "next": "offer" },
+          { "text": "Let me think about it.", "next": "exit_friendly" }
+        ]
+      },
+      "offer": {
+        "speaker": "system",
+        "text": "",
+        "action": "SHOW_OFFER"
+      },
+      "exit_friendly": {
+        "speaker": "npc",
+        "text": "Sure, I'll be around. Come find me if you change your mind.",
+        "action": "CLOSE_DIALOG"
+      },
+      "exit": {
+        "speaker": "npc",
+        "text": "Your loss. Good luck out there.",
+        "action": "CLOSE_DIALOG"
+      }
+    }
+  }
+}

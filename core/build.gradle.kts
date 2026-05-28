@@ -24,6 +24,7 @@ val gdxAiVersion: String by project
 val junitVersion: String by project
 
 dependencies {
+    api(project(":common"))
     api("com.badlogicgames.gdx:gdx:$gdxVersion")
     api("com.badlogicgames.gdx:gdx-freetype:$gdxVersion")
     api("com.badlogicgames.gdx:gdx-bullet:$gdxVersion")
@@ -33,6 +34,7 @@ dependencies {
     api("com.github.mgsx-dev.gdx-gltf:gltf:2.2.1")
 
     testImplementation("org.junit.jupiter:junit-jupiter:$junitVersion")
+    testImplementation("com.badlogicgames.gdx:gdx-backend-headless:$gdxVersion")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testRuntimeOnly("com.badlogicgames.gdx:gdx-bullet-platform:$gdxVersion:natives-desktop")
     testRuntimeOnly("com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop")

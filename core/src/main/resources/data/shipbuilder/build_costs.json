@@ -1,0 +1,18 @@
+{
+  "roomCosts": {
+    "COCKPIT":       { "base": 5000,  "perM3": 200 },
+    "ENGINE_ROOM":   { "base": 8000,  "perM3": 300 },
+    "CREW_QUARTERS": { "base": 3000,  "perM3": 150 },
+    "MEDBAY":        { "base": 6000,  "perM3": 250 },
+    "ARMORY":        { "base": 7000,  "perM3": 280 },
+    "CARGO_BAY":     { "base": 2000,  "perM3": 100 },
+    "BRIG":          { "base": 4000,  "perM3": 200 }
+  },
+  "hullCostPerMeter": {
+    "SMALL": 1000,
+    "MEDIUM": 2500,
+    "LARGE": 5000
+  },
+  "installFee": 500,
+  "refundRate": 0.7
+}

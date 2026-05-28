@@ -29,6 +29,7 @@ public class ShipWeaponRegistry {
             data.range = entry.getFloat("range");
             data.energyCost = entry.getFloat("energyCost");
             data.heatPerShot = entry.getFloat("heatPerShot");
+            data.powerDraw = entry.getFloat("powerDraw", 0f);
             if (entry.has("ammoCapacity")) {
                 data.ammoCapacity = entry.getInt("ammoCapacity");
                 data.currentAmmo = data.ammoCapacity;
@@ -78,6 +79,7 @@ public class ShipWeaponRegistry {
         instance.range = template.range;
         instance.energyCost = template.energyCost;
         instance.heatPerShot = template.heatPerShot;
+        instance.powerDraw = template.powerDraw;
         instance.ammoCapacity = template.ammoCapacity;
         instance.currentAmmo = template.ammoCapacity;
         instance.trackingSpeed = template.trackingSpeed;

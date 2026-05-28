@@ -33,6 +33,18 @@ public class ShipBlueprint {
             rng.nextInt(sizeClass.maxEnginePods - sizeClass.minEnginePods + 1);
     }
 
+    public ShipBlueprint(ShipSizeClass sizeClass, float spineLength, int crossSectionCount,
+                         float maxWidth, float maxHeight, int wingPairs, int enginePodCount) {
+        this.seed = 0;
+        this.sizeClass = sizeClass;
+        this.spineLength = spineLength;
+        this.crossSectionCount = crossSectionCount;
+        this.maxWidth = maxWidth;
+        this.maxHeight = maxHeight;
+        this.wingPairs = wingPairs;
+        this.enginePodCount = enginePodCount;
+    }
+
     private static float lerp(float a, float b, float t) {
         return a + (b - a) * t;
     }

@@ -1,0 +1,10 @@
+[
+  { "moduleId": "laser_mk1", "name": "Laser Cannon Mk1", "hardpointType": "WEAPON", "minSize": "S", "powerDraw": 8, "weight": 200, "price": 3000, "dps": 25, "range": 500 },
+  { "moduleId": "laser_mk2", "name": "Laser Cannon Mk2", "hardpointType": "WEAPON", "minSize": "S", "powerDraw": 12, "weight": 300, "price": 8000, "dps": 40, "range": 600 },
+  { "moduleId": "missile_rack_s", "name": "Missile Rack S", "hardpointType": "WEAPON", "minSize": "M", "powerDraw": 15, "weight": 500, "price": 15000, "dps": 60, "range": 1200 },
+  { "moduleId": "plasma_cannon_s", "name": "Plasma Cannon S", "hardpointType": "WEAPON", "minSize": "M", "powerDraw": 20, "weight": 400, "price": 18000, "dps": 55, "range": 400 },
+  { "moduleId": "thruster_basic", "name": "Basic Thruster", "hardpointType": "ENGINE", "minSize": "S", "powerDraw": 5, "weight": 300, "price": 2000, "thrust": 15000 },
+  { "moduleId": "fusion_drive_m", "name": "Fusion Drive M", "hardpointType": "ENGINE", "minSize": "M", "powerDraw": 18, "weight": 800, "price": 25000, "thrust": 50000 },
+  { "moduleId": "shield_gen_mk1", "name": "Shield Generator Mk1", "hardpointType": "UTILITY", "minSize": "S", "powerDraw": 15, "weight": 400, "price": 12000, "shieldHp": 200 },
+  { "moduleId": "scanner_mk1", "name": "Sensor Array Mk1", "hardpointType": "UTILITY", "minSize": "S", "powerDraw": 5, "weight": 100, "price": 4000, "sensorRange": 2000 }
+]

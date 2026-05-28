@@ -1,6 +1,8 @@
 [
   {
     "id": "cargo_haul_legal",
+    "name": "Cargo Hauling",
+    "description": "Transport goods between stations.",
     "type": "CARGO_HAUL",
     "giverFactionTag": "trade_guilds",
     "requiredStanding": -25.0,
@@ -14,6 +16,8 @@
   },
   {
     "id": "bounty_hunt_pirate",
+    "name": "Pirate Bounty",
+    "description": "Hunt down a wanted pirate in the sector.",
     "type": "BOUNTY_HUNT",
     "giverFactionTag": "trade_guilds",
     "requiredStanding": 0.0,
@@ -27,6 +31,8 @@
   },
   {
     "id": "exploration_survey",
+    "name": "Exploration Survey",
+    "description": "Survey uncharted planetary bodies.",
     "type": "EXPLORATION_SURVEY",
     "giverFactionTag": "explorers_guild",
     "requiredStanding": 0.0,
@@ -41,6 +47,8 @@
   },
   {
     "id": "mercenary_war",
+    "name": "Mercenary Contract",
+    "description": "Engage hostile forces in a combat zone.",
     "type": "MERCENARY",
     "giverFactionTag": "military",
     "requiredStanding": 0.0,
@@ -54,6 +62,8 @@
   },
   {
     "id": "salvage_missing_ship",
+    "name": "Ship Salvage",
+    "description": "Locate and salvage a missing vessel.",
     "type": "SALVAGE",
     "giverFactionTag": "trade_guilds",
     "requiredStanding": -25.0,

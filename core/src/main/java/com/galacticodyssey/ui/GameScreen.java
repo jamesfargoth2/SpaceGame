@@ -24,7 +24,10 @@ import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.galacticodyssey.combat.events.WeaponFiredEvent;
 import com.badlogic.gdx.math.Interpolation;
+import com.badlogic.gdx.math.Matrix3;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.bullet.collision.btBvhTriangleMeshShape;
@@ -73,11 +76,28 @@ import com.galacticodyssey.npc.events.DialogClosedEvent;
 import com.galacticodyssey.npc.events.DialogOpenedEvent;
 import com.galacticodyssey.npc.systems.DialogSystem;
 import com.galacticodyssey.ui.systems.DialogHudSystem;
+import com.galacticodyssey.ui.systems.InventoryScreenSystem;
+import com.galacticodyssey.ui.systems.RecruitmentScreenSystem;
+import com.galacticodyssey.ui.outfitter.OutfitterScreenSystem;
+import com.galacticodyssey.ui.events.OutfitterOpenedEvent;
+import com.galacticodyssey.ui.events.OutfitterClosedEvent;
+import com.galacticodyssey.ui.events.JournalClosedEvent;
+import com.galacticodyssey.ship.modules.ShipModuleRegistry;
 import com.galacticodyssey.hacking.ui.HackingOverlay;
 import com.galacticodyssey.hacking.HackingStateComponent;
 import com.galacticodyssey.hacking.events.HackStartedEvent;
 import com.galacticodyssey.hacking.events.HackSucceededEvent;
 import com.galacticodyssey.hacking.events.HackFailedEvent;
+import com.galacticodyssey.rendering.DeferredRenderer;
+import com.galacticodyssey.rendering.GBufferBatchShaderProvider;
+import com.galacticodyssey.rendering.lighting.LightComponent;
+import com.galacticodyssey.mission.shared.QuestJournal;
+import com.galacticodyssey.mission.job.JobBoard;
+import com.galacticodyssey.mission.job.JobRegistry;
+import com.galacticodyssey.mission.job.ReputationQuery;
+import com.galacticodyssey.mission.saga.SagaRegistry;
+import com.galacticodyssey.npc.events.RecruitmentOpenedEvent;
+import com.galacticodyssey.npc.events.RecruitmentClosedEvent;
 
 import java.util.Random;
 
@@ -104,7 +124,11 @@ public class GameScreen implements Screen {
     private Mesh terrainMesh;
     private ShaderProgram terrainShader;
     private ModelBatch modelBatch;
+    private ModelBatch gbufferBatch;
     private Environment environment;
+    private final Matrix4 tmpMat4 = new Matrix4();
+    private final Matrix4 tmpViewModelMat4 = new Matrix4();
+    private final Matrix3 tmpNormalMat3 = new Matrix3();
     private final Array<ModelInstance> boxInstances = new Array<>();
     private final Array<Entity> boxEntities = new Array<>();
     private final Array<Disposable> disposables = new Array<>();
@@ -112,11 +136,9 @@ public class GameScreen implements Screen {
     private WorldPopulator.PopulatedWorld populatedWorld;
 
     private AtmosphericSkyRenderer atmosphericSkyRenderer;
+    private DeferredRenderer deferredRenderer;
     private DayNightCycle dayNightCycle;
-    private FogShaderProvider fogShaderProvider;
-    private ModelBatch fogModelBatch;
     private float gameTime;
-    private final Vector3 scratchLightDir = new Vector3();
 
     private boolean paused;
     private Stage pauseStage;
@@ -129,12 +151,25 @@ public class GameScreen implements Screen {
     private float weaponBobTimer;
     private float weaponSwayX;
     private float weaponSwayY;
+
+    // Muzzle flash screen-space overlay
+    private static final float MUZZLE_FLASH_DURATION = 0.08f;
+    private ShapeRenderer debugRenderer;
+    private final Vector3 barrelTipWorld = new Vector3();
+    private float muzzleFlashTimer;
     private Texture particleTexture;
+    private static final Vector3 SUN_COLOR = new Vector3(1f, 0.95f, 0.9f);
+    private static final Vector3 AMBIENT_COLOR = new Vector3(0.1f, 0.1f, 0.15f);
 
     private DialogHudSystem dialogHudSystem;
     private boolean inDialog;
     private InputAdapter dialogInputAdapter;
     private HackingOverlay hackingOverlay;
+    private InventoryScreenSystem inventoryScreenSystem;
+    private OutfitterScreenSystem outfitterScreenSystem;
+    private QuestJournalOverlay questJournalOverlay;
+    private ScreenTabManager screenTabManager;
+    private com.galacticodyssey.ui.systems.RecruitmentScreenSystem recruitmentScreen;
 
     // Preserve existing constructor for load-game flow
     public GameScreen(GalacticOdyssey game) {
@@ -165,6 +200,8 @@ public class GameScreen implements Screen {
         camera = new PerspectiveCamera(75, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         camera.near = 0.1f;
         camera.far = 5000f;
+
+        deferredRenderer = new DeferredRenderer(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
         EventBus eventBus = new EventBus();
         CoordinateManager coordinateManager = new CoordinateManager(eventBus);
@@ -209,6 +246,7 @@ public class GameScreen implements Screen {
         gameWorld.spawnTestNpc(npcX, npcY, npcZ);
 
         shipFactory = new ShipFactory(gameWorld.getEngine(), gameWorld.getBulletPhysicsSystem());
+        shipFactory.setReactorSpecRegistry(gameWorld.getReactorSpecRegistry());
 
         if (session != null && session.shipSpawnPos != null) {
             float shipY = TerrainGenerator.getHeightAt(
@@ -241,27 +279,88 @@ public class GameScreen implements Screen {
         buildShipMeshes();
 
         modelBatch = new ModelBatch();
+        gbufferBatch = new ModelBatch(new GBufferBatchShaderProvider(deferredRenderer.getShaderCache()));
         environment = new Environment();
         environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.3f, 0.3f, 0.35f, 1f));
         environment.add(new DirectionalLight().set(0.8f, 0.8f, 0.75f, -0.4f, -0.8f, -0.3f));
+        deferredRenderer.setDeferredEnabled(true);
 
         buildFirstPersonWeaponModel();
+        debugRenderer = new ShapeRenderer();
+        gameWorld.getEventBus().subscribe(WeaponFiredEvent.class, e -> {
+            muzzleFlashTimer = MUZZLE_FLASH_DURATION;
+        });
         buildPauseMenu();
         buildDialogSystem();
         buildHackingSystem();
+        buildScreenTabManager();
 
         atmosphericSkyRenderer = new AtmosphericSkyRenderer();
         dayNightCycle = new DayNightCycle(600f, 23.5f, false);
-        fogShaderProvider = new FogShaderProvider();
-        fogModelBatch = new ModelBatch(fogShaderProvider);
+
+        Entity sunEntity = new Entity();
+        LightComponent sunLight = new LightComponent();
+        sunLight.type = LightComponent.Type.DIRECTIONAL;
+        sunLight.color.set(1f, 0.95f, 0.9f, 1f);
+        sunLight.intensity = 3f;
+        sunEntity.add(sunLight);
+        gameWorld.getEngine().addEntity(sunEntity);
+    }
+
+    private void openGalaxyMap() {
+        if (session == null || session.galaxy == null) return;
+        Gdx.input.setCursorCatched(false);
+        game.setScreen(new GalaxyMapScreen(game, session, this));
+    }
+
+    private boolean isAnyScreenOpen() {
+        return screenTabManager != null && screenTabManager.isAnyOpen();
     }
 
     private void setupInput() {
-        InputAdapter escapeHandler = new InputAdapter() {
+        InputAdapter keyHandler = new InputAdapter() {
             @Override
             public boolean keyDown(int keycode) {
                 if (keycode == Input.Keys.ESCAPE) {
+                    if (isAnyScreenOpen()) {
+                        screenTabManager.closeActive();
+                        return true;
+                    }
                     togglePause();
+                    return true;
+                }
+                if (keycode == Input.Keys.M) {
+                    openGalaxyMap();
+                    return true;
+                }
+                if (!paused && !inDialog) {
+                    if (keycode == Input.Keys.TAB) {
+                        if (isAnyScreenOpen() && "inventory".equals(screenTabManager.getActiveScreenName())) {
+                            screenTabManager.closeActive();
+                        } else {
+                            screenTabManager.switchTo("inventory");
+                        }
+                        return true;
+                    }
+                    if (keycode == Input.Keys.O) {
+                        Entity playerShip = shipEntities.size > 0 ? shipEntities.first() : null;
+                        if (playerShip != null) {
+                            outfitterScreenSystem.open(playerShip, true);
+                            screenTabManager.switchTo("outfitter");
+                        }
+                        return true;
+                    }
+                    if (keycode == Input.Keys.J) {
+                        if (isAnyScreenOpen() && "journal".equals(screenTabManager.getActiveScreenName())) {
+                            screenTabManager.closeActive();
+                        } else {
+                            screenTabManager.switchTo("journal");
+                        }
+                        return true;
+                    }
+                }
+                if (keycode == Input.Keys.F5) {
+                    if (deferredRenderer != null) deferredRenderer.reloadShaders();
                     return true;
                 }
                 return false;
@@ -269,9 +368,15 @@ public class GameScreen implements Screen {
         };
 
         inputMultiplexer = new InputMultiplexer();
-        inputMultiplexer.addProcessor(escapeHandler);
+        inputMultiplexer.addProcessor(keyHandler);
         if (paused) {
             inputMultiplexer.addProcessor(pauseStage);
+        } else if (isAnyScreenOpen()) {
+            inputMultiplexer.addProcessor(screenTabManager.getTabBarStage());
+            ManagedScreen active = screenTabManager.getActiveScreen();
+            if (active != null && active.getStage() != null) {
+                inputMultiplexer.addProcessor(active.getStage());
+            }
         } else {
             inputMultiplexer.addProcessor(gameWorld.getPlayerInputSystem().getInputAdapter());
         }
@@ -405,18 +510,47 @@ public class GameScreen implements Screen {
         // Scale the weapon down slightly
         fpWeaponInstance.transform.scl(0.7f);
 
+        // Compute world-space barrel tip by transforming model-local muzzle point through the
+        // final weapon transform — this handles bob, sway, and lean correctly.
+        Vector3 muzzleTip = new Vector3(0f, 0.005f, -0.475f).mul(fpWeaponInstance.transform);
+        barrelTipWorld.set(muzzleTip);
+        if (cam != null) cam.worldBarrelTip.set(muzzleTip);
+
         // Render with cleared depth and tight near plane
         Gdx.gl.glClear(GL20.GL_DEPTH_BUFFER_BIT);
         float savedNear = camera.near;
         camera.near = 0.01f;
         camera.update();
 
-        modelBatch.begin(camera);
-        modelBatch.render(fpWeaponInstance, environment);
-        modelBatch.end();
+        gbufferBatch.begin(camera);
+        gbufferBatch.render(fpWeaponInstance);
+        gbufferBatch.end();
 
         camera.near = savedNear;
         camera.update();
+    }
+
+    /** Screen-space muzzle flash drawn after the FP weapon so it always appears in front of the gun. */
+    private void renderMuzzleFlash(float delta) {
+        if (debugRenderer == null || muzzleFlashTimer <= 0) return;
+        muzzleFlashTimer = Math.max(0, muzzleFlashTimer - delta);
+        float t = muzzleFlashTimer / MUZZLE_FLASH_DURATION;
+
+        Vector3 screenPos = camera.project(new Vector3(barrelTipWorld));
+
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE); // additive
+        debugRenderer.setProjectionMatrix(
+            new Matrix4().setToOrtho2D(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()));
+        debugRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        // Outer glow expands and fades
+        debugRenderer.setColor(1f, 0.7f, 0.2f, t * 0.45f);
+        debugRenderer.circle(screenPos.x, screenPos.y, 40f + 20f * (1f - t));
+        // Inner flash stays compact and bright
+        debugRenderer.setColor(1f, 0.95f, 0.7f, t * 0.85f);
+        debugRenderer.circle(screenPos.x, screenPos.y, 18f);
+        debugRenderer.end();
+        Gdx.gl.glDisable(GL20.GL_BLEND);
     }
 
     private void buildPauseMenu() {
@@ -440,6 +574,10 @@ public class GameScreen implements Screen {
         root.add(title).padBottom(40).row();
 
         addPauseButton(root, "Resume", skin, audio, this::togglePause);
+        addPauseButton(root, "Galaxy Map", skin, audio, () -> {
+            togglePause();
+            openGalaxyMap();
+        });
         addPauseButton(root, "Save Game", skin, audio, () -> {
             game.setScreen(new SaveScreen(game, game.getSaveBackend(), GameScreen.this));
         });
@@ -513,6 +651,57 @@ public class GameScreen implements Screen {
         });
     }
 
+    private void buildScreenTabManager() {
+        EventBus eventBus = gameWorld.getEventBus();
+        Skin skin = game.getSkin();
+
+        screenTabManager = new ScreenTabManager(skin);
+
+        inventoryScreenSystem = new InventoryScreenSystem(eventBus, skin);
+        inventoryScreenSystem.initialize(gameWorld.getEngine(), gameWorld.getEquipmentSystem());
+        screenTabManager.register("inventory", inventoryScreenSystem);
+
+        eventBus.subscribe(com.galacticodyssey.ui.events.InventoryOpenedEvent.class, event -> {
+            inventoryScreenSystem.refreshAll();
+        });
+
+        ShipModuleRegistry moduleRegistry = new ShipModuleRegistry();
+        moduleRegistry.loadModules("data/modules/ship_modules.json");
+        moduleRegistry.loadSlotLayouts("data/modules/ship_module_slots.json");
+
+        outfitterScreenSystem = new OutfitterScreenSystem(eventBus, skin, moduleRegistry);
+        outfitterScreenSystem.initialize(gameWorld.getEngine());
+        shipFactory.setModuleRegistry(moduleRegistry);
+        screenTabManager.register("outfitter", outfitterScreenSystem);
+
+        questJournalOverlay = new QuestJournalOverlay(eventBus, skin);
+        QuestJournal journal = gameWorld.getQuestJournal();
+        JobRegistry jobRegistry = gameWorld.getJobRegistry();
+        SagaRegistry sagaRegistry = gameWorld.getSagaRegistry();
+        ReputationQuery reputation = tag -> 0f;
+        questJournalOverlay.initialize(journal, null, jobRegistry, sagaRegistry, reputation);
+        screenTabManager.register("journal", questJournalOverlay);
+
+        recruitmentScreen = new com.galacticodyssey.ui.systems.RecruitmentScreenSystem(eventBus, skin);
+        recruitmentScreen.initialize(gameWorld.getEngine());
+        screenTabManager.register("recruitment", recruitmentScreen);
+
+        screenTabManager.setTransitionListener(new ScreenTabManager.ScreenTransitionListener() {
+            @Override
+            public void onScreenOpened(String name, ManagedScreen screen) {
+                Gdx.input.setCursorCatched(false);
+                gameWorld.getPlayerInputSystem().setEnabled(false);
+                setupInput();
+            }
+
+            @Override
+            public void onAllScreensClosed() {
+                Gdx.input.setCursorCatched(true);
+                gameWorld.getPlayerInputSystem().setEnabled(true);
+                setupInput();
+            }
+        });
+    }
     private void buildDialogSystem() {
         EventBus eventBus = gameWorld.getEventBus();
         DialogSystem dialogSystem = gameWorld.getDialogSystem();
@@ -814,17 +1003,15 @@ public class GameScreen implements Screen {
 
         Entity pilotedShip = getPilotedShip();
 
-        ShaderProgram shader = getShipShader();
+        ShaderProgram shader = deferredRenderer.getShaderCache()
+            .get("gbuffer.vert", "gbuffer.frag", "HAS_VERTEX_COLOR", "HAS_EMISSIVE_ATTRIB");
         shader.bind();
         shader.setUniformMatrix("u_projViewTrans", camera.combined);
-        Vector3 sunDir = dayNightCycle.getSunDirection();
-        shader.setUniformf("u_lightDir", -sunDir.x, -sunDir.y, -sunDir.z);
-        float amb = dayNightCycle.getAmbientIntensity();
-        shader.setUniformf("u_ambientColor", amb, amb, amb + 0.05f, 1f);
-        shader.setUniformf("u_cameraPos", camera.position.x, camera.position.y, camera.position.z);
-        shader.setUniformf("u_fogDensity", atmosphericSkyRenderer.getFogDensity());
-        Vector3 fogCol = atmosphericSkyRenderer.getHorizonColor();
-        shader.setUniformf("u_fogColor", fogCol.x, fogCol.y, fogCol.z);
+        shader.setUniformf("u_albedoTint", 1f, 1f, 1f, 1f);
+        shader.setUniformf("u_metallicScale", 0.3f);
+        shader.setUniformf("u_roughnessScale", 0.5f);
+        shader.setUniformf("u_emissiveIntensity", 3f);
+        shader.setUniformf("u_tiling", 1f, 1f);
 
         for (int i = 0; i < shipEntities.size; i++) {
             Entity ship = shipEntities.get(i);
@@ -834,9 +1021,12 @@ public class GameScreen implements Screen {
             ShipMeshComponent meshComp = ship.getComponent(ShipMeshComponent.class);
             if (meshComp == null || meshComp.hullMesh == null) continue;
 
-            Matrix4 modelMat = new Matrix4();
-            modelMat.set(t.position, t.rotation);
-            shader.setUniformMatrix("u_worldTrans", modelMat);
+            tmpMat4.set(t.position, t.rotation);
+            shader.setUniformMatrix("u_worldTrans", tmpMat4);
+
+            tmpViewModelMat4.set(camera.view).mul(tmpMat4);
+            tmpNormalMat3.set(tmpViewModelMat4).inv().transpose();
+            shader.setUniformMatrix("u_normalMatrix", tmpNormalMat3);
 
             meshComp.hullMesh.render(shader, GL20.GL_TRIANGLES);
         }
@@ -895,8 +1085,6 @@ public class GameScreen implements Screen {
 
     @Override
     public void render(float delta) {
-        ScreenUtils.clear(0.0f, 0.0f, 0.0f, 1f, true);
-
         if (!paused) {
             float clampedDelta = Math.min(delta, 1f / 30f);
             gameWorld.update(clampedDelta);
@@ -904,40 +1092,56 @@ public class GameScreen implements Screen {
             gameTime += clampedDelta;
         }
 
-        atmosphericSkyRenderer.setSunDirection(dayNightCycle.getSunDirection());
-        atmosphericSkyRenderer.setTime(gameTime);
-        atmosphericSkyRenderer.render(camera);
-
         if (!paused) {
             WorldPopulator.updateAnimals(populatedWorld, delta,
                 heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH);
         }
 
         syncBoxTransforms();
-        renderTerrain();
-        renderBoxes();
-        renderWorldObjects();
-        renderShips();
 
-        gameWorld.getParticleRenderSystem().render();
+        atmosphericSkyRenderer.setSunDirection(dayNightCycle.getSunDirection());
+        atmosphericSkyRenderer.setTime(gameTime);
 
-        renderFirstPersonWeapon(delta);
+        Vector3 sunDir = dayNightCycle.getSunDirection();
+        float sunIntensity = dayNightCycle.getSunIntensity();
+        float ambientIntensity = dayNightCycle.getAmbientIntensity();
 
+        deferredRenderer.render(
+            camera,
+            () -> {
+                renderTerrain();
+                renderBoxes();
+                renderWorldObjects();
+                renderShips();
+            },
+            () -> renderFirstPersonWeapon(delta),
+            atmosphericSkyRenderer,
+            () -> {
+                if (populatedWorld != null && populatedWorld.waterInstance != null) {
+                    modelBatch.begin(camera);
+                    modelBatch.render(populatedWorld.waterInstance, environment);
+                    modelBatch.end();
+                }
+            },
+            () -> gameWorld.getParticleRenderSystem().render(),
+            gameWorld.getLightingSystem(),
+            sunDir,
+            SUN_COLOR,
+            sunIntensity * 3f,
+            AMBIENT_COLOR,
+            ambientIntensity
+        );
+
+        // Screen-space effects (after deferred pipeline outputs to screen)
+        renderMuzzleFlash(delta);
+
+        // HUD / UI (renders to screen directly)
         gameWorld.getCockpitHUDSystem().render(delta);
         gameWorld.getDebugHudSystem().render(delta);
-
-        if (dialogHudSystem != null) {
-            dialogHudSystem.render(delta);
-        }
-
-        if (hackingOverlay != null) {
-            hackingOverlay.render(delta);
-        }
-
-        if (paused) {
-            pauseStage.act(delta);
-            pauseStage.draw();
-        }
+        if (dialogHudSystem != null) dialogHudSystem.render(delta);
+        if (hackingOverlay != null) hackingOverlay.render(delta);
+        if (screenTabManager != null) screenTabManager.render(delta);
+        if (paused) { pauseStage.act(delta); pauseStage.draw(); }
     }
 
     private void syncBoxTransforms() {
@@ -954,79 +1158,53 @@ public class GameScreen implements Screen {
         Gdx.gl.glDepthFunc(GL20.GL_LEQUAL);
         Gdx.gl.glDepthMask(true);
 
-        Vector3 fogCol = atmosphericSkyRenderer.getHorizonColor();
-        float fogDens = atmosphericSkyRenderer.getFogDensity();
-        Vector3 sunDir = dayNightCycle.getSunDirection();
-        float ambientScale = dayNightCycle.getAmbientIntensity();
-
-        ShaderProgram shader = getTerrainShader();
+        ShaderProgram shader = deferredRenderer.getShaderCache()
+            .get("gbuffer.vert", "gbuffer.frag", "HAS_VERTEX_COLOR");
         shader.bind();
         shader.setUniformMatrix("u_projViewTrans", camera.combined);
 
-        Matrix4 modelMat = new Matrix4();
-        shader.setUniformMatrix("u_worldTrans", modelMat);
-        shader.setUniformf("u_lightDir", -sunDir.x, -sunDir.y, -sunDir.z);
-        shader.setUniformf("u_ambientColor", ambientScale, ambientScale, ambientScale + 0.05f, 1f);
-        shader.setUniformf("u_cameraPos", camera.position.x, camera.position.y, camera.position.z);
-        shader.setUniformf("u_fogDensity", fogDens);
-        shader.setUniformf("u_fogColor", fogCol.x, fogCol.y, fogCol.z);
+        tmpMat4.idt();
+        shader.setUniformMatrix("u_worldTrans", tmpMat4);
+
+        tmpMat4.set(camera.view);
+        tmpNormalMat3.set(tmpMat4).inv().transpose();
+        shader.setUniformMatrix("u_normalMatrix", tmpNormalMat3);
+
+        shader.setUniformf("u_albedoTint", 1f, 1f, 1f, 1f);
+        shader.setUniformf("u_metallicScale", 0f);
+        shader.setUniformf("u_roughnessScale", 0.85f);
+        shader.setUniformf("u_emissiveIntensity", 0f);
+        shader.setUniformf("u_tiling", 1f, 1f);
 
         terrainMesh.render(shader, GL20.GL_TRIANGLES);
     }
 
     private void renderBoxes() {
-        Vector3 fogCol = atmosphericSkyRenderer.getHorizonColor();
-        float fogDens = atmosphericSkyRenderer.getFogDensity();
-        Vector3 sunDir = dayNightCycle.getSunDirection();
-        fogShaderProvider.setFogParams(fogDens, fogCol);
-        fogShaderProvider.setLightDir(scratchLightDir.set(-sunDir.x, -sunDir.y, -sunDir.z));
-        float amb = dayNightCycle.getAmbientIntensity();
-        fogShaderProvider.setAmbientColor(amb, amb, amb + 0.05f);
-
-        fogModelBatch.begin(camera);
+        gbufferBatch.begin(camera);
         for (int i = 0; i < boxInstances.size; i++) {
-            fogModelBatch.render(boxInstances.get(i), environment);
+            gbufferBatch.render(boxInstances.get(i));
         }
-        fogModelBatch.end();
+        gbufferBatch.end();
     }
 
     private void renderWorldObjects() {
         Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
         Gdx.gl.glDepthMask(true);
 
-        Vector3 fogCol = atmosphericSkyRenderer.getHorizonColor();
-        float fogDens = atmosphericSkyRenderer.getFogDensity();
-        Vector3 sunDir = dayNightCycle.getSunDirection();
-        fogShaderProvider.setFogParams(fogDens, fogCol);
-        fogShaderProvider.setLightDir(scratchLightDir.set(-sunDir.x, -sunDir.y, -sunDir.z));
-        float amb = dayNightCycle.getAmbientIntensity();
-        fogShaderProvider.setAmbientColor(amb, amb, amb + 0.05f);
-
-        fogModelBatch.begin(camera);
+        gbufferBatch.begin(camera);
         for (int i = 0; i < populatedWorld.treeInstances.size; i++) {
-            fogModelBatch.render(populatedWorld.treeInstances.get(i), environment);
+            gbufferBatch.render(populatedWorld.treeInstances.get(i));
         }
         for (int i = 0; i < populatedWorld.rockInstances.size; i++) {
-            fogModelBatch.render(populatedWorld.rockInstances.get(i), environment);
+            gbufferBatch.render(populatedWorld.rockInstances.get(i));
         }
         for (int i = 0; i < populatedWorld.grassInstances.size; i++) {
-            fogModelBatch.render(populatedWorld.grassInstances.get(i), environment);
+            gbufferBatch.render(populatedWorld.grassInstances.get(i));
         }
         for (int i = 0; i < populatedWorld.animalInstances.size; i++) {
-            fogModelBatch.render(populatedWorld.animalInstances.get(i), environment);
+            gbufferBatch.render(populatedWorld.animalInstances.get(i));
         }
-        fogModelBatch.end();
-
-        if (populatedWorld.waterInstance != null) {
-            Gdx.gl.glEnable(GL20.GL_BLEND);
-            Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-            Gdx.gl.glDepthMask(false);
-            modelBatch.begin(camera);
-            modelBatch.render(populatedWorld.waterInstance, environment);
-            modelBatch.end();
-            Gdx.gl.glDepthMask(true);
-            Gdx.gl.glDisable(GL20.GL_BLEND);
-        }
+        gbufferBatch.end();
     }
 
     @Override
@@ -1034,10 +1212,12 @@ public class GameScreen implements Screen {
         camera.viewportWidth = width;
         camera.viewportHeight = height;
         camera.update();
+        if (deferredRenderer != null) deferredRenderer.resize(width, height);
         gameWorld.resize(width, height);
         pauseStage.getViewport().update(width, height, true);
         if (dialogHudSystem != null) dialogHudSystem.resize(width, height);
         if (hackingOverlay != null) hackingOverlay.resize(width, height);
+        if (screenTabManager != null) screenTabManager.resize(width, height);
     }
 
     @Override
@@ -1051,6 +1231,7 @@ public class GameScreen implements Screen {
 
     @Override
     public void dispose() {
+        if (deferredRenderer != null) { deferredRenderer.dispose(); deferredRenderer = null; }
         // ShipFactory must dispose before gameWorld, because it removes rigid bodies
         // from the dynamics world that gameWorld owns.
         if (shipFactory != null) { shipFactory.dispose(); shipFactory = null; }
@@ -1066,14 +1247,6 @@ public class GameScreen implements Screen {
             terrainShader.dispose();
             terrainShader = null;
         }
-        if (fogModelBatch != null) {
-            fogModelBatch.dispose();
-            fogModelBatch = null;
-        }
-        if (fogShaderProvider != null) {
-            fogShaderProvider.dispose();
-            fogShaderProvider = null;
-        }
         if (atmosphericSkyRenderer != null) {
             atmosphericSkyRenderer.dispose();
             atmosphericSkyRenderer = null;
@@ -1083,6 +1256,10 @@ public class GameScreen implements Screen {
             fpWeaponModel = null;
             fpWeaponInstance = null;
         }
+        if (debugRenderer != null) {
+            debugRenderer.dispose();
+            debugRenderer = null;
+        }
         if (particleTexture != null) {
             particleTexture.dispose();
             particleTexture = null;
@@ -1091,6 +1268,10 @@ public class GameScreen implements Screen {
             modelBatch.dispose();
             modelBatch = null;
         }
+        if (gbufferBatch != null) {
+            gbufferBatch.dispose();
+            gbufferBatch = null;
+        }
         if (dialogHudSystem != null) {
             dialogHudSystem.dispose();
             dialogHudSystem = null;
@@ -1098,6 +1279,26 @@ public class GameScreen implements Screen {
         if (hackingOverlay != null) {
             hackingOverlay.dispose();
             hackingOverlay = null;
+        }
+        if (inventoryScreenSystem != null) {
+            inventoryScreenSystem.dispose();
+            inventoryScreenSystem = null;
+        }
+        if (outfitterScreenSystem != null) {
+            outfitterScreenSystem.dispose();
+            outfitterScreenSystem = null;
+        }
+        if (recruitmentScreen != null) {
+            recruitmentScreen.dispose();
+            recruitmentScreen = null;
+        }
+        if (questJournalOverlay != null) {
+            questJournalOverlay.dispose();
+            questJournalOverlay = null;
+        }
+        if (screenTabManager != null) {
+            screenTabManager.dispose();
+            screenTabManager = null;
         }
         if (pauseStage != null) {
             pauseStage.dispose();

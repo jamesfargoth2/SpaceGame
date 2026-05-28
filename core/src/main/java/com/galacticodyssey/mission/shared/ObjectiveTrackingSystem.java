@@ -12,8 +12,12 @@ import com.galacticodyssey.core.events.ScanCompleteEvent;
 import com.galacticodyssey.mission.events.ObjectiveCompletedEvent;
 import com.galacticodyssey.mission.events.ObjectiveUpdatedEvent;
 import com.galacticodyssey.mission.events.QuestCompletedEvent;
+import com.galacticodyssey.mission.events.QuestFailedEvent;
 import com.galacticodyssey.mission.job.JobInstance;
 import com.galacticodyssey.mission.job.JobState;
+import com.galacticodyssey.mission.shared.CompletedQuestRecord;
+import com.galacticodyssey.mission.shared.QuestAbandonedEvent;
+import com.galacticodyssey.mission.shared.QuestOutcome;
 import com.galacticodyssey.mission.saga.SagaInstance;
 import com.galacticodyssey.mission.saga.SagaState;
 
@@ -63,6 +67,35 @@ public class ObjectiveTrackingSystem extends EntitySystem {
 
         eventBus.subscribe(ResourceCollectedEvent.class,
                 e -> incrementBy(ObjectiveType.COLLECT_RESOURCE, e.resourceType, e.amount));
+
+        eventBus.subscribe(QuestAbandonedEvent.class, this::onQuestAbandoned);
+    }
+
+    private void onQuestAbandoned(QuestAbandonedEvent event) {
+        JobInstance job = journal.findJob(event.questInstanceId);
+        if (job == null) return;
+
+        job.state = JobState.FAILED;
+        journal.removeJob(event.questInstanceId);
+
+        float repPenalty = 0f;
+        String repFaction = null;
+        if (job.reward != null && job.reward.reputationFaction != null) {
+            repPenalty = -Math.abs(job.reward.reputationDelta);
+            repFaction = job.reward.reputationFaction;
+        }
+
+        journal.addCompleted(new CompletedQuestRecord(
+                job.instanceId,
+                job.displayName != null ? job.displayName : job.templateId,
+                job.type != null ? job.type.name() : "UNKNOWN",
+                QuestOutcome.ABANDONED,
+                0,
+                repFaction,
+                repPenalty,
+                System.currentTimeMillis()));
+
+        eventBus.publish(new QuestFailedEvent(job.instanceId, "Abandoned by player"));
     }
 
     /**

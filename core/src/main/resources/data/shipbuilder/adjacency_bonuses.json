@@ -1,0 +1,6 @@
+[
+  { "type": "ADJACENCY", "roomA": "MEDBAY", "roomB": "CREW_QUARTERS", "stat": "healingRate", "bonus": 0.15, "label": "+15% Healing" },
+  { "type": "ADJACENCY", "roomA": "ARMORY", "roomB": "CARGO_BAY", "stat": "reloadSpeed", "bonus": 0.10, "label": "+10% Reload" },
+  { "type": "POSITIONAL", "room": "ENGINE_ROOM", "condition": "STERN", "stat": "fuelEfficiency", "bonus": 0.05, "label": "+5% Fuel Eff." },
+  { "type": "POSITIONAL", "room": "COCKPIT", "condition": "BOW", "stat": "sensorRange", "bonus": 0.10, "label": "+10% Sensors" }
+]

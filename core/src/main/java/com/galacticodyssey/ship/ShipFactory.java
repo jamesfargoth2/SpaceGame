@@ -12,6 +12,13 @@ import com.galacticodyssey.core.components.PhysicsBodyComponent;
 import com.galacticodyssey.core.components.TransformComponent;
 import com.galacticodyssey.core.systems.BulletPhysicsSystem;
 import com.galacticodyssey.ship.components.*;
+import com.galacticodyssey.ship.modules.*;
+import com.galacticodyssey.ship.modules.components.ShipCargoComponent;
+import com.galacticodyssey.ship.modules.components.ShipLoadoutComponent;
+import com.galacticodyssey.ship.power.PowerStateComponent;
+import com.galacticodyssey.ship.power.ReactorSpec;
+import com.galacticodyssey.ship.power.ReactorSpecRegistry;
+import com.galacticodyssey.shipbuilder.ShipDesign;
 
 import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
@@ -72,6 +79,8 @@ public class ShipFactory implements Disposable {
     private final BulletPhysicsSystem physics;
     private final ShipHullGenerator hullGenerator = new ShipHullGenerator();
     private final ShipInteriorGenerator interiorGenerator = new ShipInteriorGenerator();
+    private ReactorSpecRegistry reactorSpecRegistry;
+    private ShipModuleRegistry moduleRegistry;
 
     /** All Bullet objects that must be disposed when this factory is disposed. */
     private final Array<Disposable> disposables = new Array<>();
@@ -81,6 +90,14 @@ public class ShipFactory implements Disposable {
     public ShipFactory(Engine engine, BulletPhysicsSystem physics) {
         this.engine  = engine;
         this.physics = physics;
+    }
+
+    public void setReactorSpecRegistry(ReactorSpecRegistry registry) {
+        this.reactorSpecRegistry = registry;
+    }
+
+    public void setModuleRegistry(ShipModuleRegistry registry) {
+        this.moduleRegistry = registry;
     }
 
     // -------------------------------------------------------------------------
@@ -169,6 +186,15 @@ public class ShipFactory implements Disposable {
         entryPoint.localExteriorPosition.set(0f, bboxMin.y - 0.5f, 0f);
         entity.add(entryPoint);
 
+        // Power management
+        PowerStateComponent powerState = buildPowerState(sizeClass);
+        entity.add(powerState);
+
+        // Module loadout and cargo
+        ShipLoadoutComponent loadoutComp = buildLoadoutComponent(sizeClass);
+        entity.add(loadoutComp);
+        entity.add(new ShipCargoComponent());
+
         // Exterior physics body (dynamic, zero-gravity so it hovers in place until piloted)
         PhysicsBodyComponent physicsBody = buildExteriorPhysicsBody(hull, mass, x, adjustedY, z);
         entity.add(physicsBody);
@@ -176,6 +202,90 @@ public class ShipFactory implements Disposable {
         // ----- 4. Register with engine -----
         engine.addEntity(entity);
 
+        return entity;
+    }
+
+    /**
+     * Creates and returns a fully assembled ship entity from a {@link ShipDesign} at the given
+     * world position. Mirrors {@link #createShip} but derives blueprint from the design rather
+     * than a raw seed.
+     *
+     * @param design    the ship design produced by the drydock builder
+     * @param x         initial world X position (local-space float, floating-origin convention)
+     * @param y         initial world Y position
+     * @param z         initial world Z position
+     * @return the assembled entity, already added to the engine
+     */
+    public Entity createShipFromDesign(ShipDesign design, float x, float y, float z) {
+        ShipBlueprint blueprint = design.toBlueprint();
+        HullGeometry hull = hullGenerator.generate(blueprint);
+        InteriorLayout interior = interiorGenerator.generate(blueprint, hull);
+
+        Vector3 bboxMin = new Vector3();
+        hull.boundingBox.getMin(bboxMin);
+        float adjustedY = y - bboxMin.y;
+
+        Entity entity = new Entity();
+
+        TransformComponent transform = new TransformComponent();
+        transform.position.set(x, adjustedY, z);
+        entity.add(transform);
+
+        int si = design.sizeClass.ordinal();
+        float mass = lerp(MASS_MIN[si], MASS_MAX[si], 0.5f);
+
+        ShipDataComponent data = new ShipDataComponent();
+        data.blueprint = blueprint;
+        data.mass = mass;
+        data.maxThrust = MAX_THRUST[si];
+        data.maxTurnRate = TURN_RATE[si];
+        data.maxSpeed = MAX_SPEED[si];
+        data.hullHp = HULL_HP[si];
+        data.currentHullHp = HULL_HP[si];
+        data.hullGeometry = hull;
+        entity.add(data);
+
+        ShipMeshComponent meshComp = new ShipMeshComponent();
+        meshComp.vertexStride = hull.vertexStride;
+        entity.add(meshComp);
+
+        entity.add(buildInteriorComponent(interior));
+
+        // Flight parameters — inline, same pattern as createShip
+        ShipFlightComponent flight = new ShipFlightComponent();
+        flight.linearThrust = LINEAR_THRUST[si];
+        flight.strafeThrustFraction = STRAFE_FRACTION[si];
+        flight.verticalThrustFraction = VERTICAL_FRACTION[si];
+        flight.pitchYawTorque = PITCH_YAW_TORQUE[si];
+        flight.rollTorque = ROLL_TORQUE[si];
+        flight.linearDrag = LINEAR_DRAG[si];
+        flight.angularDrag = ANGULAR_DRAG[si];
+        flight.currentThrottle = 0f;
+        entity.add(flight);
+
+        PilotSeatComponent seat = new PilotSeatComponent();
+        seat.interiorPosition.set(interior.pilotSeatPosition);
+        entity.add(seat);
+
+        ShipEntryPointComponent entry = new ShipEntryPointComponent();
+        entry.interiorPosition.set(interior.airlockPosition);
+        entry.localExteriorPosition.set(0f, bboxMin.y - 0.5f, 0f);
+        entry.worldPosition.set(x + entry.localExteriorPosition.x,
+                                adjustedY + entry.localExteriorPosition.y,
+                                z + entry.localExteriorPosition.z);
+        entity.add(entry);
+
+        PowerStateComponent power = buildPowerState(design.sizeClass);
+        entity.add(power);
+
+        ShipLoadoutComponent loadout = buildLoadoutComponent(design.sizeClass);
+        entity.add(loadout);
+        entity.add(new ShipCargoComponent());
+
+        PhysicsBodyComponent physComp = buildExteriorPhysicsBody(hull, mass, x, adjustedY, z);
+        entity.add(physComp);
+
+        engine.addEntity(entity);
         return entity;
     }
 
@@ -370,6 +480,81 @@ public class ShipFactory implements Disposable {
         convex.recalcLocalAabb();
 
         return convex;
+    }
+
+    // -------------------------------------------------------------------------
+    // Power state
+    // -------------------------------------------------------------------------
+
+    private PowerStateComponent buildPowerState(ShipSizeClass sizeClass) {
+        PowerStateComponent power = new PowerStateComponent();
+        if (reactorSpecRegistry != null) {
+            ReactorSpec spec = reactorSpecRegistry.getBySizeClass(sizeClass.name());
+            if (spec != null) {
+                power.reactorBaseOutput = spec.baseOutput;
+                power.reactorWasteHeatFactor = spec.wasteHeatFactor;
+                power.batteryCapacity = spec.batteryCapacity;
+                power.batteryCharge = spec.batteryCapacity;
+                power.batteryChargeRate = spec.batteryChargeRate;
+                power.batteryDischargeRate = spec.batteryDischargeRate;
+                power.capacitorCapacity = spec.capacitorCapacity;
+                power.capacitorCharge = spec.capacitorCapacity;
+                power.capacitorChargeRate = spec.capacitorChargeRate;
+                power.engineMaxDraw = spec.engineMaxDraw;
+                power.weaponMaxDraw = spec.weaponMaxDraw;
+                power.shieldMaxDraw = spec.shieldMaxDraw;
+                power.lifeSupportDraw = spec.lifeSupportDraw;
+                power.sensorMaxDraw = spec.sensorMaxDraw;
+                return power;
+            }
+        }
+        int si = sizeClass.ordinal();
+        float[] baseOutputs = { 100f, 300f, 800f };
+        float[] battCaps = { 500f, 1500f, 5000f };
+        float[] capCaps = { 100f, 300f, 800f };
+        power.reactorBaseOutput = baseOutputs[si];
+        power.batteryCapacity = battCaps[si];
+        power.batteryCharge = battCaps[si];
+        power.capacitorCapacity = capCaps[si];
+        power.capacitorCharge = capCaps[si];
+        return power;
+    }
+
+    // -------------------------------------------------------------------------
+    // Module loadout
+    // -------------------------------------------------------------------------
+
+    private ShipLoadoutComponent buildLoadoutComponent(ShipSizeClass sizeClass) {
+        ShipLoadoutComponent comp = new ShipLoadoutComponent();
+
+        if (moduleRegistry == null) return comp;
+
+        String classId = getModuleSlotClassId(sizeClass);
+        ShipModuleRegistry.SlotLayout layout = moduleRegistry.getSlotLayout(classId);
+        if (layout == null) return comp;
+
+        comp.maxMass = layout.maxMass;
+
+        for (ShipModuleRegistry.SlotTemplate t : layout.slots) {
+            ShipModuleSlot slot = new ShipModuleSlot(t.id, t.slotType, t.size, t.mandatory);
+            slot.position.set(t.posX, t.posY);
+
+            if (t.defaultModuleId != null) {
+                slot.installedModule = moduleRegistry.createModuleInstance(t.defaultModuleId);
+            }
+
+            comp.moduleSlots.add(slot);
+        }
+
+        return comp;
+    }
+
+    private static String getModuleSlotClassId(ShipSizeClass sizeClass) {
+        switch (sizeClass) {
+            case SMALL:  return "corvette_scout";
+            case MEDIUM: return "frigate_patrol";
+            default:     return "corvette_scout";
+        }
     }
 
     // -------------------------------------------------------------------------

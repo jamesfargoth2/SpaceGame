@@ -11,6 +11,7 @@ public class QuestJournal {
     private static final int JOB_CAP = 10;
 
     private SagaInstance activeMainStory;
+    private final List<CompletedQuestRecord> completedQuests = new ArrayList<>();
     private final List<SagaInstance> activeFactionChains = new ArrayList<>();
     private final List<SagaInstance> activeCompanionArcs = new ArrayList<>();
     private final List<JobInstance> activeJobs = new ArrayList<>();
@@ -64,5 +65,13 @@ public class QuestJournal {
         all.addAll(activeFactionChains);
         all.addAll(activeCompanionArcs);
         return all;
+    }
+
+    public void addCompleted(CompletedQuestRecord record) {
+        completedQuests.add(0, record);
+    }
+
+    public List<CompletedQuestRecord> getCompletedQuests() {
+        return completedQuests;
     }
 }

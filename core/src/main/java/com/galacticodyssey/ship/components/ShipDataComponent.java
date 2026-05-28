@@ -14,6 +14,11 @@ public class ShipDataComponent implements Component, Snapshotable<ShipDataSnapsh
     public float maxTurnRate;
     public float maxSpeed;
     public float hullHp;
+    // Base stats — store unmodified hull values so OutfitterSystem can apply multipliers from a known baseline
+    public float hullBaseMass;
+    public float baseMaxThrust;
+    public float baseMaxTurnRate;
+    public float baseMaxSpeed;
     public float currentHullHp;
     public HullGeometry hullGeometry; // transient, used for deferred Mesh creation in GameScreen
 

@@ -39,6 +39,12 @@ public class JobBoard {
         }
     }
 
+    public List<JobInstance> getAllBoardJobs() {
+        return boardJobs.stream()
+            .filter(j -> j.state == JobState.AVAILABLE)
+            .collect(Collectors.toList());
+    }
+
     public List<JobInstance> getAvailableJobs(ReputationQuery rep) {
         return boardJobs.stream()
             .filter(j -> j.state == JobState.AVAILABLE)
