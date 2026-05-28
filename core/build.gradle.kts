@@ -11,7 +11,8 @@ sourceSets {
             exclude(
                 "com/galacticodyssey/combat/CombatIntegrationTest.java",
                 "com/galacticodyssey/economy/EconomyIntegrationTest.java",
-                "com/galacticodyssey/economy/procgen/SystemEconomyGeneratorTest.java"
+                "com/galacticodyssey/economy/procgen/SystemEconomyGeneratorTest.java",
+                // "com/galacticodyssey/hacking/PuzzleGridTest.java" — PuzzleGrid implemented
             )
         }
     }
@@ -29,6 +30,7 @@ dependencies {
     api("com.badlogicgames.ashley:ashley:$ashleyVersion")
     api("com.badlogicgames.gdx:gdx-ai:$gdxAiVersion")
     api("com.esotericsoftware:kryo:5.6.0")
+    api("com.github.mgsx-dev.gdx-gltf:gltf:2.2.1")
 
     testImplementation("org.junit.jupiter:junit-jupiter:$junitVersion")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")

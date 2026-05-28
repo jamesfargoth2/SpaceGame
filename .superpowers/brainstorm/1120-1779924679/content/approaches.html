@@ -1,0 +1,135 @@
+<h2>Atmospheric Rendering: 3 Approaches</h2>
+<p class="subtitle">Full Rayleigh+Mie scattering, per-planet variation, day/night cycle</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Single-Pass Analytic Scattering (Recommended)</h3>
+      <p>Compute Rayleigh + Mie scattering analytically in a single fullscreen-quad fragment shader. Uses the Nishita/Preetham model with lookup approximations instead of precomputed LUTs.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <h4>Pros</h4>
+          <ul>
+            <li>Single shader pass — no precomputation or texture management</li>
+            <li>Per-planet parameters feed directly into uniforms (scattering coefficients from atmosphere composition)</li>
+            <li>Day/night is just changing the sun direction uniform</li>
+            <li>Volumetric cloud layer integrates naturally into the same ray-march</li>
+            <li>Fog is derived from the same scattering model — no horizon bleed</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <h4>Cons</h4>
+          <ul>
+            <li>Moderate GPU cost per fragment (optical depth integral)</li>
+            <li>Analytic approximations slightly less accurate than precomputed LUT at extreme angles</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Precomputed LUT Scattering (Bruneton)</h3>
+      <p>Precompute transmittance and in-scatter into 2D/3D textures at planet load time. Runtime shader samples these LUTs for fast, accurate sky rendering.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <h4>Pros</h4>
+          <ul>
+            <li>Most physically accurate — handles multiple scattering</li>
+            <li>Very fast at runtime (just texture lookups)</li>
+            <li>Industry standard (used by Unreal, many AAA titles)</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <h4>Cons</h4>
+          <ul>
+            <li>Requires precomputation step per planet (compute shaders or CPU bake)</li>
+            <li>More complex texture management — 3D textures for in-scatter</li>
+            <li>Harder to integrate volumetric clouds (separate pass needed)</li>
+            <li>OpenGL 4.x compute shaders needed for GPU precomputation</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Hybrid: Analytic Sky + Raymarched Clouds</h3>
+      <p>Analytic Rayleigh/Mie for the sky dome (no precomputation), then a separate low-resolution raymarched cloud pass composited on top. Two passes but each is focused and optimized.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <h4>Pros</h4>
+          <ul>
+            <li>Each pass is simpler and more debuggable</li>
+            <li>Cloud pass can be rendered at half/quarter resolution for performance</li>
+            <li>Clouds can be temporally reprojected for smooth animation</li>
+            <li>Easy to disable clouds on low-spec hardware</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <h4>Cons</h4>
+          <ul>
+            <li>Two shader passes instead of one</li>
+            <li>Cloud compositing needs depth-aware blending</li>
+            <li>Slightly more code to manage</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 2rem;">
+  <h3>Architecture Overview (All Approaches)</h3>
+  <div class="mockup">
+    <div class="mockup-header">Rendering Pipeline</div>
+    <div class="mockup-body" style="font-family: monospace; font-size: 0.85rem; line-height: 1.6; padding: 1.5rem;">
+<pre style="margin:0; color: #e0e0e0;">
+┌─────────────────────────────────────────────────────┐
+│                  AtmosphereGenerator                 │
+│  (existing) → gas composition, pressure, temp        │
+└──────────────────────┬──────────────────────────────┘
+                       │ derives
+                       ▼
+┌─────────────────────────────────────────────────────┐
+│              ScatteringParams (NEW)                   │
+│  rayleighCoeff, mieCoeff, ozoneCoeff, scaleHeight    │
+│  sunIntensity, planetRadius, atmosphereRadius        │
+└──────────────────────┬──────────────────────────────┘
+                       │ feeds into
+                       ▼
+┌─────────────────────────────────────────────────────┐
+│            AtmosphericSkyRenderer (NEW)               │
+│  Replaces SkyRenderer — fullscreen quad shader        │
+│  ┌─────────────┐  ┌──────────────┐                   │
+│  │ Sky gradient │  │ Cloud layer  │                   │
+│  │ (Rayleigh + │  │ (raymarched  │                   │
+│  │  Mie scat.) │  │  FBM noise)  │                   │
+│  └──────┬──────┘  └──────┬───────┘                   │
+│         └───────┬────────┘                            │
+│                 ▼                                     │
+│         Final sky color                               │
+└──────────────────────┬──────────────────────────────┘
+                       │ also provides
+                       ▼
+┌─────────────────────────────────────────────────────┐
+│          AtmosphericFog (NEW)                         │
+│  Fog color & density derived from same scattering    │
+│  model. Terrain fog MATCHES sky → no horizon bleed   │
+└─────────────────────────────────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────────────┐
+│               DayNightCycle (NEW)                     │
+│  Planet rotation → sun direction over time           │
+│  Drives sky color transitions + lighting changes     │
+└─────────────────────────────────────────────────────┘
+</pre>
+    </div>
+  </div>
+</div>

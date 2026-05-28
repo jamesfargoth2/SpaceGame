@@ -1,0 +1,8 @@
+{
+  "combatKillPenalty": -15.0,
+  "tradeBonus": 1.0,
+  "smugglingPenaltyCaught": -20.0,
+  "diplomacyGainMultPerLevel": 0.05,
+  "diplomacyLossReductionPerLevel": 0.03,
+  "diplomacyMaxLossReduction": 0.5
+}

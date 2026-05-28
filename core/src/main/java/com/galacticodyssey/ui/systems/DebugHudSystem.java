@@ -19,7 +19,10 @@ import com.galacticodyssey.core.EventBus;
 import com.galacticodyssey.core.components.PlayerTagComponent;
 import com.galacticodyssey.core.components.TransformComponent;
 import com.galacticodyssey.core.components.PhysicsBodyComponent;
+import com.galacticodyssey.combat.components.RangedWeaponComponent;
+import com.galacticodyssey.combat.components.WeaponInventoryComponent;
 import com.galacticodyssey.core.events.InteractionPromptEvent;
+import com.galacticodyssey.player.components.FPSCameraComponent;
 import com.galacticodyssey.player.components.MovementStateComponent;
 import com.galacticodyssey.player.components.PlayerStateComponent;
 
@@ -42,6 +45,8 @@ public class DebugHudSystem extends EntitySystem implements Disposable {
     private Label fpsLabel;
     private Label modeLabel;
     private Label shipSpeedLabel;
+    private Label weaponLabel;
+    private Label leanLabel;
     private Label promptLabel;
     private Table debugTable;
     private BitmapFont promptFont;
@@ -96,7 +101,11 @@ public class DebugHudSystem extends EntitySystem implements Disposable {
         debugTable.add(velocityLabel).left().row();
         debugTable.add(groundLabel).left().row();
         debugTable.add(stateLabel).left().row();
+        weaponLabel = new Label("Weapon: -", style);
+        leanLabel = new Label("Lean: -", style);
         debugTable.add(staminaLabel).left().row();
+        debugTable.add(weaponLabel).left().row();
+        debugTable.add(leanLabel).left().row();
 
         stage.addActor(debugTable);
 
@@ -147,6 +156,23 @@ public class DebugHudSystem extends EntitySystem implements Disposable {
 
             staminaLabel.setText(String.format("Stamina: %.0f / %.0f%s",
                 state.currentStamina, state.maxStamina, state.isExhausted ? " [EXHAUSTED]" : ""));
+
+            WeaponInventoryComponent inventory = player.getComponent(WeaponInventoryComponent.class);
+            RangedWeaponComponent ranged = player.getComponent(RangedWeaponComponent.class);
+            if (inventory != null && ranged != null && !inventory.isActiveSlotMelee()) {
+                String slot = inventory.getActiveSlot().name();
+                weaponLabel.setText(String.format("Weapon [%s]: %s %d/%d",
+                    slot, ranged.firingMode, ranged.currentAmmo, ranged.magSize));
+            } else if (inventory != null) {
+                weaponLabel.setText("Weapon [MELEE]");
+            }
+
+            FPSCameraComponent cam = player.getComponent(FPSCameraComponent.class);
+            if (cam != null && Math.abs(cam.leanAngle) > 0.1f) {
+                leanLabel.setText(String.format("Lean: %.1f°", cam.leanAngle));
+            } else {
+                leanLabel.setText("Lean: -");
+            }
 
             PlayerStateComponent playerState = player.getComponent(PlayerStateComponent.class);
             if (playerState != null) {

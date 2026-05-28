@@ -60,9 +60,24 @@ import com.galacticodyssey.ship.ShipFactory;
 import com.galacticodyssey.ship.ShipSizeClass;
 import com.galacticodyssey.ship.components.ShipDataComponent;
 import com.galacticodyssey.ship.components.ShipMeshComponent;
+import com.galacticodyssey.player.components.FPSCameraComponent;
+import com.galacticodyssey.player.components.MovementStateComponent;
 import com.galacticodyssey.player.components.PlayerStateComponent;
+import com.galacticodyssey.combat.components.RangedWeaponComponent;
+import com.galacticodyssey.combat.components.WeaponInventoryComponent;
 import com.galacticodyssey.core.components.PlayerTagComponent;
 import com.badlogic.ashley.core.Family;
+import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Quaternion;
+import com.galacticodyssey.npc.events.DialogClosedEvent;
+import com.galacticodyssey.npc.events.DialogOpenedEvent;
+import com.galacticodyssey.npc.systems.DialogSystem;
+import com.galacticodyssey.ui.systems.DialogHudSystem;
+import com.galacticodyssey.hacking.ui.HackingOverlay;
+import com.galacticodyssey.hacking.HackingStateComponent;
+import com.galacticodyssey.hacking.events.HackStartedEvent;
+import com.galacticodyssey.hacking.events.HackSucceededEvent;
+import com.galacticodyssey.hacking.events.HackFailedEvent;
 
 import java.util.Random;
 
@@ -96,20 +111,30 @@ public class GameScreen implements Screen {
 
     private WorldPopulator.PopulatedWorld populatedWorld;
 
-    private static final float FOG_DENSITY = 0.004f;
-    private float fogDensity = FOG_DENSITY;
-    private final Vector3 horizonColor = new Vector3(0.6f, 0.55f, 0.45f);
-    private final Vector3 sunDirection = new Vector3(-0.4f, -0.8f, -0.3f).nor();
-
-    private SkyRenderer skyRenderer;
+    private AtmosphericSkyRenderer atmosphericSkyRenderer;
+    private DayNightCycle dayNightCycle;
     private FogShaderProvider fogShaderProvider;
     private ModelBatch fogModelBatch;
+    private float gameTime;
+    private final Vector3 scratchLightDir = new Vector3();
 
     private boolean paused;
     private Stage pauseStage;
     private Texture overlayTexture;
     private InputMultiplexer inputMultiplexer;
     private boolean initialized;
+
+    private Model fpWeaponModel;
+    private ModelInstance fpWeaponInstance;
+    private float weaponBobTimer;
+    private float weaponSwayX;
+    private float weaponSwayY;
+    private Texture particleTexture;
+
+    private DialogHudSystem dialogHudSystem;
+    private boolean inDialog;
+    private InputAdapter dialogInputAdapter;
+    private HackingOverlay hackingOverlay;
 
     // Preserve existing constructor for load-game flow
     public GameScreen(GalacticOdyssey game) {
@@ -152,8 +177,17 @@ public class GameScreen implements Screen {
 
         gameWorld.initializeSystems(camera);
 
+        Pixmap pix = new Pixmap(4, 4, Pixmap.Format.RGBA8888);
+        pix.setColor(Color.WHITE);
+        pix.fill();
+        particleTexture = new Texture(pix);
+        pix.dispose();
+        gameWorld.getParticleRenderSystem().initialize(new TextureRegion(particleTexture));
+
         populatedWorld = WorldPopulator.populate(
             heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, terrainSeed);
+
+        gameWorld.getOceanSpawner().spawnSeawater(populatedWorld.seaLevel, terrainSeed);
 
         createTerrainMesh();
         createTerrainPhysics();
@@ -167,6 +201,12 @@ public class GameScreen implements Screen {
                 heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, 0, 0) + 2f;
             gameWorld.createPlayerEntity(0, spawnHeight, 0);
         }
+
+        // Spawn test NPC near player for dialog testing (negative Z = in front of default camera)
+        float npcX = 0f, npcZ = -2f;
+        float npcY = TerrainGenerator.getHeightAt(
+            heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, npcX, npcZ) + 1f;
+        gameWorld.spawnTestNpc(npcX, npcY, npcZ);
 
         shipFactory = new ShipFactory(gameWorld.getEngine(), gameWorld.getBulletPhysicsSystem());
 
@@ -205,9 +245,13 @@ public class GameScreen implements Screen {
         environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.3f, 0.3f, 0.35f, 1f));
         environment.add(new DirectionalLight().set(0.8f, 0.8f, 0.75f, -0.4f, -0.8f, -0.3f));
 
+        buildFirstPersonWeaponModel();
         buildPauseMenu();
+        buildDialogSystem();
+        buildHackingSystem();
 
-        skyRenderer = new SkyRenderer();
+        atmosphericSkyRenderer = new AtmosphericSkyRenderer();
+        dayNightCycle = new DayNightCycle(600f, 23.5f, false);
         fogShaderProvider = new FogShaderProvider();
         fogModelBatch = new ModelBatch(fogShaderProvider);
     }
@@ -256,6 +300,123 @@ public class GameScreen implements Screen {
             gameWorld.getPlayerInputSystem().setEnabled(true);
             setupInput();
         }
+    }
+
+    private void buildFirstPersonWeaponModel() {
+        ModelBuilder mb = new ModelBuilder();
+        mb.begin();
+
+        Material bodyMat = new Material(ColorAttribute.createDiffuse(new Color(0.25f, 0.25f, 0.28f, 1f)));
+        Material barrelMat = new Material(ColorAttribute.createDiffuse(new Color(0.15f, 0.15f, 0.18f, 1f)));
+        Material gripMat = new Material(ColorAttribute.createDiffuse(new Color(0.12f, 0.10f, 0.08f, 1f)));
+        Material magMat = new Material(ColorAttribute.createDiffuse(new Color(0.20f, 0.20f, 0.22f, 1f)));
+        Material sightMat = new Material(ColorAttribute.createDiffuse(new Color(0.10f, 0.10f, 0.12f, 1f)));
+        Material accentMat = new Material(ColorAttribute.createDiffuse(new Color(0.0f, 0.6f, 0.8f, 1f)));
+        long attrs = VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal;
+
+        // Receiver / main body
+        mb.part("body", GL20.GL_TRIANGLES, attrs, bodyMat)
+            .box(0f, 0f, -0.12f, 0.045f, 0.055f, 0.28f);
+        // Barrel
+        mb.part("barrel", GL20.GL_TRIANGLES, attrs, barrelMat)
+            .box(0f, 0.005f, -0.36f, 0.025f, 0.025f, 0.22f);
+        // Barrel shroud / handguard
+        mb.part("handguard", GL20.GL_TRIANGLES, attrs, bodyMat)
+            .box(0f, 0.002f, -0.30f, 0.035f, 0.038f, 0.14f);
+        // Pistol grip
+        mb.part("grip", GL20.GL_TRIANGLES, attrs, gripMat)
+            .box(0.0f, -0.055f, -0.05f, 0.028f, 0.065f, 0.035f);
+        // Magazine
+        mb.part("magazine", GL20.GL_TRIANGLES, attrs, magMat)
+            .box(0.0f, -0.06f, -0.14f, 0.022f, 0.07f, 0.03f);
+        // Stock
+        mb.part("stock", GL20.GL_TRIANGLES, attrs, bodyMat)
+            .box(0f, -0.005f, 0.08f, 0.03f, 0.045f, 0.12f);
+        // Stock buttpad
+        mb.part("buttpad", GL20.GL_TRIANGLES, attrs, gripMat)
+            .box(0f, -0.005f, 0.145f, 0.032f, 0.048f, 0.015f);
+        // Front sight post
+        mb.part("front_sight", GL20.GL_TRIANGLES, attrs, sightMat)
+            .box(0f, 0.04f, -0.35f, 0.005f, 0.018f, 0.005f);
+        // Rear sight
+        mb.part("rear_sight", GL20.GL_TRIANGLES, attrs, sightMat)
+            .box(0f, 0.04f, -0.06f, 0.018f, 0.015f, 0.008f);
+        // Accent strip on receiver
+        mb.part("accent", GL20.GL_TRIANGLES, attrs, accentMat)
+            .box(0f, 0.03f, -0.12f, 0.046f, 0.003f, 0.10f);
+        // Muzzle device
+        mb.part("muzzle", GL20.GL_TRIANGLES, attrs, barrelMat)
+            .box(0f, 0.005f, -0.475f, 0.018f, 0.018f, 0.02f);
+
+        fpWeaponModel = mb.end();
+        fpWeaponInstance = new ModelInstance(fpWeaponModel);
+    }
+
+    private void renderFirstPersonWeapon(float delta) {
+        if (fpWeaponInstance == null || gameWorld == null) return;
+
+        var players = gameWorld.getEngine().getEntitiesFor(
+            Family.all(PlayerTagComponent.class, PlayerStateComponent.class).get());
+        if (players.size() == 0) return;
+        Entity player = players.first();
+
+        PlayerStateComponent pState = player.getComponent(PlayerStateComponent.class);
+        if (pState != null && pState.currentMode == PlayerStateComponent.PlayerMode.PILOTING) return;
+
+        WeaponInventoryComponent inv = player.getComponent(WeaponInventoryComponent.class);
+        if (inv != null && inv.isActiveSlotMelee()) return;
+
+        FPSCameraComponent cam = player.getComponent(FPSCameraComponent.class);
+        if (cam != null && cam.currentCameraDistance >= 0.1f) return;
+
+        MovementStateComponent movement = player.getComponent(MovementStateComponent.class);
+
+        // Weapon bob
+        if (movement != null && movement.currentSpeed > 0.5f && movement.isGrounded) {
+            weaponBobTimer += delta * 6f;
+        } else {
+            weaponBobTimer *= 0.95f;
+        }
+        float bobX = MathUtils.sin(weaponBobTimer) * 0.003f;
+        float bobY = MathUtils.sin(weaponBobTimer * 2f) * 0.002f;
+
+        // Weapon sway from mouse movement
+        if (cam != null) {
+            float targetSwayX = -cam.pitchAngle * 0.0002f;
+            float targetSwayY = 0f;
+            weaponSwayX = MathUtils.lerp(weaponSwayX, targetSwayX, 5f * delta);
+            weaponSwayY = MathUtils.lerp(weaponSwayY, targetSwayY, 5f * delta);
+        }
+
+        // Position weapon relative to camera
+        Matrix4 camInv = new Matrix4(camera.view).inv();
+        fpWeaponInstance.transform.set(camInv);
+        fpWeaponInstance.transform.translate(
+            0.18f + bobX + weaponSwayY,
+            -0.14f + bobY + weaponSwayX,
+            -0.25f
+        );
+
+        // Apply lean roll to weapon
+        if (cam != null && Math.abs(cam.leanAngle) > 0.01f) {
+            fpWeaponInstance.transform.rotate(0, 0, 1, cam.leanAngle);
+        }
+
+        // Scale the weapon down slightly
+        fpWeaponInstance.transform.scl(0.7f);
+
+        // Render with cleared depth and tight near plane
+        Gdx.gl.glClear(GL20.GL_DEPTH_BUFFER_BIT);
+        float savedNear = camera.near;
+        camera.near = 0.01f;
+        camera.update();
+
+        modelBatch.begin(camera);
+        modelBatch.render(fpWeaponInstance, environment);
+        modelBatch.end();
+
+        camera.near = savedNear;
+        camera.update();
     }
 
     private void buildPauseMenu() {
@@ -329,6 +490,80 @@ public class GameScreen implements Screen {
         });
 
         table.add(button).width(300).height(50).padBottom(12).row();
+    }
+
+    private void buildHackingSystem() {
+        EventBus eventBus = gameWorld.getEventBus();
+        hackingOverlay = new HackingOverlay(eventBus, game.getSkin());
+
+        eventBus.subscribe(HackStartedEvent.class, event -> {
+            com.badlogic.ashley.core.Entity player = event.player;
+            HackingStateComponent hackState = player.getComponent(HackingStateComponent.class);
+            if (hackState != null && hackState.controller != null) {
+                hackingOverlay.show(hackState.controller);
+            }
+        });
+        eventBus.subscribe(HackSucceededEvent.class, e -> {
+            hackingOverlay.hide();
+            Gdx.input.setInputProcessor(inputMultiplexer);
+        });
+        eventBus.subscribe(HackFailedEvent.class, e -> {
+            hackingOverlay.hide();
+            Gdx.input.setInputProcessor(inputMultiplexer);
+        });
+    }
+
+    private void buildDialogSystem() {
+        EventBus eventBus = gameWorld.getEventBus();
+        DialogSystem dialogSystem = gameWorld.getDialogSystem();
+
+        dialogHudSystem = new DialogHudSystem(eventBus, game.getSkin());
+        dialogHudSystem.initialize();
+
+        dialogInputAdapter = new InputAdapter() {
+            @Override
+            public boolean keyDown(int keycode) {
+                if (keycode >= Input.Keys.NUM_1 && keycode <= Input.Keys.NUM_4) {
+                    dialogSystem.selectChoice(keycode - Input.Keys.NUM_1);
+                    return true;
+                }
+                if (keycode == Input.Keys.SPACE || keycode == Input.Keys.ENTER) {
+                    dialogSystem.advanceOrClose();
+                    return true;
+                }
+                if (keycode == Input.Keys.ESCAPE) {
+                    dialogSystem.closeDialog();
+                    return true;
+                }
+                return true;
+            }
+
+            @Override
+            public boolean keyUp(int keycode) { return true; }
+            @Override
+            public boolean touchDown(int x, int y, int pointer, int button) { return true; }
+            @Override
+            public boolean touchUp(int x, int y, int pointer, int button) { return true; }
+            @Override
+            public boolean mouseMoved(int x, int y) { return true; }
+            @Override
+            public boolean scrolled(float amountX, float amountY) { return true; }
+        };
+
+        eventBus.subscribe(DialogOpenedEvent.class, event -> {
+            inDialog = true;
+            Gdx.input.setCursorCatched(false);
+            gameWorld.getPlayerInputSystem().setEnabled(false);
+            inputMultiplexer.clear();
+            inputMultiplexer.addProcessor(dialogInputAdapter);
+        });
+
+        eventBus.subscribe(DialogClosedEvent.class, event -> {
+            inDialog = false;
+            Gdx.input.setCursorCatched(true);
+            gameWorld.getPlayerInputSystem().setEnabled(true);
+            setupInput();
+        });
     }
 
     private void createTerrainMesh() {
@@ -582,11 +817,14 @@ public class GameScreen implements Screen {
         ShaderProgram shader = getShipShader();
         shader.bind();
         shader.setUniformMatrix("u_projViewTrans", camera.combined);
-        shader.setUniformf("u_lightDir", -0.4f, -0.8f, -0.3f);
-        shader.setUniformf("u_ambientColor", 0.3f, 0.3f, 0.35f, 1f);
+        Vector3 sunDir = dayNightCycle.getSunDirection();
+        shader.setUniformf("u_lightDir", -sunDir.x, -sunDir.y, -sunDir.z);
+        float amb = dayNightCycle.getAmbientIntensity();
+        shader.setUniformf("u_ambientColor", amb, amb, amb + 0.05f, 1f);
         shader.setUniformf("u_cameraPos", camera.position.x, camera.position.y, camera.position.z);
-        shader.setUniformf("u_fogDensity", fogDensity);
-        shader.setUniformf("u_fogColor", horizonColor.x, horizonColor.y, horizonColor.z);
+        shader.setUniformf("u_fogDensity", atmosphericSkyRenderer.getFogDensity());
+        Vector3 fogCol = atmosphericSkyRenderer.getHorizonColor();
+        shader.setUniformf("u_fogColor", fogCol.x, fogCol.y, fogCol.z);
 
         for (int i = 0; i < shipEntities.size; i++) {
             Entity ship = shipEntities.get(i);
@@ -657,14 +895,18 @@ public class GameScreen implements Screen {
 
     @Override
     public void render(float delta) {
-        ScreenUtils.clear(0.05f, 0.05f, 0.1f, 1f, true);
-
-        skyRenderer.render(camera, sunDirection);
+        ScreenUtils.clear(0.0f, 0.0f, 0.0f, 1f, true);
 
         if (!paused) {
             float clampedDelta = Math.min(delta, 1f / 30f);
             gameWorld.update(clampedDelta);
+            dayNightCycle.update(clampedDelta);
+            gameTime += clampedDelta;
         }
+
+        atmosphericSkyRenderer.setSunDirection(dayNightCycle.getSunDirection());
+        atmosphericSkyRenderer.setTime(gameTime);
+        atmosphericSkyRenderer.render(camera);
 
         if (!paused) {
             WorldPopulator.updateAnimals(populatedWorld, delta,
@@ -677,12 +919,20 @@ public class GameScreen implements Screen {
         renderWorldObjects();
         renderShips();
 
-        if (gameWorld.getCockpitModelSystem() != null) {
-            gameWorld.getCockpitModelSystem().render(modelBatch, camera);
-        }
+        gameWorld.getParticleRenderSystem().render();
+
+        renderFirstPersonWeapon(delta);
 
         gameWorld.getCockpitHUDSystem().render(delta);
         gameWorld.getDebugHudSystem().render(delta);
+
+        if (dialogHudSystem != null) {
+            dialogHudSystem.render(delta);
+        }
+
+        if (hackingOverlay != null) {
+            hackingOverlay.render(delta);
+        }
 
         if (paused) {
             pauseStage.act(delta);
@@ -704,23 +954,35 @@ public class GameScreen implements Screen {
         Gdx.gl.glDepthFunc(GL20.GL_LEQUAL);
         Gdx.gl.glDepthMask(true);
 
+        Vector3 fogCol = atmosphericSkyRenderer.getHorizonColor();
+        float fogDens = atmosphericSkyRenderer.getFogDensity();
+        Vector3 sunDir = dayNightCycle.getSunDirection();
+        float ambientScale = dayNightCycle.getAmbientIntensity();
+
         ShaderProgram shader = getTerrainShader();
         shader.bind();
         shader.setUniformMatrix("u_projViewTrans", camera.combined);
 
         Matrix4 modelMat = new Matrix4();
         shader.setUniformMatrix("u_worldTrans", modelMat);
-        shader.setUniformf("u_lightDir", -0.4f, -0.8f, -0.3f);
-        shader.setUniformf("u_ambientColor", 0.3f, 0.3f, 0.35f, 1f);
+        shader.setUniformf("u_lightDir", -sunDir.x, -sunDir.y, -sunDir.z);
+        shader.setUniformf("u_ambientColor", ambientScale, ambientScale, ambientScale + 0.05f, 1f);
         shader.setUniformf("u_cameraPos", camera.position.x, camera.position.y, camera.position.z);
-        shader.setUniformf("u_fogDensity", fogDensity);
-        shader.setUniformf("u_fogColor", horizonColor.x, horizonColor.y, horizonColor.z);
+        shader.setUniformf("u_fogDensity", fogDens);
+        shader.setUniformf("u_fogColor", fogCol.x, fogCol.y, fogCol.z);
 
         terrainMesh.render(shader, GL20.GL_TRIANGLES);
     }
 
     private void renderBoxes() {
-        fogShaderProvider.setFogParams(fogDensity, horizonColor);
+        Vector3 fogCol = atmosphericSkyRenderer.getHorizonColor();
+        float fogDens = atmosphericSkyRenderer.getFogDensity();
+        Vector3 sunDir = dayNightCycle.getSunDirection();
+        fogShaderProvider.setFogParams(fogDens, fogCol);
+        fogShaderProvider.setLightDir(scratchLightDir.set(-sunDir.x, -sunDir.y, -sunDir.z));
+        float amb = dayNightCycle.getAmbientIntensity();
+        fogShaderProvider.setAmbientColor(amb, amb, amb + 0.05f);
+
         fogModelBatch.begin(camera);
         for (int i = 0; i < boxInstances.size; i++) {
             fogModelBatch.render(boxInstances.get(i), environment);
@@ -732,7 +994,14 @@ public class GameScreen implements Screen {
         Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
         Gdx.gl.glDepthMask(true);
 
-        fogShaderProvider.setFogParams(fogDensity, horizonColor);
+        Vector3 fogCol = atmosphericSkyRenderer.getHorizonColor();
+        float fogDens = atmosphericSkyRenderer.getFogDensity();
+        Vector3 sunDir = dayNightCycle.getSunDirection();
+        fogShaderProvider.setFogParams(fogDens, fogCol);
+        fogShaderProvider.setLightDir(scratchLightDir.set(-sunDir.x, -sunDir.y, -sunDir.z));
+        float amb = dayNightCycle.getAmbientIntensity();
+        fogShaderProvider.setAmbientColor(amb, amb, amb + 0.05f);
+
         fogModelBatch.begin(camera);
         for (int i = 0; i < populatedWorld.treeInstances.size; i++) {
             fogModelBatch.render(populatedWorld.treeInstances.get(i), environment);
@@ -767,6 +1036,8 @@ public class GameScreen implements Screen {
         camera.update();
         gameWorld.resize(width, height);
         pauseStage.getViewport().update(width, height, true);
+        if (dialogHudSystem != null) dialogHudSystem.resize(width, height);
+        if (hackingOverlay != null) hackingOverlay.resize(width, height);
     }
 
     @Override
@@ -799,13 +1070,34 @@ public class GameScreen implements Screen {
             fogModelBatch.dispose();
             fogModelBatch = null;
         }
-        if (skyRenderer != null) {
-            skyRenderer.dispose();
-            skyRenderer = null;
+        if (fogShaderProvider != null) {
+            fogShaderProvider.dispose();
+            fogShaderProvider = null;
+        }
+        if (atmosphericSkyRenderer != null) {
+            atmosphericSkyRenderer.dispose();
+            atmosphericSkyRenderer = null;
+        }
+        if (fpWeaponModel != null) {
+            fpWeaponModel.dispose();
+            fpWeaponModel = null;
+            fpWeaponInstance = null;
+        }
+        if (particleTexture != null) {
+            particleTexture.dispose();
+            particleTexture = null;
         }
         if (modelBatch != null) {
             modelBatch.dispose();
             modelBatch = null;
+        }
+        if (dialogHudSystem != null) {
+            dialogHudSystem.dispose();
+            dialogHudSystem = null;
+        }
+        if (hackingOverlay != null) {
+            hackingOverlay.dispose();
+            hackingOverlay = null;
         }
         if (pauseStage != null) {
             pauseStage.dispose();

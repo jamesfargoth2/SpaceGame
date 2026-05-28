@@ -16,5 +16,5 @@ public class MeleeFrameData {
     public float weight;
     public DamageType damageType;
     public WeightClass weightClass = WeightClass.MEDIUM;
-    public Map<String, Float> directionalModifiers = new HashMap<>();
+    public HashMap<String, Float> directionalModifiers = new HashMap<>();
 }

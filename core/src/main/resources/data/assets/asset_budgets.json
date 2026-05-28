@@ -1,0 +1,12 @@
+{
+  "categories": {
+    "CHARACTER":      { "maxResidentAssets": 20  },
+    "INTERIOR_PROP":  { "maxResidentAssets": 100 },
+    "PROP_SMALL":     { "maxResidentAssets": 50  },
+    "PROP_LARGE":     { "maxResidentAssets": 30  },
+    "FOLIAGE":        { "maxResidentAssets": 40  },
+    "BUILDING":       { "maxResidentAssets": 20  },
+    "VFX_MESH":       { "maxResidentAssets": 30  },
+    "TEXTURE_ATLAS":  { "maxResidentAssets": 10  }
+  }
+}

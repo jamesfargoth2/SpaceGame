@@ -137,6 +137,10 @@ public class ExplosionSystem extends EntitySystem {
         data.totalEnergy = event.damage * ENERGY_PER_DAMAGE;
         data.owner = event.owner;
         data.damageType = event.damageType;
+        data.blastFraction = event.blastFraction;
+        data.thermalFraction = event.thermalFraction;
+        data.fragmentFraction = event.fragmentFraction;
+        data.isDirectional = event.isDirectional;
 
         if (event.damageType == DamageType.EMP) {
             data.empRadius = event.areaOfEffect;

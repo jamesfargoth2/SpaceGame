@@ -1,0 +1,20 @@
+{
+  "id": "muzzle_flash_plasma",
+  "type": "BILLBOARD",
+  "sprite": "glow",
+  "maxParticles": 15,
+  "emitRate": 0,
+  "burstCount": 15,
+  "lifetimeMin": 0.06,
+  "lifetimeMax": 0.15,
+  "speedMin": 2.0,
+  "speedMax": 10.0,
+  "spread": 30.0,
+  "sizeMin": 0.2,
+  "sizeMax": 0.5,
+  "sizeEnd": 0.0,
+  "color": "#AA00FF",
+  "colorEnd": "#6600CC00",
+  "blendMode": "ADDITIVE",
+  "gravity": 0.0
+}

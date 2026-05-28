@@ -197,4 +197,48 @@ class ExplosionSystemTest {
         assertEquals(0f, event.impulse.y, 0.001f, "Impulse Y should be ~0");
         assertEquals(0f, event.impulse.z, 0.001f, "Impulse Z should be ~0");
     }
+
+    @Test
+    void customBlastFractionsAreUsedFromDetonationEvent() {
+        // Create a target at distance 3.0 from origin
+        Entity target = new Entity();
+        target.add(new TransformComponent());
+        target.getComponent(TransformComponent.class).position.set(3f, 0f, 0f);
+        target.add(new HealthComponent());
+        target.add(new ExplosionAffectedComponent());
+        engine.addEntity(target);
+
+        // Fire two detonations: one default fractions, one custom
+        List<BlastDamageEvent> defaultEvents = new ArrayList<>();
+        List<BlastDamageEvent> customEvents = new ArrayList<>();
+
+        EventBus.EventListener<BlastDamageEvent> defaultListener = defaultEvents::add;
+        EventBus.EventListener<BlastDamageEvent> customListener = customEvents::add;
+
+        eventBus.subscribe(BlastDamageEvent.class, defaultListener);
+
+        // Default fractions (0.4 blast, 0.3 thermal, 0.3 fragment)
+        DetonationEvent defaultDet = new DetonationEvent(
+                new Entity(), new Vector3(0, 0, 0), 50f,
+                DamageType.EXPLOSIVE, 10f);
+        eventBus.publish(defaultDet);
+        engine.update(0.016f);
+
+        eventBus.unsubscribe(BlastDamageEvent.class, defaultListener);
+        eventBus.subscribe(BlastDamageEvent.class, customListener);
+
+        // Custom fractions (0.8 blast, 0.1 thermal, 0.1 fragment)
+        DetonationEvent customDet = new DetonationEvent(
+                new Entity(), new Vector3(0, 0, 0), 50f,
+                DamageType.EXPLOSIVE, 10f,
+                0.8f, 0.1f, 0.1f, false);
+        eventBus.publish(customDet);
+        engine.update(0.016f);
+
+        assertEquals(1, defaultEvents.size());
+        assertEquals(1, customEvents.size());
+        // Higher blast fraction should produce more damage at same distance
+        assertTrue(customEvents.get(0).damage > defaultEvents.get(0).damage,
+                "Custom blast fraction 0.8 should produce more damage than default 0.4");
+    }
 }

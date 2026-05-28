@@ -9,5 +9,7 @@
   "ShipWeaponFiredEvent": "muzzle_flash_ballistic",
   "MeleeHitEvent": "impact_sparks",
   "ShieldAbsorbEvent": "shield_ripple",
-  "EntityKilledEvent": "impact_explosion"
+  "EntityKilledEvent": "impact_explosion",
+  "GrenadeThrowEvent": "muzzle_flash_ballistic",
+  "GrenadeBounceEvent": "impact_sparks"
 }

@@ -1,0 +1,12 @@
+{
+  "categories": {
+    "CHARACTER":      { "prefetchRadius": 80.0,  "unloadRadius": 120.0 },
+    "INTERIOR_PROP":  { "prefetchRadius": 25.0,  "unloadRadius": 35.0  },
+    "PROP_SMALL":     { "prefetchRadius": 40.0,  "unloadRadius": 60.0  },
+    "PROP_LARGE":     { "prefetchRadius": 60.0,  "unloadRadius": 90.0  },
+    "FOLIAGE":        { "prefetchRadius": 150.0, "unloadRadius": 200.0 },
+    "BUILDING":       { "prefetchRadius": 300.0, "unloadRadius": 500.0 },
+    "VFX_MESH":       { "prefetchRadius": 50.0,  "unloadRadius": 80.0  },
+    "TEXTURE_ATLAS":  { "prefetchRadius": 0.0,   "unloadRadius": 9999.0 }
+  }
+}

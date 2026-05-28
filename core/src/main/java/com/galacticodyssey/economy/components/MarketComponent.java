@@ -8,5 +8,6 @@ import java.util.Map;
 
 public class MarketComponent implements Component {
     public String stationId;
+    public String ownerFactionId;
     public final Map<String, MarketEntry> entries = new HashMap<>();
 }

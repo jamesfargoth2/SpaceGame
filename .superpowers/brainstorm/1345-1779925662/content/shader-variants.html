@@ -1,0 +1,289 @@
+<style>
+  .model-strip {
+    display: flex; gap: 0.8rem; justify-content: center; flex-wrap: wrap;
+    margin: 0.8rem 0;
+  }
+  .model-card {
+    display: flex; flex-direction: column; align-items: center; gap: 0.4rem;
+  }
+  .model-fig {
+    width: 80px; height: 110px; border-radius: 8px;
+    position: relative; overflow: hidden;
+    border: 1.5px solid #333;
+  }
+  .model-label { font-size: 0.72rem; color: #999; text-align: center; }
+  .model-sublabel { font-size: 0.65rem; color: #555; text-align: center; }
+
+  /* Character silhouette layers */
+  .char-body { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); }
+  .char-head { width: 22px; height: 22px; border-radius: 50%; position: absolute; }
+  .char-torso { width: 30px; height: 38px; border-radius: 4px; position: absolute; }
+  .char-legs { width: 30px; height: 30px; position: absolute; }
+  .char-accent { position: absolute; border-radius: 2px; }
+  .char-visor { position: absolute; border-radius: 3px; }
+
+  /* Damage overlays */
+  .dmg-scratch { position: absolute; background: repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(0,0,0,0.3) 3px, rgba(0,0,0,0.3) 4px); }
+  .dmg-burn { position: absolute; border-radius: 50%; }
+  .dmg-glow { position: absolute; border-radius: 2px; }
+
+  /* Section dividers */
+  .section-head { font-size: 0.8rem; color: #888; text-transform: uppercase; letter-spacing: 1.2px; margin: 1.2rem 0 0.6rem; border-bottom: 1px solid #222; padding-bottom: 0.4rem; }
+
+  /* Emissive demo */
+  .emissive-strip { display: flex; gap: 0.6rem; align-items: flex-end; justify-content: center; margin: 0.8rem 0; }
+  .em-block {
+    display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
+  }
+  .em-swatch {
+    width: 64px; border-radius: 6px;
+    border: 1.5px solid #333;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.6rem; color: rgba(255,255,255,0.4);
+  }
+  .em-label { font-size: 0.7rem; color: #888; }
+
+  /* Shader architecture box */
+  .arch-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; margin-top: 0.8rem; }
+  .arch-card {
+    background: #0d0d16; border: 1px solid #2a2a3a; border-radius: 8px;
+    padding: 0.7rem 0.9rem; font-size: 0.76rem; color: #bbb; line-height: 1.55;
+  }
+  .arch-card h4 { margin: 0 0 0.35rem; font-size: 0.8rem; }
+  .tag { display:inline-block; background:#111; border:1px solid #333; border-radius:4px; padding:1px 6px; font-size:0.66rem; color:#999; margin-right:3px; margin-bottom:3px; font-family: monospace; }
+
+  .note { background:#0d0d1a; border-left:3px solid #7c6af7; padding:0.6rem 0.8rem; font-size:0.77rem; color:#bbb; border-radius:0 6px 6px 0; margin-top:0.8rem; line-height:1.6; }
+
+  /* Faction colors - stylized vibrant palette */
+  :root {
+    --f1: #3399ff; --f1d: #1155aa; --f1a: #88ccff;  /* Federation - blue */
+    --f2: #ff5533; --f2d: #992211; --f2a: #ffaa88;  /* Syndicate - red */
+    --f3: #44dd77; --f3d: #116633; --f3a: #aaff99;  /* Freeborn - green */
+    --f4: #cc44ff; --f4d: #661199; --f4a: #ee99ff;  /* Mystic - purple */
+  }
+</style>
+
+<h2>Shader Material Variants</h2>
+<p class="subtitle">One <code>GalacticShaderProvider</code> selects a shader per renderable based on material flags. Three variant axes — faction tint, damage state, emissive scale — all driven by uniforms, so one model file renders in any combination.</p>
+
+<!-- FACTION TINT -->
+<div class="section-head">Faction Color Tint — same model, 4 faction uniforms</div>
+<div class="model-strip">
+
+  <!-- Federation -->
+  <div class="model-card">
+    <div class="model-fig" style="background: linear-gradient(180deg, #050a14 0%, #0a1428 100%)">
+      <!-- head -->
+      <div style="position:absolute;top:10px;left:50%;transform:translateX(-50%);width:22px;height:22px;border-radius:50%;background:#1a1a2a;border:2px solid var(--f1)"></div>
+      <!-- visor -->
+      <div style="position:absolute;top:16px;left:50%;transform:translateX(-50%);width:14px;height:6px;border-radius:2px;background:var(--f1a);opacity:0.8;box-shadow:0 0 6px var(--f1)"></div>
+      <!-- torso -->
+      <div style="position:absolute;top:32px;left:50%;transform:translateX(-50%);width:30px;height:38px;border-radius:4px;background:#1a1a2a;border:1.5px solid #333"></div>
+      <!-- shoulder accents -->
+      <div style="position:absolute;top:33px;left:calc(50% - 22px);width:10px;height:14px;border-radius:3px;background:var(--f1d);border:1px solid var(--f1)"></div>
+      <div style="position:absolute;top:33px;left:calc(50% + 12px);width:10px;height:14px;border-radius:3px;background:var(--f1d);border:1px solid var(--f1)"></div>
+      <!-- chest stripe -->
+      <div style="position:absolute;top:42px;left:50%;transform:translateX(-50%);width:22px;height:3px;border-radius:1px;background:var(--f1);box-shadow:0 0 4px var(--f1)"></div>
+      <!-- legs -->
+      <div style="position:absolute;bottom:5px;left:calc(50% - 14px);width:11px;height:28px;border-radius:3px;background:#141420;border:1px solid #333"></div>
+      <div style="position:absolute;bottom:5px;left:calc(50% + 3px);width:11px;height:28px;border-radius:3px;background:#141420;border:1px solid #333"></div>
+      <!-- knee pads -->
+      <div style="position:absolute;bottom:18px;left:calc(50% - 13px);width:9px;height:5px;border-radius:2px;background:var(--f1d)"></div>
+      <div style="position:absolute;bottom:18px;left:calc(50% + 4px);width:9px;height:5px;border-radius:2px;background:var(--f1d)"></div>
+    </div>
+    <div class="model-label" style="color:var(--f1)">Federation</div>
+    <div class="model-sublabel">factionTint: #3399ff</div>
+  </div>
+
+  <!-- Syndicate -->
+  <div class="model-card">
+    <div class="model-fig" style="background: linear-gradient(180deg, #140500 0%, #280a00 100%)">
+      <div style="position:absolute;top:10px;left:50%;transform:translateX(-50%);width:22px;height:22px;border-radius:50%;background:#1a0a0a;border:2px solid var(--f2)"></div>
+      <div style="position:absolute;top:16px;left:50%;transform:translateX(-50%);width:14px;height:6px;border-radius:2px;background:var(--f2a);opacity:0.8;box-shadow:0 0 6px var(--f2)"></div>
+      <div style="position:absolute;top:32px;left:50%;transform:translateX(-50%);width:30px;height:38px;border-radius:4px;background:#1a0a0a;border:1.5px solid #333"></div>
+      <div style="position:absolute;top:33px;left:calc(50% - 22px);width:10px;height:14px;border-radius:3px;background:var(--f2d);border:1px solid var(--f2)"></div>
+      <div style="position:absolute;top:33px;left:calc(50% + 12px);width:10px;height:14px;border-radius:3px;background:var(--f2d);border:1px solid var(--f2)"></div>
+      <div style="position:absolute;top:42px;left:50%;transform:translateX(-50%);width:22px;height:3px;border-radius:1px;background:var(--f2);box-shadow:0 0 4px var(--f2)"></div>
+      <div style="position:absolute;bottom:5px;left:calc(50% - 14px);width:11px;height:28px;border-radius:3px;background:#14080a;border:1px solid #333"></div>
+      <div style="position:absolute;bottom:5px;left:calc(50% + 3px);width:11px;height:28px;border-radius:3px;background:#14080a;border:1px solid #333"></div>
+      <div style="position:absolute;bottom:18px;left:calc(50% - 13px);width:9px;height:5px;border-radius:2px;background:var(--f2d)"></div>
+      <div style="position:absolute;bottom:18px;left:calc(50% + 4px);width:9px;height:5px;border-radius:2px;background:var(--f2d)"></div>
+    </div>
+    <div class="model-label" style="color:var(--f2)">Syndicate</div>
+    <div class="model-sublabel">factionTint: #ff5533</div>
+  </div>
+
+  <!-- Freeborn -->
+  <div class="model-card">
+    <div class="model-fig" style="background: linear-gradient(180deg, #030e06 0%, #061a0a 100%)">
+      <div style="position:absolute;top:10px;left:50%;transform:translateX(-50%);width:22px;height:22px;border-radius:50%;background:#0a1a0a;border:2px solid var(--f3)"></div>
+      <div style="position:absolute;top:16px;left:50%;transform:translateX(-50%);width:14px;height:6px;border-radius:2px;background:var(--f3a);opacity:0.8;box-shadow:0 0 6px var(--f3)"></div>
+      <div style="position:absolute;top:32px;left:50%;transform:translateX(-50%);width:30px;height:38px;border-radius:4px;background:#0a1a0a;border:1.5px solid #333"></div>
+      <div style="position:absolute;top:33px;left:calc(50% - 22px);width:10px;height:14px;border-radius:3px;background:var(--f3d);border:1px solid var(--f3)"></div>
+      <div style="position:absolute;top:33px;left:calc(50% + 12px);width:10px;height:14px;border-radius:3px;background:var(--f3d);border:1px solid var(--f3)"></div>
+      <div style="position:absolute;top:42px;left:50%;transform:translateX(-50%);width:22px;height:3px;border-radius:1px;background:var(--f3);box-shadow:0 0 4px var(--f3)"></div>
+      <div style="position:absolute;bottom:5px;left:calc(50% - 14px);width:11px;height:28px;border-radius:3px;background:#0a140a;border:1px solid #333"></div>
+      <div style="position:absolute;bottom:5px;left:calc(50% + 3px);width:11px;height:28px;border-radius:3px;background:#0a140a;border:1px solid #333"></div>
+      <div style="position:absolute;bottom:18px;left:calc(50% - 13px);width:9px;height:5px;border-radius:2px;background:var(--f3d)"></div>
+      <div style="position:absolute;bottom:18px;left:calc(50% + 4px);width:9px;height:5px;border-radius:2px;background:var(--f3d)"></div>
+    </div>
+    <div class="model-label" style="color:var(--f3)">Freeborn</div>
+    <div class="model-sublabel">factionTint: #44dd77</div>
+  </div>
+
+  <!-- Mystic -->
+  <div class="model-card">
+    <div class="model-fig" style="background: linear-gradient(180deg, #0a0314 0%, #140628 100%)">
+      <div style="position:absolute;top:10px;left:50%;transform:translateX(-50%);width:22px;height:22px;border-radius:50%;background:#120a1a;border:2px solid var(--f4)"></div>
+      <div style="position:absolute;top:16px;left:50%;transform:translateX(-50%);width:14px;height:6px;border-radius:2px;background:var(--f4a);opacity:0.8;box-shadow:0 0 6px var(--f4)"></div>
+      <div style="position:absolute;top:32px;left:50%;transform:translateX(-50%);width:30px;height:38px;border-radius:4px;background:#120a1a;border:1.5px solid #333"></div>
+      <div style="position:absolute;top:33px;left:calc(50% - 22px);width:10px;height:14px;border-radius:3px;background:var(--f4d);border:1px solid var(--f4)"></div>
+      <div style="position:absolute;top:33px;left:calc(50% + 12px);width:10px;height:14px;border-radius:3px;background:var(--f4d);border:1px solid var(--f4)"></div>
+      <div style="position:absolute;top:42px;left:50%;transform:translateX(-50%);width:22px;height:3px;border-radius:1px;background:var(--f4);box-shadow:0 0 6px var(--f4)"></div>
+      <div style="position:absolute;bottom:5px;left:calc(50% - 14px);width:11px;height:28px;border-radius:3px;background:#0e0814;border:1px solid #333"></div>
+      <div style="position:absolute;bottom:5px;left:calc(50% + 3px);width:11px;height:28px;border-radius:3px;background:#0e0814;border:1px solid #333"></div>
+      <div style="position:absolute;bottom:18px;left:calc(50% - 13px);width:9px;height:5px;border-radius:2px;background:var(--f4d)"></div>
+      <div style="position:absolute;bottom:18px;left:calc(50% + 4px);width:9px;height:5px;border-radius:2px;background:var(--f4d)"></div>
+    </div>
+    <div class="model-label" style="color:var(--f4)">Mystic</div>
+    <div class="model-sublabel">factionTint: #cc44ff</div>
+  </div>
+
+  <div style="display:flex;align-items:center;padding-bottom:35px;color:#555;font-size:1.2rem">+</div>
+
+  <!-- Neutral -->
+  <div class="model-card">
+    <div class="model-fig" style="background: linear-gradient(180deg, #0a0a0a 0%, #141414 100%)">
+      <div style="position:absolute;top:10px;left:50%;transform:translateX(-50%);width:22px;height:22px;border-radius:50%;background:#1a1a1a;border:2px solid #555"></div>
+      <div style="position:absolute;top:16px;left:50%;transform:translateX(-50%);width:14px;height:6px;border-radius:2px;background:#888;opacity:0.8"></div>
+      <div style="position:absolute;top:32px;left:50%;transform:translateX(-50%);width:30px;height:38px;border-radius:4px;background:#1a1a1a;border:1.5px solid #333"></div>
+      <div style="position:absolute;top:33px;left:calc(50% - 22px);width:10px;height:14px;border-radius:3px;background:#333;border:1px solid #555"></div>
+      <div style="position:absolute;top:33px;left:calc(50% + 12px);width:10px;height:14px;border-radius:3px;background:#333;border:1px solid #555"></div>
+      <div style="position:absolute;top:42px;left:50%;transform:translateX(-50%);width:22px;height:3px;border-radius:1px;background:#555"></div>
+      <div style="position:absolute;bottom:5px;left:calc(50% - 14px);width:11px;height:28px;border-radius:3px;background:#141414;border:1px solid #333"></div>
+      <div style="position:absolute;bottom:5px;left:calc(50% + 3px);width:11px;height:28px;border-radius:3px;background:#141414;border:1px solid #333"></div>
+    </div>
+    <div class="model-label" style="color:#888">Neutral / Rogue</div>
+    <div class="model-sublabel">factionTint: none</div>
+  </div>
+</div>
+
+<!-- DAMAGE STATES -->
+<div class="section-head">Damage State Variants — shader overlay at runtime, no extra model files</div>
+<div class="model-strip">
+  <!-- Pristine -->
+  <div class="model-card">
+    <div class="model-fig" style="background:#050a14">
+      <div style="position:absolute;top:10px;left:50%;transform:translateX(-50%);width:22px;height:22px;border-radius:50%;background:#1a1a2a;border:2px solid #3399ff"></div>
+      <div style="position:absolute;top:16px;left:50%;transform:translateX(-50%);width:14px;height:6px;border-radius:2px;background:#88ccff;box-shadow:0 0 6px #3399ff"></div>
+      <div style="position:absolute;top:32px;left:50%;transform:translateX(-50%);width:30px;height:38px;border-radius:4px;background:#1a1a2a;border:1.5px solid #3399ff44"></div>
+      <div style="position:absolute;top:42px;left:50%;transform:translateX(-50%);width:22px;height:3px;background:#3399ff;box-shadow:0 0 4px #3399ff"></div>
+      <div style="position:absolute;bottom:5px;left:calc(50% - 14px);width:11px;height:28px;border-radius:3px;background:#141420;border:1px solid #333"></div>
+      <div style="position:absolute;bottom:5px;left:calc(50% + 3px);width:11px;height:28px;border-radius:3px;background:#141420;border:1px solid #333"></div>
+    </div>
+    <div class="model-label" style="color:#4caf50">0 — Pristine</div>
+    <div class="model-sublabel">clean base albedo</div>
+  </div>
+
+  <!-- Worn -->
+  <div class="model-card">
+    <div class="model-fig" style="background:#050a14">
+      <div style="position:absolute;top:10px;left:50%;transform:translateX(-50%);width:22px;height:22px;border-radius:50%;background:#1a1a2a;border:2px solid #2277aa;filter:saturate(0.7)"></div>
+      <div style="position:absolute;top:16px;left:50%;transform:translateX(-50%);width:14px;height:6px;border-radius:2px;background:#6699bb"></div>
+      <div style="position:absolute;top:32px;left:50%;transform:translateX(-50%);width:30px;height:38px;border-radius:4px;background:#161620;border:1.5px solid #333;filter:saturate(0.7)"></div>
+      <div style="position:absolute;top:38px;left:calc(50% - 8px);width:16px;height:1px;background:#555;transform:rotate(15deg)"></div>
+      <div style="position:absolute;top:48px;left:calc(50% - 6px);width:10px;height:1px;background:#444;transform:rotate(-8deg)"></div>
+      <div style="position:absolute;top:42px;left:50%;transform:translateX(-50%);width:22px;height:3px;background:#226688"></div>
+      <div style="position:absolute;bottom:5px;left:calc(50% - 14px);width:11px;height:28px;border-radius:3px;background:#12121e;border:1px solid #2a2a2a;filter:saturate(0.6)"></div>
+      <div style="position:absolute;bottom:5px;left:calc(50% + 3px);width:11px;height:28px;border-radius:3px;background:#12121e;border:1px solid #2a2a2a;filter:saturate(0.6)"></div>
+    </div>
+    <div class="model-label" style="color:#ffe082">1 — Worn</div>
+    <div class="model-sublabel">desaturation + scratches</div>
+  </div>
+
+  <!-- Damaged -->
+  <div class="model-card">
+    <div class="model-fig" style="background:#080503">
+      <div style="position:absolute;top:10px;left:50%;transform:translateX(-50%);width:22px;height:22px;border-radius:50%;background:#1a1208;border:2px solid #553311;filter:saturate(0.4)"></div>
+      <div style="position:absolute;top:16px;left:50%;transform:translateX(-50%);width:14px;height:6px;border-radius:2px;background:#553322;opacity:0.6"></div>
+      <div style="position:absolute;top:32px;left:50%;transform:translateX(-50%);width:30px;height:38px;border-radius:4px;background:#161208;border:1.5px solid #443322;filter:saturate(0.3)"></div>
+      <!-- burn mark -->
+      <div style="position:absolute;top:36px;left:calc(50% - 4px);width:10px;height:10px;border-radius:50%;background:radial-gradient(circle,#553311aa,transparent 70%)"></div>
+      <div style="position:absolute;top:38px;left:calc(50% - 8px);width:18px;height:1px;background:#6633000088;transform:rotate(20deg)"></div>
+      <div style="position:absolute;top:45px;left:calc(50% - 6px);width:12px;height:1px;background:#77440000aa;transform:rotate(-12deg)"></div>
+      <div style="position:absolute;top:42px;left:50%;transform:translateX(-50%);width:22px;height:3px;background:#442211;box-shadow:0 0 3px #ff440033"></div>
+      <div style="position:absolute;bottom:5px;left:calc(50% - 14px);width:11px;height:28px;border-radius:3px;background:#100e08;border:1px solid #332211"></div>
+      <div style="position:absolute;bottom:5px;left:calc(50% + 3px);width:11px;height:28px;border-radius:3px;background:#100e08;border:1px solid #332211"></div>
+    </div>
+    <div class="model-label" style="color:#ff9800">2 — Damaged</div>
+    <div class="model-sublabel">burns + heavy desaturation</div>
+  </div>
+
+  <!-- Critical -->
+  <div class="model-card">
+    <div class="model-fig" style="background:#080302">
+      <div style="position:absolute;top:10px;left:50%;transform:translateX(-50%);width:22px;height:22px;border-radius:50%;background:#1a0a06;border:2px solid #881100"></div>
+      <!-- cracked emissive on head -->
+      <div style="position:absolute;top:13px;left:calc(50% - 4px);width:8px;height:8px;background:radial-gradient(circle,#ff440066,transparent 70%)"></div>
+      <div style="position:absolute;top:32px;left:50%;transform:translateX(-50%);width:30px;height:38px;border-radius:4px;background:#140808;border:1.5px solid #550000"></div>
+      <!-- crack glows -->
+      <div style="position:absolute;top:34px;left:calc(50% - 2px);width:1.5px;height:16px;background:linear-gradient(#ff4400aa,transparent);transform:rotate(10deg)"></div>
+      <div style="position:absolute;top:38px;left:calc(50% + 5px);width:1.5px;height:12px;background:linear-gradient(#ff6600aa,transparent);transform:rotate(-15deg)"></div>
+      <div style="position:absolute;top:36px;left:calc(50% - 8px);width:1.5px;height:10px;background:linear-gradient(#ff3300aa,transparent);transform:rotate(25deg)"></div>
+      <div style="position:absolute;top:42px;left:50%;transform:translateX(-50%);width:22px;height:3px;background:#881100;box-shadow:0 0 6px #ff4400"></div>
+      <div style="position:absolute;bottom:5px;left:calc(50% - 14px);width:11px;height:28px;border-radius:3px;background:#0e0606;border:1px solid #440000"></div>
+      <div style="position:absolute;bottom:5px;left:calc(50% + 3px);width:11px;height:28px;border-radius:3px;background:#0e0606;border:1px solid #440000"></div>
+      <!-- sparking effect -->
+      <div style="position:absolute;top:50px;right:10px;width:4px;height:4px;border-radius:50%;background:#ffaa00;box-shadow:0 0 4px #ff6600;animation:spark 0.4s infinite alternate"></div>
+    </div>
+    <div class="model-label" style="color:#f44336">3 — Critical</div>
+    <div class="model-sublabel">crack emissive + sparking</div>
+  </div>
+</div>
+
+<!-- EMISSIVE SCALE -->
+<div class="section-head">Emissive Scale — uniform float, driven by power state / time-of-day</div>
+<div class="emissive-strip">
+  <div class="em-block">
+    <div class="em-swatch" style="height:36px;background:#111;color:#444">off</div>
+    <div class="em-label">0.0 — off</div>
+  </div>
+  <div class="em-block">
+    <div class="em-swatch" style="height:44px;background:#112233;box-shadow:inset 0 0 8px #00336633">dim</div>
+    <div class="em-label">0.3 — dim</div>
+  </div>
+  <div class="em-block">
+    <div class="em-swatch" style="height:52px;background:#1a3a55;box-shadow:0 0 8px #0066aa55">—</div>
+    <div class="em-label">0.7 — normal</div>
+  </div>
+  <div class="em-block">
+    <div class="em-swatch" style="height:62px;background:#2255aa;box-shadow:0 0 14px #3388ff88">—</div>
+    <div class="em-label">1.0 — full</div>
+  </div>
+  <div class="em-block">
+    <div class="em-swatch" style="height:72px;background:#4488ff;box-shadow:0 0 20px #88bbff;color:#fff">!</div>
+    <div class="em-label">2.0 — alert</div>
+  </div>
+</div>
+
+<!-- ARCHITECTURE -->
+<div class="arch-grid">
+  <div class="arch-card">
+    <h4 style="color:#7c6af7">GalacticShaderProvider</h4>
+    Extends libGDX <code>DefaultShaderProvider</code>. For each renderable, reads <span class="tag">MaterialVariantComponent</span> from the entity and selects/caches a shader keyed by its feature flags (<code>HAS_FACTION_TINT | HAS_DAMAGE | HAS_EMISSIVE</code>). Shader programs are compiled once and pooled — a character without emissive never pays for that shader path.
+  </div>
+  <div class="arch-card">
+    <h4 style="color:#ff9800">MaterialVariantComponent</h4>
+    Ashley component holding: <span class="tag">Vector3 factionColor</span> <span class="tag">int damageState 0-3</span> <span class="tag">float emissiveScale</span>. Written each frame by <code>FactionSystem</code>, <code>HealthSystem</code>, and <code>PowerSystem</code> respectively via event bus. The shader reads these as uniforms — no model reload needed to change faction or take damage.
+  </div>
+</div>
+
+<div class="note">
+  For the <strong>stylized</strong> art style, damage overlays are color-shift + emissive cracks — not PBR normal maps or displacement. This means the same texture set works for all damage states; the shader does all the work via a <code>u_damageState</code> uniform that controls desaturation amount, crack mask sampling, and crack emissive color. Much cheaper than separate texture variants per tier.
+</div>
+
+<style>
+  @keyframes spark { from { opacity:1;transform:scale(1); } to { opacity:0.3;transform:scale(0.5); } }
+</style>
+
+<p class="subtitle" style="margin-top:1rem">Does the faction tint / damage state / emissive approach fit your vision? Let me know in the terminal.</p>

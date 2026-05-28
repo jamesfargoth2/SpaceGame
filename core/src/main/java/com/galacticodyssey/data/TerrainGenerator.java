@@ -53,7 +53,52 @@ public final class TerrainGenerator {
             }
         }
 
+        flattenSpawnArea(heights, vertsX, vertsZ, worldWidth, worldDepth);
+
         return heights;
+    }
+
+    /**
+     * Flattens a circular area around the world origin so the player spawns on
+     * level ground. Inside {@code flatRadius} the height is constant; between
+     * {@code flatRadius} and {@code blendRadius} it smoothly interpolates back
+     * to the natural terrain via a cubic ease curve.
+     */
+    static void flattenSpawnArea(float[] heights, int vertsX, int vertsZ,
+                                  float worldWidth, float worldDepth) {
+        float flatRadius = 40f;
+        float blendRadius = 80f;
+
+        float cellW = worldWidth / (vertsX - 1);
+        float cellD = worldDepth / (vertsZ - 1);
+        float halfW = worldWidth / 2f;
+        float halfD = worldDepth / 2f;
+
+        int centerX = vertsX / 2;
+        int centerZ = vertsZ / 2;
+        float flatHeight = heights[centerZ * vertsX + centerX];
+
+        int margin = (int) Math.ceil(blendRadius / Math.min(cellW, cellD));
+        int x0 = Math.max(0, centerX - margin);
+        int x1 = Math.min(vertsX - 1, centerX + margin);
+        int z0 = Math.max(0, centerZ - margin);
+        int z1 = Math.min(vertsZ - 1, centerZ + margin);
+
+        for (int z = z0; z <= z1; z++) {
+            for (int x = x0; x <= x1; x++) {
+                float wx = x * cellW - halfW;
+                float wz = z * cellD - halfD;
+                float dist = (float) Math.sqrt(wx * wx + wz * wz);
+
+                if (dist < flatRadius) {
+                    heights[z * vertsX + x] = flatHeight;
+                } else if (dist < blendRadius) {
+                    float t = (dist - flatRadius) / (blendRadius - flatRadius);
+                    t = t * t * (3f - 2f * t);
+                    heights[z * vertsX + x] = flatHeight + (heights[z * vertsX + x] - flatHeight) * t;
+                }
+            }
+        }
     }
 
     public static float getHeightAt(float[] heights, int vertsX, int vertsZ,

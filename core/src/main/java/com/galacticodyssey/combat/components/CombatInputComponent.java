@@ -17,4 +17,6 @@ public class CombatInputComponent implements Component {
     public boolean reloadRequested;
     public int switchSlotRequested = -1;
     public boolean quickMeleeRequested;
+    public boolean grenadeThrowRequested;
+    public boolean grenadeThrowHeld;
 }

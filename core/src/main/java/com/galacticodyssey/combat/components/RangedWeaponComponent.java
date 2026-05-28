@@ -32,6 +32,7 @@ public class RangedWeaponComponent implements Component, Snapshotable<RangedWeap
     public int burstShotsRemaining;
     public float burstDelay = 0.05f;
     public float burstTimer;
+    public String grenadeTypeId;
 
     @Override
     public RangedWeaponSnapshot takeSnapshot() {

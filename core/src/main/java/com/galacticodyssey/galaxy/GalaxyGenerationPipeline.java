@@ -101,7 +101,10 @@ public final class GalaxyGenerationPipeline {
         float groundH = TerrainGenerator.getHeightAt(
             hmap, TERRAIN_VERTS, TERRAIN_VERTS, TERRAIN_SIZE, TERRAIN_SIZE, 0f, 0f);
         session.playerSpawnPos = new Vector3(0f, groundH + 2f, 0f);
-        session.shipSpawnPos = new Vector3(75f, groundH + 0.5f, 0f);
+        float shipX = 15f;
+        float shipGroundH = TerrainGenerator.getHeightAt(
+            hmap, TERRAIN_VERTS, TERRAIN_VERTS, TERRAIN_SIZE, TERRAIN_SIZE, shipX, 0f);
+        session.shipSpawnPos = new Vector3(shipX, shipGroundH + 0.5f, 0f);
         session.log.add("Origin point confirmed. Welcome to " + session.galaxyName + ".");
     }
 

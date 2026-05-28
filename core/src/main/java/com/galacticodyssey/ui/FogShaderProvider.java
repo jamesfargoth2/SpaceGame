@@ -61,6 +61,16 @@ public class FogShaderProvider extends DefaultShaderProvider {
         fogColor.set(fogCol);
     }
 
+    public void setLightDir(Vector3 dir) {
+        lightDir.set(dir);
+    }
+
+    public void setAmbientColor(float r, float g, float b) {
+        ambientColor[0] = r;
+        ambientColor[1] = g;
+        ambientColor[2] = b;
+    }
+
     @Override
     public Shader createShader(Renderable renderable) {
         return new FogShader(renderable, config, this);

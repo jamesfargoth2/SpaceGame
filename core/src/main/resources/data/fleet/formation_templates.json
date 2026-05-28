@@ -1,0 +1,8 @@
+[
+  { "id": "line", "description": "Ships abreast in a line — broadside engagement" },
+  { "id": "wedge", "description": "V-shape, flagship at point — aggressive advance" },
+  { "id": "box", "description": "Rectangular formation — balanced defense" },
+  { "id": "sphere", "description": "3D sphere around flagship — all-around protection" },
+  { "id": "wall", "description": "Flat plane facing enemy — maximum forward firepower" },
+  { "id": "scattered", "description": "Random spread — anti-area-of-effect" }
+]

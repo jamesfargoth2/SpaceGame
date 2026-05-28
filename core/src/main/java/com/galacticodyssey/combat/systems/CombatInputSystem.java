@@ -8,7 +8,7 @@ import com.badlogic.gdx.math.MathUtils;
 import com.galacticodyssey.combat.CombatEnums.AttackDirection;
 import com.galacticodyssey.combat.components.CombatInputComponent;
 import com.galacticodyssey.player.components.FPSCameraComponent;
-import com.galacticodyssey.player.components.PlayerTagComponent;
+import com.galacticodyssey.core.components.PlayerTagComponent;
 
 /**
  * Translates raw input flags and camera angles into {@link CombatInputComponent} data
@@ -39,6 +39,8 @@ public class CombatInputSystem extends IteratingSystem {
     private boolean pendingBlockHeld;
     private boolean pendingQuickMelee;
     private int pendingSwitchSlot = -1;
+    private boolean pendingGrenadeThrow;
+    private boolean pendingGrenadeThrowHeld;
 
     /** Mouse-delta accumulated since the last frame, used to resolve melee direction. */
     private float mouseDeltaX;
@@ -88,6 +90,16 @@ public class CombatInputSystem extends IteratingSystem {
     /** One-shot quick-melee (e.g. dedicated key / bumper). */
     public void setQuickMeleeInput() {
         pendingQuickMelee = true;
+    }
+
+    /** One-shot grenade throw request (default keybind: G). */
+    public void setGrenadeThrowInput(boolean throwGrenade) {
+        if (throwGrenade) pendingGrenadeThrow = true;
+    }
+
+    /** Held: component's {@code grenadeThrowHeld} mirrors this value every frame. */
+    public void setGrenadeThrowHeldInput(boolean held) {
+        pendingGrenadeThrowHeld = held;
     }
 
     /**
@@ -142,6 +154,8 @@ public class CombatInputSystem extends IteratingSystem {
         input.blockHeld      = pendingBlockHeld;
         input.quickMeleeRequested = pendingQuickMelee;
         input.switchSlotRequested = pendingSwitchSlot;
+        input.grenadeThrowRequested = pendingGrenadeThrow;
+        input.grenadeThrowHeld      = pendingGrenadeThrowHeld;
 
         // 3. Resolve melee direction from mouse delta (only meaningful when attacking).
         if (pendingMeleeAttack) {
@@ -149,12 +163,13 @@ public class CombatInputSystem extends IteratingSystem {
         }
 
         // 4. Clear one-shot inputs so they fire for exactly one tick.
-        pendingFire       = false;
-        pendingReload     = false;
-        pendingQuickMelee = false;
-        pendingSwitchSlot = -1;
-        mouseDeltaX       = 0f;
-        mouseDeltaY       = 0f;
+        pendingFire          = false;
+        pendingReload        = false;
+        pendingQuickMelee    = false;
+        pendingSwitchSlot    = -1;
+        pendingGrenadeThrow  = false;
+        mouseDeltaX          = 0f;
+        mouseDeltaY          = 0f;
     }
 
     // -------------------------------------------------------------------------

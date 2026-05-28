@@ -1,0 +1,10 @@
+{
+  "standard_door":     { "difficulty": 1, "effect": "UNLOCK",          "lockoutDuration": 30, "requiresPhysicalAccess": true,  "interactionRange": 2.5 },
+  "camera_mk1":        { "difficulty": 2, "effect": "DISABLE_CAMERA",  "lockoutDuration": 30, "requiresPhysicalAccess": false, "interactionRange": 2.5 },
+  "turret_mk1":        { "difficulty": 2, "effect": "DISABLE_TURRET",  "lockoutDuration": 45, "requiresPhysicalAccess": false, "interactionRange": 2.5 },
+  "security_terminal": { "difficulty": 3, "effect": "ACCESS_DATA",     "lockoutDuration": 45, "requiresPhysicalAccess": true,  "interactionRange": 2.5 },
+  "combat_drone":      { "difficulty": 3, "effect": "SUBVERT_DRONE",   "lockoutDuration": 45, "requiresPhysicalAccess": false, "interactionRange": 2.5 },
+  "ship_engines":      { "difficulty": 4, "effect": "DISABLE_ENGINES", "lockoutDuration": 60, "requiresPhysicalAccess": false, "interactionRange": 2.5 },
+  "ship_weapons":      { "difficulty": 4, "effect": "DISABLE_WEAPONS", "lockoutDuration": 60, "requiresPhysicalAccess": false, "interactionRange": 2.5 },
+  "ship_shields":      { "difficulty": 5, "effect": "DISABLE_SHIELDS", "lockoutDuration": 60, "requiresPhysicalAccess": false, "interactionRange": 2.5 }
+}

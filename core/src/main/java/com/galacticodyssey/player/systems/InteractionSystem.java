@@ -110,7 +110,7 @@ public class InteractionSystem extends EntitySystem {
         if (nearestDist < entry.triggerRadius) {
             state.interactionTarget = nearestShip;
             eventBus.publish(new InteractionPromptEvent(
-                String.format("[E] Enter Ship (%.1fm)", nearestDist), true));
+                String.format("[F] Enter Ship (%.1fm)", nearestDist), true));
             if (input.interactPressed) {
                 state.currentMode = PlayerMode.PILOTING;
                 state.currentShip = nearestShip;
@@ -144,7 +144,7 @@ public class InteractionSystem extends EntitySystem {
         float dist = tempVec.set(playerTransform.position).dst(worldPos);
 
         if (dist < seat.triggerRadius) {
-            eventBus.publish(new InteractionPromptEvent("[E] Pilot Ship", true));
+            eventBus.publish(new InteractionPromptEvent("[F] Pilot Ship", true));
             if (input.interactPressed) {
                 seat.occupied = true;
                 seat.occupant = player;
@@ -165,7 +165,7 @@ public class InteractionSystem extends EntitySystem {
         float dist = tempVec.set(playerTransform.position).dst(worldPos);
 
         if (dist < entry.triggerRadius) {
-            eventBus.publish(new InteractionPromptEvent("[E] Exit Ship", true));
+            eventBus.publish(new InteractionPromptEvent("[F] Exit Ship", true));
             if (input.interactPressed) {
                 ShipInteriorComponent interior = interiorMapper.get(state.currentShip);
                 interior.active = false;

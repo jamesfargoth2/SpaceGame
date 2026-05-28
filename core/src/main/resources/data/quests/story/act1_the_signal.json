@@ -1,0 +1,53 @@
+{
+  "id": "main_act1_the_signal",
+  "title": "Act I: The Signal",
+  "category": "MAIN_STORY",
+  "triggers": [
+    {
+      "type": "REPUTATION_THRESHOLD",
+      "faction": "explorers_guild",
+      "minStanding": 25.0
+    }
+  ],
+  "nodes": [
+    {
+      "id": "find_the_anomaly",
+      "type": "OBJECTIVE",
+      "objectives": [
+        {
+          "id": "scan_anomaly_k7",
+          "type": "SCAN_OBJECT",
+          "targetId": "anomaly_k7_signal",
+          "requiredCount": 1,
+          "optional": false
+        }
+      ]
+    },
+    {
+      "id": "report_to_varek",
+      "type": "DIALOGUE_CHOICE",
+      "npcId": "npc_commander_varek"
+    },
+    {
+      "id": "trust_the_guild",
+      "type": "CONSEQUENCE",
+      "consequences": [
+        {
+          "type": "REPUTATION_CHANGE",
+          "faction": "explorers_guild",
+          "delta": 15.0
+        }
+      ]
+    },
+    {
+      "id": "end_act1",
+      "type": "TERMINUS",
+      "outcome": "COMPLETE"
+    }
+  ],
+  "edges": [
+    { "from": "find_the_anomaly", "to": "report_to_varek" },
+    { "from": "report_to_varek", "to": "trust_the_guild", "requiresChoice": "sided_with_guild" },
+    { "from": "trust_the_guild", "to": "end_act1" }
+  ]
+}

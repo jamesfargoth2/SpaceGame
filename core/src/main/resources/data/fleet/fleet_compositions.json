@@ -1,0 +1,62 @@
+[
+  {
+    "id": "militarist_battle_fleet",
+    "factionEthos": "MILITARIST",
+    "doctrineDefault": "AGGRESSIVE",
+    "slots": [
+      { "shipClass": "DREADNOUGHT", "count": [0, 1] },
+      { "shipClass": "BATTLESHIP", "count": [1, 3] },
+      { "shipClass": "CRUISER", "count": [3, 6] },
+      { "shipClass": "DESTROYER", "count": [2, 5] },
+      { "shipClass": "FRIGATE", "count": [4, 8] },
+      { "shipClass": "FIGHTER", "count": [12, 24] }
+    ]
+  },
+  {
+    "id": "corporate_fleet",
+    "factionEthos": "CORPORATE",
+    "doctrineDefault": "BALANCED",
+    "slots": [
+      { "shipClass": "BATTLESHIP", "count": [0, 2] },
+      { "shipClass": "CRUISER", "count": [3, 5] },
+      { "shipClass": "DESTROYER", "count": [3, 6] },
+      { "shipClass": "FRIGATE", "count": [5, 10] },
+      { "shipClass": "CORVETTE", "count": [4, 8] },
+      { "shipClass": "FIGHTER", "count": [8, 16] }
+    ]
+  },
+  {
+    "id": "federation_fleet",
+    "factionEthos": "FEDERATION",
+    "doctrineDefault": "DEFENSIVE",
+    "slots": [
+      { "shipClass": "CARRIER", "count": [0, 1] },
+      { "shipClass": "CRUISER", "count": [4, 8] },
+      { "shipClass": "FRIGATE", "count": [6, 10] },
+      { "shipClass": "CORVETTE", "count": [3, 6] },
+      { "shipClass": "FIGHTER", "count": [10, 20] }
+    ]
+  },
+  {
+    "id": "pirate_raider_pack",
+    "factionEthos": "PIRATE_SYNDICATE",
+    "doctrineDefault": "EVASIVE",
+    "slots": [
+      { "shipClass": "DESTROYER", "count": [2, 4] },
+      { "shipClass": "CORVETTE", "count": [6, 12] },
+      { "shipClass": "FIGHTER", "count": [8, 16] },
+      { "shipClass": "BOMBER", "count": [2, 4] }
+    ]
+  },
+  {
+    "id": "isolationist_picket",
+    "factionEthos": "ISOLATIONIST",
+    "doctrineDefault": "DEFENSIVE",
+    "slots": [
+      { "shipClass": "CRUISER", "count": [1, 3] },
+      { "shipClass": "FRIGATE", "count": [4, 8] },
+      { "shipClass": "CORVETTE", "count": [3, 6] },
+      { "shipClass": "FIGHTER", "count": [10, 20] }
+    ]
+  }
+]

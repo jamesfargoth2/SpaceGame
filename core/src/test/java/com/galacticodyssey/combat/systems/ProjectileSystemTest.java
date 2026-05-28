@@ -6,10 +6,15 @@ import com.badlogic.ashley.core.Family;
 import com.badlogic.gdx.math.Vector3;
 import com.galacticodyssey.combat.CombatEnums.DamageType;
 import com.galacticodyssey.combat.CombatEnums.FiringMode;
+import com.galacticodyssey.combat.CombatEnums.FuseType;
+import com.galacticodyssey.combat.components.GrenadeComponent;
+import com.galacticodyssey.combat.data.GrenadeData;
+import com.galacticodyssey.combat.data.GrenadeDataRegistry;
 import com.galacticodyssey.combat.components.HealthComponent;
 import com.galacticodyssey.combat.components.HitboxComponent;
 import com.galacticodyssey.combat.components.ProjectileComponent;
 import com.galacticodyssey.combat.components.RangedWeaponComponent;
+import com.galacticodyssey.combat.events.GrenadeBounceEvent;
 import com.galacticodyssey.combat.events.ProjectileHitEvent;
 import com.galacticodyssey.combat.events.WeaponFiredEvent;
 import com.galacticodyssey.core.EventBus;
@@ -40,6 +45,7 @@ class ProjectileSystemTest {
     private Entity shooter;
 
     private final List<ProjectileHitEvent> hitEvents = new ArrayList<>();
+    private final List<GrenadeBounceEvent> bounceEvents = new ArrayList<>();
 
     @BeforeEach
     void setUp() {
@@ -69,6 +75,7 @@ class ProjectileSystemTest {
         engine.addEntity(shooter);
 
         eventBus.subscribe(ProjectileHitEvent.class, hitEvents::add);
+        eventBus.subscribe(GrenadeBounceEvent.class, bounceEvents::add);
     }
 
     // -------------------------------------------------------------------------
@@ -184,5 +191,151 @@ class ProjectileSystemTest {
         assertEquals(35f, event.damage, 0.001f, "Event.damage must match weapon.damage");
         assertEquals(DamageType.PLASMA, event.damageType, "Event.damageType must match weapon.damageType");
         assertEquals("plasma_cell", event.ammoTypeId, "Event.ammoTypeId must match weapon.ammoTypeId");
+    }
+
+    @Test
+    void timedGrenadeBouncesOnEntityCollisionInsteadOfHitting() {
+        Entity thrower = new Entity();
+
+        Entity grenade = new Entity();
+        TransformComponent grenadeTransform = new TransformComponent();
+        grenadeTransform.position.set(0, 1f, 0);
+        grenade.add(grenadeTransform);
+
+        ProjectileComponent proj = new ProjectileComponent();
+        proj.velocity.set(10f, 0f, 0f);
+        proj.speed = 10f;
+        proj.damage = 50f;
+        proj.damageType = DamageType.EXPLOSIVE;
+        proj.areaOfEffect = 8f;
+        proj.owner = thrower;
+        proj.lifetime = 10f;
+        grenade.add(proj);
+
+        GrenadeComponent gc = new GrenadeComponent();
+        gc.fuseType = FuseType.TIMED;
+        gc.fuseTimer = 3.0f;
+        gc.bounceRestitution = 0.3f;
+        gc.maxBounces = 5;
+        grenade.add(gc);
+
+        engine.addEntity(grenade);
+
+        // Create target entity within collision radius
+        Entity target = new Entity();
+        TransformComponent targetTransform = new TransformComponent();
+        targetTransform.position.set(0.5f, 1f, 0f);
+        target.add(targetTransform);
+        target.add(new HitboxComponent());
+        HealthComponent hp = new HealthComponent();
+        hp.currentHP = 100f;
+        hp.maxHP = 100f;
+        hp.alive = true;
+        target.add(hp);
+        engine.addEntity(target);
+
+        engine.update(0.016f);
+
+        assertTrue(hitEvents.isEmpty(), "Timed grenade should NOT publish ProjectileHitEvent");
+        assertEquals(1, bounceEvents.size(), "Should publish GrenadeBounceEvent");
+        // Grenade should still exist (not removed)
+        assertTrue(engine.getEntities().size() > 1);
+        // Velocity should have been reflected and reduced
+        assertTrue(Math.abs(proj.velocity.x) < 10f, "Velocity should decrease after bounce");
+    }
+
+    @Test
+    void impactGrenadeSetsFuseTimerToZeroOnEntityCollision() {
+        Entity thrower = new Entity();
+
+        Entity grenade = new Entity();
+        TransformComponent grenadeTransform = new TransformComponent();
+        grenadeTransform.position.set(0, 1f, 0);
+        grenade.add(grenadeTransform);
+
+        ProjectileComponent proj = new ProjectileComponent();
+        proj.velocity.set(10f, 0f, 0f);
+        proj.speed = 10f;
+        proj.damage = 50f;
+        proj.damageType = DamageType.EXPLOSIVE;
+        proj.areaOfEffect = 8f;
+        proj.owner = thrower;
+        proj.lifetime = 10f;
+        grenade.add(proj);
+
+        GrenadeComponent gc = new GrenadeComponent();
+        gc.fuseType = FuseType.IMPACT;
+        gc.fuseTimer = 5.0f;
+        grenade.add(gc);
+
+        engine.addEntity(grenade);
+
+        Entity target = new Entity();
+        TransformComponent targetTransform = new TransformComponent();
+        targetTransform.position.set(0.5f, 1f, 0f);
+        target.add(targetTransform);
+        target.add(new HitboxComponent());
+        HealthComponent hp = new HealthComponent();
+        hp.currentHP = 100f;
+        hp.maxHP = 100f;
+        hp.alive = true;
+        target.add(hp);
+        engine.addEntity(target);
+
+        engine.update(0.016f);
+
+        assertTrue(hitEvents.isEmpty(), "Impact grenade should not publish ProjectileHitEvent");
+        assertEquals(0f, gc.fuseTimer, 0.001f);
+        // Grenade entity should still exist for GrenadeSystem to handle
+        assertTrue(engine.getEntities().size() > 1, "Grenade entity should still exist for GrenadeSystem");
+    }
+
+    @Test
+    void launcherProjectileGetsGrenadeComponent() {
+        GrenadeData frag = new GrenadeData();
+        frag.id = "frag";
+        frag.fuseType = FuseType.TIMED;
+        frag.fuseDuration = 3.0f;
+        frag.damage = 50f;
+        frag.blastRadius = 8f;
+        frag.blastFraction = 0.5f;
+        frag.thermalFraction = 0.1f;
+        frag.fragmentFraction = 0.4f;
+        frag.bounceRestitution = 0.3f;
+        frag.maxBounces = 5;
+        GrenadeDataRegistry grenadeRegistry = new GrenadeDataRegistry();
+        grenadeRegistry.register(frag);
+
+        // Get the ProjectileSystem from the engine and set the registry
+        ProjectileSystem projSystem = engine.getSystem(ProjectileSystem.class);
+        projSystem.setGrenadeDataRegistry(grenadeRegistry);
+
+        // Modify the shooter's weapon to be a grenade launcher
+        RangedWeaponComponent weapon = shooter.getComponent(RangedWeaponComponent.class);
+        weapon.grenadeTypeId = "frag";
+        weapon.hitscan = false;
+        weapon.damageType = DamageType.EXPLOSIVE;
+
+        // Fire weapon
+        eventBus.publish(new WeaponFiredEvent(shooter, new Vector3(0, 0, -1), false));
+        engine.update(0.016f);
+
+        // Find the spawned projectile (not the shooter)
+        Entity projectile = null;
+        for (Entity e : engine.getEntitiesFor(PROJECTILE_FAMILY)) {
+            if (e != shooter) {
+                projectile = e;
+                break;
+            }
+        }
+
+        assertNotNull(projectile, "Projectile should be spawned");
+        GrenadeComponent gc = GrenadeComponent.MAPPER.get(projectile);
+        assertNotNull(gc, "Launcher projectile should have GrenadeComponent");
+        assertEquals("frag", gc.grenadeTypeId);
+        assertEquals(FuseType.TIMED, gc.fuseType);
+        assertEquals(3.0f, gc.fuseDuration, 0.001f);
+        assertEquals(3.0f, gc.fuseTimer, 0.001f);
+        assertFalse(gc.cookable, "Launcher grenades should not be cookable");
     }
 }

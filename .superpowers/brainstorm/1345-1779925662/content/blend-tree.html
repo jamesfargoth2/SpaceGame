@@ -1,0 +1,171 @@
+<style>
+  .tree-wrap { display: flex; flex-direction: column; align-items: center; gap: 0; }
+
+  /* nodes */
+  .node {
+    border-radius: 8px;
+    padding: 0.5rem 0.9rem;
+    font-size: 0.8rem;
+    text-align: center;
+    position: relative;
+    white-space: nowrap;
+  }
+  .node-root    { background: #2d1f6e; border: 1.5px solid #7c6af7; color: #c4b8ff; }
+  .node-sm      { background: #1a2e1a; border: 1.5px solid #4caf50; color: #a5d6a7; }
+  .node-1d      { background: #1e2a3a; border: 1.5px solid #2196f3; color: #90caf9; }
+  .node-2d      { background: #2a1a2a; border: 1.5px solid #9c27b0; color: #ce93d8; }
+  .node-add     { background: #2a2010; border: 1.5px solid #ff9800; color: #ffcc80; }
+  .node-clip    { background: #1a1a1a; border: 1.5px solid #555; color: #aaa; font-size: 0.72rem; }
+  .node-param   { background: #0d1a0d; border: 1px dashed #4caf50; color: #81c784; font-size: 0.7rem; padding: 0.25rem 0.6rem; border-radius: 20px; }
+
+  .row { display: flex; gap: 1rem; align-items: flex-start; justify-content: center; }
+  .col { display: flex; flex-direction: column; align-items: center; gap: 0; }
+
+  /* connector lines */
+  .line-v { width: 1.5px; background: #444; }
+  .line-h-wrap { display: flex; align-items: flex-start; justify-content: center; position: relative; }
+  .line-h { height: 1.5px; background: #444; position: absolute; top: 0; }
+
+  .label-sm { font-size: 0.68rem; color: #666; margin-top: 2px; }
+  .param-row { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; margin-top: 0.3rem; }
+
+  .legend { display: flex; gap: 1.2rem; flex-wrap: wrap; justify-content: center; margin-top: 1.2rem; }
+  .legend-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+  .section-label {
+    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1.5px;
+    color: #666; margin-bottom: 0.3rem;
+  }
+
+  .anno { font-size: 0.72rem; color: #888; max-width: 220px; text-align: center; line-height: 1.4; margin-top: 0.3rem; }
+
+  svg.connector { overflow: visible; display: block; }
+</style>
+
+<h2>Blend Tree Animation System</h2>
+<p class="subtitle">How animation clips combine into full character movement. Each frame the tree samples and blends node transforms, then applies the result to the ModelInstance skeleton.</p>
+
+<div style="margin: 1.5rem auto; max-width: 860px;">
+
+  <!-- ROOT -->
+  <div style="display:flex;flex-direction:column;align-items:center;gap:0">
+    <div class="node node-root" style="font-size:0.9rem;padding:0.6rem 1.4rem"><strong>AnimationBlendTree</strong></div>
+    <div class="line-v" style="height:20px"></div>
+
+    <!-- ADDITIVE LAYER on top of BASE -->
+    <div class="node node-add">AdditiveNode<br><span class="label-sm">base + additive overlays</span></div>
+    <div style="display:flex;gap:3rem;align-items:flex-start;margin-top:0">
+
+      <!-- BASE BRANCH -->
+      <div style="display:flex;flex-direction:column;align-items:center">
+        <div class="line-v" style="height:18px"></div>
+        <div class="node node-sm">StateMachineNode<br><span class="label-sm">grounded / airborne / swimming</span></div>
+
+        <div style="display:flex;gap:1.5rem;align-items:flex-start;margin-top:0">
+          <!-- GROUNDED -->
+          <div style="display:flex;flex-direction:column;align-items:center">
+            <div class="line-v" style="height:18px"></div>
+            <div class="node node-2d">Blend2DNode<br><span class="label-sm">moveSpeed × strafeX</span></div>
+            <div class="line-v" style="height:12px"></div>
+            <div style="display:flex;gap:0.6rem">
+              <div style="display:flex;flex-direction:column;align-items:center">
+                <div class="node node-clip">idle</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:center">
+                <div class="node node-clip">walk_fwd</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:center">
+                <div class="node node-clip">walk_left</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:center">
+                <div class="node node-clip">run_fwd</div>
+              </div>
+            </div>
+            <div class="anno">2D blend maps (moveSpeed, strafeX) → weights for 4 directional locomotion clips</div>
+          </div>
+
+          <!-- AIRBORNE -->
+          <div style="display:flex;flex-direction:column;align-items:center">
+            <div class="line-v" style="height:18px"></div>
+            <div class="node node-1d">Blend1DNode<br><span class="label-sm">verticalVelocity</span></div>
+            <div class="line-v" style="height:12px"></div>
+            <div style="display:flex;gap:0.6rem">
+              <div class="node node-clip">jump_rise</div>
+              <div class="node node-clip">jump_fall</div>
+            </div>
+            <div class="anno">Blends between rising and falling pose based on vertical velocity</div>
+          </div>
+
+          <!-- SWIMMING -->
+          <div style="display:flex;flex-direction:column;align-items:center">
+            <div class="line-v" style="height:18px"></div>
+            <div class="node node-2d">Blend2DNode<br><span class="label-sm">swimSpeed × pitch</span></div>
+            <div class="line-v" style="height:12px"></div>
+            <div style="display:flex;gap:0.6rem">
+              <div class="node node-clip">swim_idle</div>
+              <div class="node node-clip">swim_fwd</div>
+              <div class="node node-clip">swim_dive</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ADDITIVE OVERLAYS BRANCH -->
+      <div style="display:flex;flex-direction:column;align-items:center;margin-top:18px">
+        <div style="display:flex;flex-direction:column;gap:0.5rem;align-items:flex-start">
+          <div class="node node-add" style="font-size:0.72rem">AimOffset<br><span class="label-sm">aimPitch → upper-body tilt</span></div>
+          <div class="node node-add" style="font-size:0.72rem">ProceduralBreathing<br><span class="label-sm">idle-speed wave on chest/spine</span></div>
+          <div class="node node-add" style="font-size:0.72rem">FootIK<br><span class="label-sm">raycast → ankle+knee solve per frame</span></div>
+          <div class="node node-add" style="font-size:0.72rem">HandIK<br><span class="label-sm">weapon/surface contact point solve</span></div>
+          <div class="node node-add" style="font-size:0.72rem">RecoilLayer<br><span class="label-sm">impulse → decaying spine additive</span></div>
+        </div>
+        <div class="anno" style="max-width:180px">Additive layers are applied on top of the base pose. Each is independently enabled/disabled via events.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- PARAMETERS -->
+  <div style="margin-top: 1.6rem; text-align:center">
+    <div class="section-label">Float Parameters (driven by ECS components each frame)</div>
+    <div class="param-row">
+      <span class="node-param">moveSpeed 0→1</span>
+      <span class="node-param">strafeX −1→1</span>
+      <span class="node-param">verticalVelocity</span>
+      <span class="node-param">aimPitch −1→1</span>
+      <span class="node-param">swimSpeed 0→1</span>
+      <span class="node-param">airborne bool</span>
+      <span class="node-param">crouching bool</span>
+      <span class="node-param">swimming bool</span>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <div style="margin-top: 1.4rem; display:flex; gap:1rem; flex-wrap:wrap; justify-content:center">
+    <div style="background:#111; border:1px solid #333; border-radius:8px; padding:0.9rem 1.1rem; max-width:260px; font-size:0.78rem; line-height:1.6; color:#bbb">
+      <strong style="color:#7c6af7">Each frame</strong><br>
+      1. ECS system writes float params from physics components<br>
+      2. BlendTree.evaluate() traverses nodes, computes weights<br>
+      3. Each ClipNode samples its animation at its local time<br>
+      4. Node transforms are blended (lerp position, slerp rotation)<br>
+      5. Additive deltas applied on top<br>
+      6. Final pose written to ModelInstance skeleton
+    </div>
+    <div style="background:#111; border:1px solid #333; border-radius:8px; padding:0.9rem 1.1rem; max-width:260px; font-size:0.78rem; line-height:1.6; color:#bbb">
+      <strong style="color:#ff9800">Key difference from libGDX AnimationController</strong><br>
+      libGDX's built-in controller only plays one clip at a time (with crossfade). The blend tree manually samples multiple clips in parallel and mixes their node transforms directly — gives us full locomotion blending and additive layers simultaneously.
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#2d1f6e;border:1.5px solid #7c6af7"></div> Root</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#1a2e1a;border:1.5px solid #4caf50"></div> State Machine</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#2a1a2a;border:1.5px solid #9c27b0"></div> 2D Blend</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#1e2a3a;border:1.5px solid #2196f3"></div> 1D Blend</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#2a2010;border:1.5px solid #ff9800"></div> Additive Layer</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#1a1a1a;border:1.5px solid #555"></div> Clip</div>
+</div>
+
+<p class="subtitle" style="margin-top:1.2rem">Does this blend tree structure cover your animation needs? Let me know in the terminal if anything's missing or should be structured differently.</p>

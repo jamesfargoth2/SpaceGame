@@ -8,6 +8,7 @@ import com.galacticodyssey.combat.events.*;
 import com.galacticodyssey.core.EventBus;
 import com.galacticodyssey.ship.weapons.events.ShipWeaponFiredEvent;
 import com.galacticodyssey.vfx.Particle;
+import com.galacticodyssey.vfx.ParticleAtlasManager;
 import com.galacticodyssey.vfx.VFXEnums;
 import com.galacticodyssey.vfx.components.ParticlePoolComponent;
 import com.galacticodyssey.vfx.data.ParticleEffectDefinition;
@@ -23,6 +24,7 @@ public class ParticleSpawnSystem extends EntitySystem {
     private final VFXRegistry registry;
     private final VFXEventBindings bindings;
     private final ParticlePoolComponent pool;
+    private ParticleAtlasManager atlasManager;
 
     private final List<SpawnRequest> pendingSpawns = new ArrayList<>();
 
@@ -47,6 +49,10 @@ public class ParticleSpawnSystem extends EntitySystem {
             queueSpawn("ShipWeaponFiredEvent", null, e.origin));
     }
 
+    public void setAtlasManager(ParticleAtlasManager atlasManager) {
+        this.atlasManager = atlasManager;
+    }
+
     private void queueSpawn(String eventType, String variant, Vector3 position) {
         pendingSpawns.add(new SpawnRequest(eventType, variant, new Vector3(position)));
     }
@@ -58,12 +64,13 @@ public class ParticleSpawnSystem extends EntitySystem {
             if (effectId == null) continue;
             ParticleEffectDefinition def = registry.getEffect(effectId);
             if (def == null) continue;
+            if ("MESH".equals(def.type)) continue; // mesh particles handled separately
             spawnBurst(def, req.position);
         }
         pendingSpawns.clear();
     }
 
-    private void spawnBurst(ParticleEffectDefinition def, Vector3 origin) {
+    void spawnBurst(ParticleEffectDefinition def, Vector3 origin) {
         int count = def.burstCount > 0 ? def.burstCount : 1;
         Color startColor = Color.valueOf(def.color);
         Color endColor = Color.valueOf(def.colorEnd);
@@ -90,6 +97,9 @@ public class ParticleSpawnSystem extends EntitySystem {
             p.flags = def.blendMode == VFXEnums.BlendMode.ADDITIVE
                 ? VFXEnums.FLAG_ADDITIVE_BLEND | VFXEnums.FLAG_FACE_CAMERA
                 : VFXEnums.FLAG_FACE_CAMERA;
+            if (atlasManager != null) {
+                p.textureRegion = atlasManager.getRegion(def.sprite);
+            }
         }
     }
 

@@ -1,3 +1,13 @@
+# Phase 1 — Seed Infrastructure + Galaxy Layout: SeedDeriver, GalaxyConfig, density fields, star placement, chunked streaming. Deliverable: a galaxy map you can zoom into with thousands of stars.
+
+# Phase 2 — Star Systems: Stellar classification, companion stars, habitable zones, orbital slots, planet type assignment, moons, asteroid belts, hazard zones. Deliverable: entering a star reveals its system with orbiting planets.
+
+# Phase 3 — Planets (Terrain + Atmosphere + Biomes): Cubemap heightmaps, continent noise, erosion, atmosphere derivation, climate fields, Whittaker biome classification, LOD meshes. Deliverable: approaching a planet shows terrain, sky colour, biomes.
+
+# Phase 4 — Space Objects: Asteroid shape generation, crater imprinting, space station module assembly, dungeon/interior generation for stations. Deliverable: asteroid fields to mine, stations to dock at and explore inside.
+
+# Phase 5 — Content Layer: Faction territory (Voronoi), political relations, trade lanes, patrol routes, procedural name generation for everything. Deliverable: the galaxy feels inhabited — factions own territory, things have names.
+
 # Phase 1: Seed Infrastructure + Galaxy Layout — Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

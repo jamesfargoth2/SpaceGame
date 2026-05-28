@@ -1,0 +1,138 @@
+<style>
+  .style-card {
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: border-color 0.2s, transform 0.15s;
+    background: #1a1a2e;
+  }
+  .style-card:hover { transform: translateY(-2px); }
+  .style-card.selected { border-color: #7c6af7; }
+  .style-card .viewport {
+    height: 180px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    font-family: monospace;
+  }
+  .style-card .meta { padding: 1rem; }
+  .style-card h3 { margin: 0 0 0.4rem; font-size: 1.05rem; }
+  .style-card p { margin: 0; font-size: 0.85rem; opacity: 0.75; }
+  .style-card .refs { font-size: 0.75rem; opacity: 0.5; margin-top: 0.5rem; font-style: italic; }
+
+  /* Style A - Gritty Hard Sci-Fi */
+  .vp-gritty {
+    background: linear-gradient(160deg, #0d0d0d 0%, #1a1209 60%, #0a0a14 100%);
+  }
+  .vp-gritty .ship-sil {
+    width: 120px; height: 60px;
+    background: linear-gradient(135deg, #2a2a2a, #111);
+    clip-path: polygon(10% 50%, 0% 80%, 30% 60%, 50% 100%, 70% 60%, 100% 80%, 90% 50%, 70% 20%, 50% 0%, 30% 20%);
+    filter: drop-shadow(0 0 4px #ff4400aa);
+  }
+  .vp-gritty .glow { position:absolute; bottom:20px; left:50%; transform:translateX(-50%); width:80px; height:4px; background:radial-gradient(ellipse, #ff440066 0%, transparent 70%); }
+  .vp-gritty .scan { position:absolute; top:0; left:0; right:0; bottom:0; background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(255,100,0,0.03) 3px, rgba(255,100,0,0.03) 4px); }
+  .vp-gritty .debris { position:absolute; top:30px; right:40px; width:8px; height:5px; background:#333; transform:rotate(30deg); }
+  .vp-gritty .debris2 { position:absolute; bottom:40px; left:30px; width:5px; height:3px; background:#222; transform:rotate(-20deg); }
+  .vp-gritty .label-tag { position:absolute; top:10px; left:12px; font-size:10px; color:#ff6600; opacity:0.7; letter-spacing:2px; }
+
+  /* Style B - Clean Military Sci-Fi */
+  .vp-clean {
+    background: linear-gradient(160deg, #050d1a 0%, #0a1628 50%, #061020 100%);
+  }
+  .vp-clean .ship-sil {
+    width: 130px; height: 50px;
+    background: linear-gradient(90deg, #1e3a5f, #2d6099, #1e3a5f);
+    clip-path: polygon(5% 50%, 20% 20%, 80% 20%, 95% 50%, 80% 80%, 20% 80%);
+    box-shadow: 0 0 12px #0088ff66;
+  }
+  .vp-clean .engine { position:absolute; right:calc(50% - 80px); top:50%; transform:translateY(-50%); width:6px; height:14px; background:linear-gradient(#88ccff, #0044ff); border-radius:3px; }
+  .vp-clean .grid { position:absolute; top:0; left:0; right:0; bottom:0; background-image: linear-gradient(rgba(0,136,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0,136,255,0.05) 1px, transparent 1px); background-size:30px 30px; }
+  .vp-clean .hud-line { position:absolute; bottom:14px; left:20px; right:20px; height:1px; background:linear-gradient(90deg, transparent, #0088ff44, transparent); }
+  .vp-clean .hud-dot { position:absolute; bottom:11px; left:50%; transform:translateX(-50%); width:6px; height:6px; border:1px solid #0088ff; border-radius:50%; }
+  .vp-clean .label-tag { position:absolute; top:10px; right:12px; font-size:10px; color:#00aaff; opacity:0.6; letter-spacing:2px; }
+
+  /* Style C - Stylized / Vibrant */
+  .vp-stylized {
+    background: linear-gradient(160deg, #0f0520 0%, #1a0a3d 40%, #0a1520 100%);
+  }
+  .vp-stylized .planet { position:absolute; right:20px; bottom:-20px; width:100px; height:100px; border-radius:50%; background: radial-gradient(circle at 35% 35%, #7744ff, #3311aa 60%, #110033); box-shadow: 0 0 20px #7744ff55; }
+  .vp-stylized .ring { position:absolute; right:-5px; bottom:28px; width:110px; height:30px; border-radius:50%; border: 3px solid #aa66ff66; transform: rotate(-15deg); }
+  .vp-stylized .ship-sil {
+    width: 100px; height: 45px;
+    background: linear-gradient(135deg, #cc44ff, #7722cc);
+    clip-path: polygon(0% 50%, 20% 10%, 80% 10%, 100% 50%, 80% 90%, 20% 90%);
+    box-shadow: 0 0 15px #cc44ff88;
+  }
+  .vp-stylized .star { position:absolute; background:#fff; border-radius:50%; }
+  .vp-stylized .nebula { position:absolute; top:10px; left:10px; width:60px; height:40px; background:radial-gradient(ellipse, #ff44aa22 0%, transparent 70%); }
+  .vp-stylized .label-tag { position:absolute; top:10px; left:12px; font-size:10px; color:#cc88ff; opacity:0.7; letter-spacing:2px; }
+
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; }
+
+  @media (max-width: 800px) {
+    .cards { grid-template-columns: 1fr; }
+  }
+</style>
+
+<h2>Art Style Direction</h2>
+<p class="subtitle">This shapes shader complexity, which asset packs work, and how characters and props look up close. Which aesthetic fits your vision?</p>
+
+<div class="cards">
+
+  <div class="style-card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="viewport vp-gritty">
+      <div class="scan"></div>
+      <div class="ship-sil"></div>
+      <div class="glow"></div>
+      <div class="debris"></div>
+      <div class="debris2"></div>
+      <div class="label-tag">SYS::ALERT</div>
+    </div>
+    <div class="meta">
+      <h3>A — Gritty Hard Sci-Fi</h3>
+      <p>Dark, industrial, worn metal. High-detail PBR textures with rust, grime, wear. Realistic character proportions. Strong atmosphere over color vibrancy.</p>
+      <div class="refs">Dead Space · Alien: Isolation · SOMA</div>
+    </div>
+  </div>
+
+  <div class="style-card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="viewport vp-clean">
+      <div class="grid"></div>
+      <div class="ship-sil"></div>
+      <div class="engine"></div>
+      <div class="hud-line"></div>
+      <div class="hud-dot"></div>
+      <div class="label-tag">NAV:READY</div>
+    </div>
+    <div class="meta">
+      <h3>B — Clean Military Sci-Fi</h3>
+      <p>Sleek, polished surfaces. Strong faction colour-coding. Readable silhouettes. Slightly idealized characters. PBR but more specular-clean than grimy.</p>
+      <div class="refs">Mass Effect · Elite Dangerous · Halo</div>
+    </div>
+  </div>
+
+  <div class="style-card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="viewport vp-stylized">
+      <div class="nebula"></div>
+      <div class="star" style="width:2px;height:2px;top:20px;left:60px"></div>
+      <div class="star" style="width:1px;height:1px;top:40px;left:100px"></div>
+      <div class="star" style="width:2px;height:2px;top:15px;left:140px"></div>
+      <div class="planet"></div>
+      <div class="ring"></div>
+      <div class="ship-sil"></div>
+      <div class="label-tag">EXPLORE</div>
+    </div>
+    <div class="meta">
+      <h3>C — Stylized / Vibrant</h3>
+      <p>Bold colours, exaggerated palettes, cel-shading or painterly lighting. Less photorealistic, more expressive. Easier asset sourcing; works well with simpler shaders.</p>
+      <div class="refs">No Man's Sky · Outer Wilds · Starfield</div>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:1.5rem">Or describe a mix — e.g. "B but darker, closer to A" is totally valid.</p>

@@ -1,0 +1,19 @@
+{
+  "category": "CHARACTER",
+  "assets": [
+    {
+      "id": "human_player",
+      "path": "models/characters/human_player.glb",
+      "lod_mid": "models/characters/human_player_lod1.glb",
+      "lod_far": "particles/billboards/human_silhouette",
+      "memory_tier": 1
+    },
+    {
+      "id": "human_npc_generic",
+      "path": "models/characters/human_npc_generic.glb",
+      "lod_mid": "models/characters/human_npc_generic_lod1.glb",
+      "lod_far": "particles/billboards/human_silhouette",
+      "memory_tier": 2
+    }
+  ]
+}

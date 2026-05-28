@@ -5,6 +5,7 @@ import com.galacticodyssey.combat.CombatEnums.WeaponCategory;
 
 public class WeaponFrameData {
     public String id;
+    public String name;
     public WeaponCategory category;
     public float baseDamage;
     public float baseFireRate;
@@ -17,4 +18,5 @@ public class WeaponFrameData {
     public boolean hitscan;
     public float range = 100f;
     public float reloadTime = 2.0f;
+    public String grenadeTypeId;
 }

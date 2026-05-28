@@ -12,6 +12,7 @@ import com.galacticodyssey.core.EventBus;
 import com.galacticodyssey.core.components.TransformComponent;
 import com.galacticodyssey.player.components.FPSCameraComponent;
 import com.galacticodyssey.player.components.MovementStateComponent;
+import com.galacticodyssey.player.components.PlayerInputComponent;
 import com.galacticodyssey.player.components.PlayerStateComponent;
 
 public class CameraSystem extends IteratingSystem {
@@ -30,6 +31,8 @@ public class CameraSystem extends IteratingSystem {
         ComponentMapper.getFor(FPSCameraComponent.class);
     private final ComponentMapper<MovementStateComponent> stateMapper =
         ComponentMapper.getFor(MovementStateComponent.class);
+    private final ComponentMapper<PlayerInputComponent> inputMapper =
+        ComponentMapper.getFor(PlayerInputComponent.class);
 
     private PerspectiveCamera camera;
     private boolean wasGrounded;
@@ -98,6 +101,21 @@ public class CameraSystem extends IteratingSystem {
             cam.landingDipAmount = Math.max(0, cam.landingDipAmount - LANDING_DIP_DECAY_SPEED * deltaTime);
         }
 
+        // Lean processing
+        PlayerInputComponent input = inputMapper.get(entity);
+        float targetLean = 0f;
+        if (input != null) {
+            if (input.leanLeft) targetLean = cam.maxLeanAngle;
+            if (input.leanRight) targetLean = -cam.maxLeanAngle;
+        }
+        cam.leanAngle = MathUtils.lerp(cam.leanAngle, targetLean, cam.leanSpeed * deltaTime);
+        if (Math.abs(cam.leanAngle) < 0.01f) cam.leanAngle = 0f;
+
+        float leanFraction = cam.leanAngle / cam.maxLeanAngle;
+        float yawRadForLean = cam.yawAngle * MathUtils.degreesToRadians;
+        camX += MathUtils.cos(yawRadForLean) * leanFraction * cam.leanHorizontalOffset;
+        camZ += -MathUtils.sin(yawRadForLean) * leanFraction * cam.leanHorizontalOffset;
+
         camera.position.set(camX, camY, camZ);
 
         // Apply recoil offsets on top of the base camera angles.
@@ -113,7 +131,16 @@ public class CameraSystem extends IteratingSystem {
             -MathUtils.cos(yawRad) * MathUtils.cos(pitchRad)
         ).nor();
 
-        camera.up.set(Vector3.Y);
+        // Apply lean roll to camera up vector
+        float leanRad = cam.leanAngle * MathUtils.degreesToRadians;
+        float rightX = -MathUtils.cos(yawRad);
+        float rightZ = MathUtils.sin(yawRad);
+        camera.up.set(
+            rightX * MathUtils.sin(leanRad),
+            MathUtils.cos(leanRad),
+            rightZ * MathUtils.sin(leanRad)
+        ).nor();
+
         camera.update();
 
         // Decay recoil back toward zero.

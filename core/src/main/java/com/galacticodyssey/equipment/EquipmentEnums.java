@@ -9,7 +9,7 @@ public final class EquipmentEnums {
     }
 
     public enum ItemType {
-        WEAPON, MELEE_WEAPON, ARMOR, AMMO, MOD, COMPONENT, CONSUMABLE, JUNK
+        WEAPON, MELEE_WEAPON, ARMOR, AMMO, MOD, COMPONENT, CONSUMABLE, JUNK, MATERIAL
     }
 
     private EquipmentEnums() {}

@@ -27,7 +27,9 @@ import com.galacticodyssey.combat.components.StatusEffectsComponent;
 import com.galacticodyssey.combat.components.WeaponInventoryComponent;
 import com.galacticodyssey.combat.data.AIArchetypeData;
 import com.galacticodyssey.combat.data.CombatDataRegistry;
+import com.galacticodyssey.combat.data.WeaponAssembly;
 import com.galacticodyssey.combat.data.WeaponDataRegistry;
+import com.galacticodyssey.combat.data.WeaponStatsResolver;
 import com.galacticodyssey.combat.systems.CombatAISystem;
 import com.galacticodyssey.combat.systems.CombatInputSystem;
 import com.galacticodyssey.combat.systems.DamageSystem;
@@ -110,9 +112,13 @@ import com.galacticodyssey.water.systems.WeatherSystem;
 import com.galacticodyssey.water.data.VesselRegistry;
 import com.galacticodyssey.water.data.WaterDataRegistry;
 import com.galacticodyssey.water.VesselFactory;
+import com.galacticodyssey.combat.systems.BulletTracerSystem;
 import com.galacticodyssey.vfx.components.ParticlePoolComponent;
 import com.galacticodyssey.vfx.data.VFXEventBindings;
 import com.galacticodyssey.vfx.data.VFXRegistry;
+import com.galacticodyssey.vfx.data.VFXLoader;
+import com.galacticodyssey.vfx.ParticleAtlasManager;
+import com.galacticodyssey.vfx.MeshParticlePool;
 import com.galacticodyssey.core.systems.RadialGravitySystem;
 import com.galacticodyssey.economy.data.CommodityRegistry;
 import com.galacticodyssey.economy.data.PlanetEconomyRegistry;
@@ -135,6 +141,31 @@ import com.galacticodyssey.vfx.systems.ParticleUpdateSystem;
 import com.galacticodyssey.persistence.LocalFileSaveBackend;
 import com.galacticodyssey.persistence.PersistenceIdComponent;
 import com.galacticodyssey.persistence.SaveCoordinator;
+import com.galacticodyssey.data.GalacticAssetManager;
+import com.galacticodyssey.data.systems.StreamingSystem;
+import com.badlogic.gdx.utils.JsonReader;
+import com.galacticodyssey.mission.job.JobRegistry;
+import com.galacticodyssey.mission.job.ProceduralJobGenerator;
+import com.galacticodyssey.mission.job.EventJobGenerator;
+import com.galacticodyssey.mission.saga.SagaRegistry;
+import com.galacticodyssey.mission.saga.SagaRunner;
+import com.galacticodyssey.mission.shared.QuestJournal;
+import com.galacticodyssey.mission.shared.ObjectiveTrackingSystem;
+import com.galacticodyssey.mission.shared.RewardSystem;
+import com.galacticodyssey.mission.discovery.QuestDiscoverySystem;
+import com.galacticodyssey.npc.components.NpcDialogComponent;
+import com.galacticodyssey.npc.components.NpcIdentityComponent;
+import com.galacticodyssey.npc.data.DialogDataRegistry;
+import com.galacticodyssey.npc.systems.DialogSystem;
+import com.galacticodyssey.stealth.BulletLineOfSightQuery;
+import com.galacticodyssey.stealth.NpcAwarenessSystem;
+import com.galacticodyssey.stealth.ShipDetectionSystem;
+import com.galacticodyssey.stealth.ShipSignatureSystem;
+import com.galacticodyssey.stealth.SignatureComponent;
+import com.galacticodyssey.hacking.HackingStateComponent;
+import com.galacticodyssey.hacking.data.HackableTypeRegistry;
+import com.galacticodyssey.hacking.systems.HackingSystem;
+import com.galacticodyssey.hacking.systems.PlayerHackingSystem;
 import java.io.File;
 import java.util.List;
 import java.util.UUID;
@@ -163,6 +194,8 @@ public class GameWorld implements Disposable {
     private ParticleSpawnSystem particleSpawnSystem;
     private ParticleUpdateSystem particleUpdateSystem;
     private ParticleRenderSystem particleRenderSystem;
+    private ParticleAtlasManager particleAtlasManager;
+    private MeshParticlePool meshParticlePool;
     private RecoilSystem recoilSystem;
     private ADSSystem adsSystem;
     private CrosshairSystem crosshairSystem;
@@ -195,6 +228,25 @@ public class GameWorld implements Disposable {
     private VesselFactory vesselFactory;
     private UUID playerEntityId;
     private SaveCoordinator saveCoordinator;
+    private JobRegistry jobRegistry;
+    private SagaRegistry sagaRegistry;
+    private ProceduralJobGenerator proceduralJobGenerator;
+    private EventJobGenerator eventJobGenerator;
+    private QuestJournal questJournal;
+    private ObjectiveTrackingSystem objectiveTrackingSystem;
+    private SagaRunner sagaRunner;
+    private RewardSystem rewardSystem;
+    private QuestDiscoverySystem questDiscoverySystem;
+    private GalacticAssetManager assetManager;
+    private StreamingSystem streamingSystem;
+    private com.badlogic.gdx.graphics.PerspectiveCamera camera;
+    private DialogDataRegistry dialogDataRegistry;
+    private DialogSystem dialogSystem;
+    private NpcAwarenessSystem npcAwarenessSystem;
+    private ShipDetectionSystem shipDetectionSystem;
+    private ShipSignatureSystem shipSignatureSystem;
+    private HackableTypeRegistry hackableTypeRegistry;
+    private PlayerHackingSystem playerHackingSystem;
 
     private final Array<Disposable> disposables = new Array<>();
 
@@ -269,6 +321,18 @@ public class GameWorld implements Disposable {
         // Combat systems
         WeaponDataRegistry weaponData = new WeaponDataRegistry();
         CombatDataRegistry combatData = new CombatDataRegistry();
+        if (com.badlogic.gdx.Gdx.files != null) {
+            try {
+                weaponData.loadFromFiles();
+            } catch (Exception e) {
+                com.badlogic.gdx.Gdx.app.error("GameWorld", "Failed to load weapon data", e);
+            }
+            try {
+                combatData.loadFromFiles();
+            } catch (Exception e) {
+                com.badlogic.gdx.Gdx.app.error("GameWorld", "Failed to load combat data", e);
+            }
+        }
         this.weaponDataRegistry = weaponData;
         this.combatDataRegistry = combatData;
 
@@ -382,7 +446,7 @@ public class GameWorld implements Disposable {
         swimCameraSystem.setWaveSystem(waveSystem);
         engine.addSystem(swimCameraSystem);
 
-        oceanSpawner = new OceanSpawner(engine);
+        oceanSpawner = new OceanSpawner(engine, waveSystem);
 
         vesselRegistry = new VesselRegistry();
         if (com.badlogic.gdx.Gdx.files != null) {
@@ -398,6 +462,9 @@ public class GameWorld implements Disposable {
         // the effectId returned by VFXEventBindings.resolve() is not found in the registry.
         vfxRegistry = new VFXRegistry();
         VFXEventBindings vfxBindings = new VFXEventBindings();
+        if (com.badlogic.gdx.Gdx.files != null) {
+            VFXLoader.loadAll(vfxRegistry, vfxBindings);
+        }
         Entity poolEntity = new Entity();
         particlePool = new ParticlePoolComponent();
         poolEntity.add(particlePool);
@@ -406,6 +473,9 @@ public class GameWorld implements Disposable {
         particleUpdateSystem = new ParticleUpdateSystem(particlePool);
         engine.addSystem(particleSpawnSystem);
         engine.addSystem(particleUpdateSystem);
+
+        BulletTracerSystem bulletTracerSystem = new BulletTracerSystem(eventBus, particlePool);
+        engine.addSystem(bulletTracerSystem);
 
         // Shooting feedback
         recoilSystem = new RecoilSystem(eventBus);
@@ -433,10 +503,75 @@ public class GameWorld implements Disposable {
         transactionService = new TransactionService(commodityRegistry, eventBus);
         planetaryEconomyManager = new PlanetaryEconomyManager(eventBus, planetEconomyRegistry);
 
+        // Mission / Quest System
+        questJournal = new QuestJournal();
+        jobRegistry = new JobRegistry();
+        sagaRegistry = new SagaRegistry();
+        proceduralJobGenerator = new ProceduralJobGenerator(jobRegistry);
+        eventJobGenerator = new EventJobGenerator(eventBus, jobRegistry, proceduralJobGenerator);
+        questDiscoverySystem = new QuestDiscoverySystem(eventBus, questJournal);
+        objectiveTrackingSystem = new ObjectiveTrackingSystem(eventBus, questJournal);
+        sagaRunner = new SagaRunner(eventBus, questJournal, sagaRegistry);
+        rewardSystem = new RewardSystem(eventBus);
+
+        eventJobGenerator.setJobListener(job -> {
+            if (job.lead != null) questDiscoverySystem.registerLead(job, job.lead);
+            questJournal.addRumour(job);
+        });
+
+        engine.addSystem(objectiveTrackingSystem);
+        engine.addSystem(sagaRunner);
+
+        // Stealth System
+        BulletLineOfSightQuery losQuery = new BulletLineOfSightQuery(bulletPhysicsSystem.getDynamicsWorld());
+        disposables.add(losQuery);
+        npcAwarenessSystem  = new NpcAwarenessSystem(eventBus, losQuery);
+        shipSignatureSystem = new ShipSignatureSystem();
+        shipDetectionSystem = new ShipDetectionSystem(eventBus);
+        engine.addSystem(npcAwarenessSystem);
+        engine.addSystem(shipSignatureSystem);
+        engine.addSystem(shipDetectionSystem);
+
+        // Dialog system
+        dialogDataRegistry = new DialogDataRegistry();
+        if (com.badlogic.gdx.Gdx.files != null) {
+            try {
+                dialogDataRegistry.loadFromFiles();
+            } catch (Exception e) {
+                com.badlogic.gdx.Gdx.app.error("GameWorld", "Failed to load dialog data", e);
+            }
+        }
+        dialogSystem = new DialogSystem(eventBus, dialogDataRegistry);
+        engine.addSystem(dialogSystem);
+
+        // Hacking systems
+        hackableTypeRegistry = new HackableTypeRegistry();
+        if (com.badlogic.gdx.Gdx.files != null) {
+            hackableTypeRegistry.loadFromFiles();
+        }
+        playerHackingSystem = new PlayerHackingSystem(eventBus);
+        engine.addSystem(playerHackingSystem);
+        engine.addSystem(new HackingSystem(25, eventBus));
+
+        // Asset streaming
+        if (com.badlogic.gdx.Gdx.files != null) {
+            assetManager = new GalacticAssetManager();
+            JsonReader jsonReader = new JsonReader();
+            assetManager.registerManifest(jsonReader.parse(
+                com.badlogic.gdx.Gdx.files.internal("data/assets/characters.json")));
+            assetManager.registerManifest(jsonReader.parse(
+                com.badlogic.gdx.Gdx.files.internal("data/assets/props.json")));
+            assetManager.loadStreamingConfig(jsonReader.parse(
+                com.badlogic.gdx.Gdx.files.internal("data/assets/streaming_config.json")));
+            streamingSystem = new StreamingSystem(assetManager);
+            engine.addSystem(streamingSystem);
+        }
+
         playerInputSystem.setCombatInputSystem(combatInputSystem);
     }
 
     public void initializeSystems(PerspectiveCamera camera) {
+        this.camera = camera;
         playerInputSystem.initialize();
         cameraSystem.setCamera(camera);
         debugHudSystem.initialize();
@@ -448,6 +583,18 @@ public class GameWorld implements Disposable {
 
         particleRenderSystem = new ParticleRenderSystem(particlePool, camera);
         engine.addSystem(particleRenderSystem);
+        particleAtlasManager = new ParticleAtlasManager();
+        particleAtlasManager.generate();
+        meshParticlePool = new MeshParticlePool();
+        particleSpawnSystem.setAtlasManager(particleAtlasManager);
+        particleRenderSystem.setAtlasManager(particleAtlasManager);
+        com.badlogic.gdx.graphics.g3d.utils.ModelBuilder mb = new com.badlogic.gdx.graphics.g3d.utils.ModelBuilder();
+        com.badlogic.gdx.graphics.g3d.Model fallbackModel = mb.createBox(0.05f, 0.05f, 0.05f,
+            new com.badlogic.gdx.graphics.g3d.Material(),
+            com.badlogic.gdx.graphics.VertexAttributes.Usage.Position | com.badlogic.gdx.graphics.VertexAttributes.Usage.Normal);
+        com.badlogic.gdx.graphics.g3d.ModelInstance fallbackMesh = new com.badlogic.gdx.graphics.g3d.ModelInstance(fallbackModel);
+        com.badlogic.gdx.graphics.g3d.ModelBatch meshModelBatch = new com.badlogic.gdx.graphics.g3d.ModelBatch();
+        particleRenderSystem.setMeshParticlePool(meshParticlePool, meshModelBatch, fallbackMesh);
     }
 
     public Entity createPlayerEntity(float spawnX, float spawnY, float spawnZ) {
@@ -469,6 +616,7 @@ public class GameWorld implements Disposable {
         player.add(new PlayerModelComponent());
         player.add(new SwimmingStateComponent());
         player.add(new DepthZoneComponent());
+        player.add(new HackingStateComponent());
 
         PhysicsBodyComponent physics = new PhysicsBodyComponent();
         physics.shape = new btCapsuleShape(0.3f, 1.2f);
@@ -504,6 +652,7 @@ public class GameWorld implements Disposable {
         player.add(new HitboxComponent());
 
         player.add(new PlayerStatsComponent());
+        player.add(new SignatureComponent());
 
         // Shooting feedback and equipment components.
         player.add(new RecoilComponent());
@@ -512,6 +661,8 @@ public class GameWorld implements Disposable {
         player.add(new ScreenShakeComponent());
         player.add(new InventoryComponent(8, 6, 50f));
         player.add(new EquipmentSlotsComponent());
+
+        equipStarterWeapons(player);
 
         bulletPhysicsSystem.getDynamicsWorld().addRigidBody(physics.body);
         bulletPhysicsSystem.addManagedBody(physics.body);
@@ -524,6 +675,47 @@ public class GameWorld implements Disposable {
         });
 
         return player;
+    }
+
+    private void equipStarterWeapons(Entity player) {
+        WeaponInventoryComponent inventory = player.getComponent(WeaponInventoryComponent.class);
+        RangedWeaponComponent ranged = player.getComponent(RangedWeaponComponent.class);
+        if (inventory == null || ranged == null) return;
+
+        WeaponAssembly assaultRifle = WeaponAssembly.ranged(
+            "assault_rifle", "standard_barrel", "standard_round", null,
+            com.galacticodyssey.combat.CombatEnums.QualityTier.COMMON);
+        inventory.slots[0] = assaultRifle;
+        inventory.activeSlotIndex = 0;
+
+        WeaponAssembly sidearm = WeaponAssembly.ranged(
+            "pistol_standard", "standard_barrel", "standard_round", null,
+            com.galacticodyssey.combat.CombatEnums.QualityTier.COMMON);
+        inventory.slots[1] = sidearm;
+
+        WeaponAssembly melee = WeaponAssembly.melee("combat_blade",
+            com.galacticodyssey.combat.CombatEnums.QualityTier.COMMON);
+        inventory.slots[2] = melee;
+
+        if (weaponDataRegistry != null && weaponDataRegistry.getFrame("assault_rifle") != null) {
+            WeaponStatsResolver.RangedStats stats =
+                WeaponStatsResolver.resolveRanged(assaultRifle, weaponDataRegistry);
+            ranged.damage = stats.damage;
+            ranged.fireRate = stats.fireRate;
+            ranged.spread = stats.spread;
+            ranged.range = stats.range;
+            ranged.recoil = stats.recoil;
+            ranged.magSize = stats.magSize;
+            ranged.currentAmmo = stats.magSize;
+            ranged.reloadTime = stats.reloadTime;
+            ranged.firingMode = stats.firingMode;
+            ranged.hitscan = stats.hitscan;
+            ranged.damageType = stats.damageType;
+            ranged.statusEffect = stats.statusEffect;
+            ranged.statusEffectChance = stats.statusEffectChance;
+            ranged.projectileSpeed = stats.projectileSpeed;
+            ranged.ammoTypeId = stats.ammoTypeId;
+        }
     }
 
     public Entity createHostileNPC(Vector3 position, String archetypeId, int squadId,
@@ -626,6 +818,10 @@ public class GameWorld implements Disposable {
     }
 
     public void update(float delta) {
+        if (assetManager != null) {
+            if (camera != null) streamingSystem.setCameraPosition(camera.position);
+            assetManager.update();
+        }
         engine.update(delta);
 
         if (saveCoordinator != null) {
@@ -644,6 +840,32 @@ public class GameWorld implements Disposable {
         debugHudSystem.resize(width, height);
         cockpitHUDSystem.resize(width, height);
     }
+
+    public Entity spawnTestNpc(float x, float y, float z) {
+        Entity npc = new Entity();
+
+        TransformComponent transform = new TransformComponent();
+        transform.position.set(x, y, z);
+        npc.add(transform);
+
+        NpcIdentityComponent identity = new NpcIdentityComponent();
+        identity.npcId = "test_merchant";
+        identity.name = "Zara Voss";
+        identity.role = com.galacticodyssey.npc.NPCRole.MERCHANT;
+        npc.add(identity);
+
+        NpcDialogComponent dialog = new NpcDialogComponent();
+        dialog.dialogTreeId = "test_merchant";
+        dialog.interactionRadius = 3f;
+        npc.add(dialog);
+
+        engine.addEntity(npc);
+        return npc;
+    }
+
+    public DialogSystem getDialogSystem() { return dialogSystem; }
+    public DialogDataRegistry getDialogDataRegistry() { return dialogDataRegistry; }
+    public HackableTypeRegistry getHackableTypeRegistry() { return hackableTypeRegistry; }
 
     /** Wire up the audio system. Call after GameWorld construction, before the first update(). */
     public void initAudio(AudioManager audioManager) {
@@ -707,12 +929,17 @@ public class GameWorld implements Disposable {
         return keplerianOrbitSystem;
     }
 
+    public ParticleRenderSystem getParticleRenderSystem() {
+        return particleRenderSystem;
+    }
+
     @Override
     public void dispose() {
         for (int i = disposables.size - 1; i >= 0; i--) {
             disposables.get(i).dispose();
         }
         disposables.clear();
+        if (particleAtlasManager != null) particleAtlasManager.dispose();
         if (particleRenderSystem != null) {
             particleRenderSystem.dispose();
         }
@@ -725,6 +952,7 @@ public class GameWorld implements Disposable {
         debugHudSystem.dispose();
         if (cockpitHUDSystem != null) cockpitHUDSystem.dispose();
         if (cockpitModelSystem != null) cockpitModelSystem.dispose();
+        if (assetManager != null) assetManager.dispose();
         bulletPhysicsSystem.dispose();
     }
 }
