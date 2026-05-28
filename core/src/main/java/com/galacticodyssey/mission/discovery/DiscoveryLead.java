@@ -8,7 +8,7 @@ public class DiscoveryLead {
     public String locationId;
     public boolean rumourHeard;
     public boolean locationDiscovered;
-    public String triggeringEventId;
+    public String triggeringEventId;    // for expiry tracking
 
     public boolean isActivated() { return rumourHeard || locationDiscovered; }
 }
