@@ -1,0 +1,69 @@
+[
+  {
+    "id": "cargo_haul_legal",
+    "type": "CARGO_HAUL",
+    "giverFactionTag": "trade_guilds",
+    "requiredStanding": -25.0,
+    "discoveryMode": "BOARD",
+    "baseCredits": 800,
+    "baseReputationDelta": 5.0,
+    "baseTimeLimitSeconds": 0,
+    "objectives": [
+      { "type": "DELIVER_CARGO", "requiredCount": 1, "optional": false }
+    ]
+  },
+  {
+    "id": "bounty_hunt_pirate",
+    "type": "BOUNTY_HUNT",
+    "giverFactionTag": "trade_guilds",
+    "requiredStanding": 0.0,
+    "discoveryMode": "BOARD",
+    "baseCredits": 1500,
+    "baseReputationDelta": 8.0,
+    "baseTimeLimitSeconds": 0,
+    "objectives": [
+      { "type": "DESTROY_TARGET", "requiredCount": 1, "optional": false }
+    ]
+  },
+  {
+    "id": "exploration_survey",
+    "type": "EXPLORATION_SURVEY",
+    "giverFactionTag": "explorers_guild",
+    "requiredStanding": 0.0,
+    "discoveryMode": "BOTH",
+    "baseCredits": 1200,
+    "baseReputationDelta": 10.0,
+    "baseTimeLimitSeconds": 0,
+    "objectives": [
+      { "type": "SCAN_OBJECT", "requiredCount": 3, "optional": false },
+      { "type": "REACH_LOCATION", "requiredCount": 1, "optional": true }
+    ]
+  },
+  {
+    "id": "mercenary_war",
+    "type": "MERCENARY",
+    "giverFactionTag": "military",
+    "requiredStanding": 0.0,
+    "discoveryMode": "EVENT_DRIVEN",
+    "baseCredits": 2500,
+    "baseReputationDelta": 12.0,
+    "baseTimeLimitSeconds": 3600,
+    "objectives": [
+      { "type": "DESTROY_TARGET", "requiredCount": 5, "optional": false }
+    ]
+  },
+  {
+    "id": "salvage_missing_ship",
+    "type": "SALVAGE",
+    "giverFactionTag": "trade_guilds",
+    "requiredStanding": -25.0,
+    "discoveryMode": "EVENT_DRIVEN",
+    "baseCredits": 1800,
+    "baseReputationDelta": 7.0,
+    "baseTimeLimitSeconds": 0,
+    "objectives": [
+      { "type": "REACH_LOCATION", "requiredCount": 1, "optional": false },
+      { "type": "COLLECT_RESOURCE", "requiredCount": 5, "optional": false }
+    ]
+  }
+]
