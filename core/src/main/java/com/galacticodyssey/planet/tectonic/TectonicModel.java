@@ -12,7 +12,6 @@ public final class TectonicModel {
     private final List<Vector3> hotspots;
     private final TectonicConfig config;
 
-    // Filled in Task 5.
     private float continentalFraction;
     private final List<TectonicFeature> features = new ArrayList<>();
 
@@ -23,6 +22,9 @@ public final class TectonicModel {
     private final Vector3 rel = new Vector3();
 
     public TectonicModel(List<Plate> plates, List<Vector3> hotspots, TectonicConfig config) {
+        if (plates == null || plates.isEmpty()) {
+            throw new IllegalArgumentException("TectonicModel requires at least one plate");
+        }
         this.plates = plates;
         this.hotspots = hotspots;
         this.config = config;
@@ -118,9 +120,8 @@ public final class TectonicModel {
 
     public float continentalFraction() { return continentalFraction; }
 
-    public List<TectonicFeature> features() { return features; }
+    public List<TectonicFeature> features() { return java.util.Collections.unmodifiableList(features); }
 
-    // --- baked in Task 5 ---
     private static final int SAMPLE_COUNT = 600;
 
     private void bakeContinentalFraction() {

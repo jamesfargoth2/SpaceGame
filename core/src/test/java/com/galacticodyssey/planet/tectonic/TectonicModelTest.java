@@ -111,4 +111,14 @@ class TectonicModelTest {
         assertTrue(hasHotspot, "hotspot must be exported as a feature");
         assertTrue(hasArc, "oceanic subduction must export a volcanic arc");
     }
+
+    @Test
+    void divergentOceanicRaisesRidgeAboveBase() {
+        // Oceanic plates pulling apart (A +speed, B -speed) -> mid-ocean ridge above oceanic base.
+        Plate a = new Plate(0, new Vector3(1, 0, 0.2f), true, -0.35f, new Vector3(0,1,0), 1f);
+        Plate b = new Plate(1, new Vector3(-1, 0, 0.2f), true, -0.35f, new Vector3(0,1,0), -1f);
+        TectonicModel m = new TectonicModel(List.of(a, b), List.of(), TectonicConfig.defaults());
+        Vector3 bd = new Vector3(0, 0, 1).nor();
+        assertTrue(m.baseElevation(bd) > -0.35f, "mid-ocean ridge rises above the oceanic plate base");
+    }
 }
