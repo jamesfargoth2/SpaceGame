@@ -38,6 +38,7 @@ public class PlayerStatsComponent implements Component, Snapshotable<PlayerStats
         s.unspentPerkPicks = unspentPerkPicks;
         for (RealTimeSkill skill : RealTimeSkill.values()) {
             SkillProgress p = realTimeSkills.get(skill);
+            if (p == null) continue;
             s.realTimeLevels.put(skill.name(), p.level);
             s.realTimeXp.put(skill.name(), p.xp);
         }
