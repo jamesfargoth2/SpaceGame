@@ -2,6 +2,7 @@ package com.galacticodyssey.mission.job;
 
 import com.galacticodyssey.core.EventBus;
 import com.galacticodyssey.core.events.*;
+import com.galacticodyssey.mission.discovery.DiscoveryLead;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -70,6 +71,14 @@ public final class EventJobGenerator {
         JobInstance job = generator.generate(template, sector, 1.0f, faction -> 0f);
         job.state = JobState.RUMOURED;
         job.triggeringEventId = triggeringEventId;
+
+        DiscoveryLead lead = new DiscoveryLead();
+        lead.jobInstanceId = job.instanceId;
+        lead.locationId = sector.sectorId;
+        lead.rumourNpcIds = List.of();
+        lead.triggeringEventId = triggeringEventId;
+        job.lead = lead;
+
         return job;
     }
 

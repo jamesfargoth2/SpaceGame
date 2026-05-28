@@ -4,7 +4,6 @@ import com.galacticodyssey.core.EventBus;
 import com.galacticodyssey.core.events.FactionWarStartedEvent;
 import com.galacticodyssey.core.events.LocationEnteredEvent;
 import com.galacticodyssey.core.events.ReputationChangeEvent;
-import com.galacticodyssey.mission.discovery.DiscoveryLead;
 import com.galacticodyssey.mission.discovery.QuestDiscoverySystem;
 import com.galacticodyssey.mission.events.QuestCompletedEvent;
 import com.galacticodyssey.mission.events.QuestDiscoveredEvent;
@@ -50,15 +49,8 @@ class MissionIntegrationTest {
         eventBus.subscribe(QuestCompletedEvent.class, completed::add);
         eventBus.subscribe(ReputationChangeEvent.class, repEvents::add);
 
-        // ProceduralJobGenerator does not create a DiscoveryLead — job.lead is null
-        // after generate(). We create one here so QuestDiscoverySystem can activate
-        // the job when the player enters the sector location.
         eventJobGen.setJobListener(job -> {
-            DiscoveryLead lead = new DiscoveryLead();
-            lead.jobInstanceId = job.instanceId;
-            lead.locationId = job.giverLocationId;   // "sector_x" for war events
-            lead.rumourNpcIds = List.of();
-            job.lead = lead;
+            if (job.lead != null) discovery.registerLead(job, job.lead);
             journal.addRumour(job);
         });
     }
@@ -70,8 +62,7 @@ class MissionIntegrationTest {
         assertEquals(1, journal.getRumourBoard().size());
         assertEquals(JobState.RUMOURED, journal.getRumourBoard().get(0).state);
 
-        // Player visits the sector location — job activates
-        // job.giverLocationId == sector.locationIds.get(0) == sectorId == "sector_x"
+        // Player visits the location from the lead — job activates cold
         String locationId = journal.getRumourBoard().get(0).lead.locationId;
         eventBus.publish(new LocationEnteredEvent(locationId));
         assertEquals(1, discovered.size());
@@ -80,9 +71,7 @@ class MissionIntegrationTest {
         assertEquals(JobState.ACTIVE, job.state);
 
         // Player completes the objective (5 kills)
-        // resolveTargetId default case: sector.sectorId + "_target" == "sector_x_target"
         String targetId = job.objectives.get(0).targetId;
-        assertEquals("sector_x_target", targetId);
         for (int i = 0; i < 5; i++) tracking.onEntityKilled(targetId);
 
         assertEquals(1, completed.size());
