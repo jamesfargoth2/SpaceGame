@@ -142,7 +142,7 @@ public final class ScatteringParams {
         float absG = so2Frac > 0.05f ? 1.5e-6f * pressure : 0f;
         float absB = 0f;
 
-        // Planet geometry
+        // Planet geometry — radius is in Earth-radii, convert to km for render-space
         float pR   = planet.radius * 6371f;
         float atmoR = pR + scaleH * 6f;
 
@@ -173,11 +173,13 @@ public final class ScatteringParams {
         else                       fogDensity = 0.02f  + (pressure - 10f) * 0.002f;
         fogDensity = Math.min(0.05f, fogDensity);
 
+        float scaleHeightMie = 1.2f / (float) Math.sqrt(Math.max(0.1f, pressure));
+
         return new ScatteringParams(
             rayleighR, rayleighG, rayleighB,
             mieCoeff, mieG,
             absR, absG, absB,
-            scaleH, 1.2f / (float) Math.sqrt(Math.max(0.1f, pressure)),
+            scaleH, scaleHeightMie,
             pR, atmoR,
             sunIntensity, 0.00465f,
             cloudBase, cloudTop, cloudCoverage,
