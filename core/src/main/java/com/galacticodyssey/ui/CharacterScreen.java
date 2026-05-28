@@ -13,6 +13,10 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.galacticodyssey.core.EventBus;
+import com.galacticodyssey.player.events.CharacterLevelUpEvent;
+import com.galacticodyssey.player.events.PerkAvailableEvent;
+import com.galacticodyssey.player.events.PerkSelectedEvent;
+import com.galacticodyssey.player.events.SkillLevelUpEvent;
 import com.galacticodyssey.player.components.PlayerStatsComponent;
 import com.galacticodyssey.player.stats.PerkNodeDef;
 import com.galacticodyssey.player.stats.PerkRegistry;
@@ -46,6 +50,11 @@ public class CharacterScreen implements ManagedScreen {
         scroll.setFadeScrollBars(false);
         root.add(scroll).expand().fill().pad(20);
         stage.addActor(root);
+
+        eventBus.subscribe(CharacterLevelUpEvent.class, e -> refreshIfOpen());
+        eventBus.subscribe(SkillLevelUpEvent.class, e -> refreshIfOpen());
+        eventBus.subscribe(PerkAvailableEvent.class, e -> refreshIfOpen());
+        eventBus.subscribe(PerkSelectedEvent.class, e -> refreshIfOpen());
     }
 
     public void initialize(Engine engine, RealTimeSkillSystem skillSystem,
@@ -59,6 +68,10 @@ public class CharacterScreen implements ManagedScreen {
     private Entity player() {
         var arr = engine.getEntitiesFor(Family.all(PlayerStatsComponent.class).get());
         return arr.size() > 0 ? arr.first() : null;
+    }
+
+    private void refreshIfOpen() {
+        if (open && engine != null) rebuild();
     }
 
     private void rebuild() {
