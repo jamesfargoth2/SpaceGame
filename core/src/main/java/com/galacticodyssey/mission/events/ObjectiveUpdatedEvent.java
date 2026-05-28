@@ -1,6 +1,6 @@
 package com.galacticodyssey.mission.events;
 
-public class ObjectiveUpdatedEvent {
+public final class ObjectiveUpdatedEvent {
     public final String missionId;
     public final String objectiveId;
     public final int currentCount;

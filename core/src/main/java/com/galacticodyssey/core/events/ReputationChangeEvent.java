@@ -1,6 +1,6 @@
 package com.galacticodyssey.core.events;
 
-public class ReputationChangeEvent {
+public final class ReputationChangeEvent {
     public final String factionId;
     public final float delta;
     public final String sourceId;

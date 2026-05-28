@@ -1,6 +1,6 @@
 package com.galacticodyssey.mission.events;
 
-public class ObjectiveCompletedEvent {
+public final class ObjectiveCompletedEvent {
     public final String missionId;
     public final String objectiveId;
 

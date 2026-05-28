@@ -1,6 +1,6 @@
 package com.galacticodyssey.core.events;
 
-public class CargoDeliveredEvent {
+public final class CargoDeliveredEvent {
     public final String cargoType;
     public final String destinationId;
 

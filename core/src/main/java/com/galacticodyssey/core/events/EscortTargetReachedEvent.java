@@ -1,6 +1,6 @@
 package com.galacticodyssey.core.events;
 
-public class EscortTargetReachedEvent {
+public final class EscortTargetReachedEvent {
     public final String targetId;
 
     public EscortTargetReachedEvent(String targetId) {

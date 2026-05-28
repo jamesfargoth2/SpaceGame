@@ -1,6 +1,6 @@
 package com.galacticodyssey.core.events;
 
-public class AnomalyDetectedEvent {
+public final class AnomalyDetectedEvent {
     public final String anomalyId;
     public final String locationId;
 

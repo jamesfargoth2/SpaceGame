@@ -1,6 +1,6 @@
 package com.galacticodyssey.core.events;
 
-public class DialogueChoiceMadeEvent {
+public final class DialogueChoiceMadeEvent {
     public final String npcId;
     public final String choiceKey;
 

@@ -116,30 +116,30 @@ public final class ScatteringParams {
         float mieG;
         switch (planet.type) {
             case ARID:
-                mieCoeff = 30e-6f * pressure;
+                mieCoeff = 30e-3f * pressure;
                 mieG = 0.85f;
                 break;
             case TOXIC:
-                mieCoeff = 50e-6f * pressure;
+                mieCoeff = 50e-3f * pressure;
                 mieG = 0.6f;
                 break;
             case OCEAN:
-                mieCoeff = 5e-6f * pressure;
+                mieCoeff = 5e-3f * pressure;
                 mieG = 0.76f;
                 break;
             case ICE_WORLD:
-                mieCoeff = 10e-6f * pressure;
+                mieCoeff = 10e-3f * pressure;
                 mieG = 0.7f;
                 break;
             default:
-                mieCoeff = 21e-6f * pressure;
+                mieCoeff = 21e-3f * pressure;
                 mieG = 0.76f;
                 break;
         }
 
         // Absorption
-        float absR = o2Frac  > 0.1f  ? 2.1e-6f * pressure : 0f;
-        float absG = so2Frac > 0.05f ? 1.5e-6f * pressure : 0f;
+        float absR = o2Frac  > 0.1f  ? 2.1e-3f * pressure : 0f;
+        float absG = so2Frac > 0.05f ? 1.5e-3f * pressure : 0f;
         float absB = 0f;
 
         // Planet geometry — radius is in Earth-radii, convert to km for render-space

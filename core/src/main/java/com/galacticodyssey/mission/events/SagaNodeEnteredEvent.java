@@ -1,6 +1,6 @@
 package com.galacticodyssey.mission.events;
 
-public class SagaNodeEnteredEvent {
+public final class SagaNodeEnteredEvent {
     public final String sagaId;
     public final String nodeId;
     public final String nodeType;

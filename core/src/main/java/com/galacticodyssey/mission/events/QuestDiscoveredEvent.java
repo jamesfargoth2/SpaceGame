@@ -1,6 +1,6 @@
 package com.galacticodyssey.mission.events;
 
-public class QuestDiscoveredEvent {
+public final class QuestDiscoveredEvent {
     public final String missionId;
     public final String title;
 

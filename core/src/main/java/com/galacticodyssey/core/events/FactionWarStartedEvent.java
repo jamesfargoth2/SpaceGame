@@ -1,6 +1,6 @@
 package com.galacticodyssey.core.events;
 
-public class FactionWarStartedEvent {
+public final class FactionWarStartedEvent {
     public final String warId;
     public final String factionA;
     public final String factionB;

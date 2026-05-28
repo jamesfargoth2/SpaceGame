@@ -2,7 +2,7 @@ package com.galacticodyssey.mission.events;
 
 import com.galacticodyssey.mission.shared.MissionReward;
 
-public class QuestCompletedEvent {
+public final class QuestCompletedEvent {
     public final String missionId;
     public final MissionReward reward;
 

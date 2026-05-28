@@ -1,6 +1,6 @@
 package com.galacticodyssey.core.events;
 
-public class ResourceCollectedEvent {
+public final class ResourceCollectedEvent {
     public final String resourceType;
     public final int amount;
 
