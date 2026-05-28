@@ -86,7 +86,20 @@ import com.galacticodyssey.ship.weapons.systems.ShipWeaponPilotSystem;
 import com.galacticodyssey.ship.weapons.systems.ShipWeaponSystem;
 import com.galacticodyssey.ship.weapons.systems.TargetingSystem;
 import com.galacticodyssey.ship.weapons.systems.TurretTrackingSystem;
+import com.galacticodyssey.core.components.CelestialBodyType;
+import com.galacticodyssey.core.components.OrbitalBodyComponent;
+import com.galacticodyssey.core.components.SOITrackerComponent;
+import com.galacticodyssey.core.components.TrajectoryComponent;
+import com.galacticodyssey.core.systems.GravityForceSystem;
+import com.galacticodyssey.core.systems.OrbitalPositionSystem;
+import com.galacticodyssey.core.systems.SOITrackingSystem;
+import com.galacticodyssey.core.systems.TrajectoryPredictionSystem;
 import com.galacticodyssey.galaxy.KeplerianOrbitSystem;
+import com.galacticodyssey.galaxy.OrbitalConstants;
+import com.galacticodyssey.galaxy.OrbitalMechanics;
+import com.galacticodyssey.galaxy.OrbitalSlot;
+import com.galacticodyssey.galaxy.StarSystem;
+import com.galacticodyssey.planet.Moon;
 import com.galacticodyssey.ship.systems.RelativisticDopplerSystem;
 import com.galacticodyssey.ship.systems.VelocityTimeDilationSystem;
 import com.galacticodyssey.ui.CockpitHUDSystem;
@@ -412,6 +425,10 @@ public class GameWorld implements Disposable {
 
         keplerianOrbitSystem = new KeplerianOrbitSystem(eventBus);
         engine.addSystem(keplerianOrbitSystem);
+        engine.addSystem(new OrbitalPositionSystem());
+        engine.addSystem(new SOITrackingSystem(eventBus));
+        engine.addSystem(new GravityForceSystem());
+        engine.addSystem(new TrajectoryPredictionSystem());
 
         shipClassRegistry = new ShipClassRegistry();
         if (com.badlogic.gdx.Gdx.files != null) {
@@ -946,6 +963,85 @@ public class GameWorld implements Disposable {
         LocalFileSaveBackend saveBackend = new LocalFileSaveBackend(savesDir);
         this.saveCoordinator = new SaveCoordinator(
             eventBus, engine, saveBackend, galaxySeed, playerEntityId, coordinateManager);
+    }
+
+    public Entity createStarEntity(StarSystem system) {
+        Entity star = engine.createEntity();
+        TransformComponent transform = engine.createComponent(TransformComponent.class);
+        star.add(transform);
+
+        GravitySourceComponent gravity = engine.createComponent(GravitySourceComponent.class);
+        gravity.mass = system.mass * OrbitalConstants.SOLAR_MASS_KG;
+        gravity.influenceRadius = system.systemEdge * OrbitalConstants.AU_TO_GAME_UNITS;
+        gravity.minRadius = system.radius * 100f;
+        star.add(gravity);
+
+        OrbitalBodyComponent orbital = engine.createComponent(OrbitalBodyComponent.class);
+        orbital.bodyType = CelestialBodyType.STAR;
+        orbital.soiRadius = 0f;
+        orbital.bodyRadius = system.radius * 100f;
+        star.add(orbital);
+
+        engine.addEntity(star);
+        return star;
+    }
+
+    public Entity createPlanetEntity(OrbitalSlot slot, Entity starEntity, StarSystem system) {
+        Planet planet = slot.planet;
+        if (planet == null) return null;
+
+        Entity entity = engine.createEntity();
+        TransformComponent transform = engine.createComponent(TransformComponent.class);
+        entity.add(transform);
+
+        float planetMassKg = planet.mass * OrbitalConstants.EARTH_MASS_KG;
+
+        GravitySourceComponent gravity = engine.createComponent(GravitySourceComponent.class);
+        gravity.mass = planetMassKg;
+        gravity.influenceRadius = OrbitalMechanics.sphereOfInfluence(
+            slot.orbitalRadius * OrbitalConstants.AU_TO_GAME_UNITS,
+            planetMassKg,
+            system.mass * OrbitalConstants.SOLAR_MASS_KG);
+        gravity.minRadius = planet.radius * 10f;
+        entity.add(gravity);
+
+        OrbitalBodyComponent orbital = engine.createComponent(OrbitalBodyComponent.class);
+        orbital.bodyType = CelestialBodyType.PLANET;
+        orbital.orbitalSlot = slot;
+        orbital.parentBody = starEntity;
+        orbital.soiRadius = gravity.influenceRadius;
+        orbital.bodyRadius = planet.radius * 10f;
+        entity.add(orbital);
+
+        engine.addEntity(entity);
+        return entity;
+    }
+
+    public Entity createMoonEntity(Moon moon, Entity planetEntity, Planet planet) {
+        Entity entity = engine.createEntity();
+        TransformComponent transform = engine.createComponent(TransformComponent.class);
+        entity.add(transform);
+
+        float moonMassKg = moon.mass * OrbitalConstants.EARTH_MASS_KG;
+        float planetMassKg = planet.mass * OrbitalConstants.EARTH_MASS_KG;
+
+        GravitySourceComponent gravity = engine.createComponent(GravitySourceComponent.class);
+        gravity.mass = moonMassKg;
+        gravity.influenceRadius = OrbitalMechanics.sphereOfInfluence(
+            moon.orbitalRadius * OrbitalConstants.AU_TO_GAME_UNITS,
+            moonMassKg, planetMassKg);
+        gravity.minRadius = moon.radius * 5f;
+        entity.add(gravity);
+
+        OrbitalBodyComponent orbital = engine.createComponent(OrbitalBodyComponent.class);
+        orbital.bodyType = CelestialBodyType.MOON;
+        orbital.parentBody = planetEntity;
+        orbital.soiRadius = gravity.influenceRadius;
+        orbital.bodyRadius = moon.radius * 5f;
+        entity.add(orbital);
+
+        engine.addEntity(entity);
+        return entity;
     }
 
     public AudioSystem getAudioSystem() { return audioSystem; }
