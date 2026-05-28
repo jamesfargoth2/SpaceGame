@@ -4,6 +4,11 @@ import com.galacticodyssey.vfx.VFXEnums.BlendMode;
 
 public class ParticleEffectDefinition {
     public String id;
+    public String type = "BILLBOARD";
+    public String sprite = "smoke";
+    public String mesh = "";
+    public boolean emitOnce = false;
+    public float bounce = 0.3f;
     public int maxParticles = 16;
     public float emitRate;
     public int burstCount;
