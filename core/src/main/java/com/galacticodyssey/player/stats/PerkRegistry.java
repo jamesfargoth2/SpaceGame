@@ -78,6 +78,34 @@ public final class PerkRegistry {
         return new Array<>(trees.get(skill).nodes);
     }
 
+    /**
+     * Folds every owned perk's modifiers for {@code target} onto {@code base}:
+     * result = (base + sum(ADD values)) * product(MULT values).
+     */
+    public float applyModifiers(PlayerStatsComponent stats, PerkTarget target, float base) {
+        float add = 0f;
+        float mult = 1f;
+        for (String perkId : stats.perks) {
+            PerkNodeDef node = byId.get(perkId);
+            if (node == null) continue;
+            for (PerkModifier mod : node.modifiers) {
+                if (mod.target != target) continue;
+                if (mod.op == ModifierOp.ADD) add  += mod.value;
+                else                          mult *= mod.value;
+            }
+        }
+        return (base + add) * mult;
+    }
+
+    /** True if the player owns a perk carrying the given specialEffectId. */
+    public boolean has(PlayerStatsComponent stats, String specialEffectId) {
+        for (String perkId : stats.perks) {
+            PerkNodeDef node = byId.get(perkId);
+            if (node != null && specialEffectId.equals(node.specialEffectId)) return true;
+        }
+        return false;
+    }
+
     /** True iff not already owned, skill-level gate met, and all prerequisite perks owned. */
     public boolean canSelect(PlayerStatsComponent stats, String perkId) {
         PerkNodeDef node = byId.get(perkId);
