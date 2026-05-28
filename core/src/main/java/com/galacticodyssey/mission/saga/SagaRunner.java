@@ -53,33 +53,44 @@ public class SagaRunner extends EntitySystem {
     }
 
     private void advance(SagaInstance instance, SagaData saga, String choiceKey) {
-        List<SagaEdgeData> edges = saga.edgesFrom(instance.currentNodeId);
-        for (SagaEdgeData edge : edges) {
-            if (edge.requiresChoice == null || edge.requiresChoice.equals(choiceKey)) {
-                SagaNodeData next = saga.getNode(edge.to);
-                if (next != null) {
-                    enterNode(instance, next, saga);
-                    return;
-                }
-            }
+        SagaNodeData next = nextNode(instance.currentNodeId, saga, choiceKey);
+        if (next != null) {
+            enterNode(instance, next, saga);
         }
     }
 
-    public void enterNode(SagaInstance instance, SagaNodeData node, SagaData saga) {
+    private SagaNodeData nextNode(String fromNodeId, SagaData saga, String choiceKey) {
+        for (SagaEdgeData edge : saga.edgesFrom(fromNodeId)) {
+            if (edge.requiresChoice == null || edge.requiresChoice.equals(choiceKey)) {
+                return saga.getNode(edge.to);
+            }
+        }
+        return null;
+    }
+
+    public void enterNode(SagaInstance instance, SagaNodeData startNode, SagaData saga) {
+        SagaNodeData node = startNode;
+        // CONSEQUENCE nodes auto-advance immediately; loop to avoid unbounded recursion
+        // on chains of consecutive CONSEQUENCE nodes.
+        while (node != null && node.type == SagaNodeType.CONSEQUENCE) {
+            instance.currentNodeId = node.id;
+            instance.activeObjectives.clear();
+            eventBus.publish(new SagaNodeEnteredEvent(instance.sagaDataId, node.id, node.type.name()));
+            for (SagaNodeData.ConsequenceEvent ce : node.consequences) {
+                if ("REPUTATION_CHANGE".equals(ce.type)) {
+                    eventBus.publish(new ReputationChangeEvent(ce.faction, ce.delta, instance.sagaDataId));
+                }
+            }
+            node = nextNode(node.id, saga, null);
+        }
+        if (node == null) return;
+
         instance.currentNodeId = node.id;
         instance.activeObjectives.clear();
         eventBus.publish(new SagaNodeEnteredEvent(instance.sagaDataId, node.id, node.type.name()));
 
         switch (node.type) {
             case OBJECTIVE -> instance.activeObjectives.addAll(node.objectives);
-            case CONSEQUENCE -> {
-                for (SagaNodeData.ConsequenceEvent ce : node.consequences) {
-                    if ("REPUTATION_CHANGE".equals(ce.type)) {
-                        eventBus.publish(new ReputationChangeEvent(ce.faction, ce.delta, instance.sagaDataId));
-                    }
-                }
-                advance(instance, saga, null);
-            }
             case TERMINUS -> instance.state = "COMPLETE".equals(node.outcome) ? SagaState.COMPLETE : SagaState.FAILED;
         }
     }
