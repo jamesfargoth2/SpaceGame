@@ -46,6 +46,37 @@ class FaunaDataRegistryTest {
     }
 
     @Test
+    void validationRejectsMirrorOnSocketWithoutMirrorGroup() {
+        FaunaDataRegistry reg = new FaunaDataRegistry();
+        reg.loadPartsFromJson(PARTS);
+        String bad = "{ \"archetypes\":[ {\"id\":\"m\",\"bodyPlan\":\"QUADRUPED\"," +
+            "\"root\":{\"partType\":\"TORSO\",\"children\":[{\"socketId\":\"head\",\"partType\":\"HEAD\",\"mirror\":true}]}} ] }";
+        reg.loadArchetypesFromJson(bad);
+        IllegalStateException ex = assertThrows(IllegalStateException.class, reg::validate);
+        assertTrue(ex.getMessage().toLowerCase().contains("mirror"));
+    }
+
+    @Test
+    void validationRejectsUnknownSocketId() {
+        FaunaDataRegistry reg = new FaunaDataRegistry();
+        reg.loadPartsFromJson(PARTS);
+        String bad = "{ \"archetypes\":[ {\"id\":\"u\",\"bodyPlan\":\"QUADRUPED\"," +
+            "\"root\":{\"partType\":\"TORSO\",\"children\":[{\"socketId\":\"nope\",\"partType\":\"HEAD\"}]}} ] }";
+        reg.loadArchetypesFromJson(bad);
+        IllegalStateException ex = assertThrows(IllegalStateException.class, reg::validate);
+        assertTrue(ex.getMessage().contains("nope"));
+    }
+
+    @Test
+    void loadRejectsInvertedSizeRange() {
+        FaunaDataRegistry reg = new FaunaDataRegistry();
+        reg.loadPartsFromJson(PARTS);
+        String bad = "{ \"archetypes\":[ {\"id\":\"r\",\"bodyPlan\":\"QUADRUPED\",\"minSize\":3,\"maxSize\":1," +
+            "\"root\":{\"partType\":\"TORSO\",\"children\":[]}} ] }";
+        assertThrows(IllegalStateException.class, () -> reg.loadArchetypesFromJson(bad));
+    }
+
+    @Test
     void validationRejectsArchetypeReferencingMissingPartType() {
         FaunaDataRegistry reg = new FaunaDataRegistry();
         reg.loadPartsFromJson(PARTS);

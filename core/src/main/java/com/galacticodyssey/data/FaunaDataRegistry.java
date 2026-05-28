@@ -34,6 +34,9 @@ public class FaunaDataRegistry {
             p.partType = PartType.valueOf(e.getString("partType"));
             p.minScale = e.getFloat("minScale", 1f);
             p.maxScale = e.getFloat("maxScale", 1f);
+            if (p.minScale > p.maxScale)
+                throw new IllegalStateException("Part '" + p.id + "' has minScale " + p.minScale
+                    + " > maxScale " + p.maxScale);
             JsonValue plans = e.get("bodyPlans");
             if (plans != null) for (JsonValue pl = plans.child; pl != null; pl = pl.next)
                 p.bodyPlans.add(BodyPlan.valueOf(pl.asString()));
@@ -78,6 +81,9 @@ public class FaunaDataRegistry {
             a.bodyPlan = BodyPlan.valueOf(e.getString("bodyPlan"));
             a.minSize = e.getFloat("minSize", 1f);
             a.maxSize = e.getFloat("maxSize", 1f);
+            if (a.minSize > a.maxSize)
+                throw new IllegalStateException("Archetype '" + a.id + "' has minSize " + a.minSize
+                    + " > maxSize " + a.maxSize);
             a.density = e.getFloat("density", 1000f);
             a.gaitClass = e.getString("gaitClass", "walk");
             a.kHp = e.getFloat("kHp", 12f);
@@ -101,20 +107,52 @@ public class FaunaDataRegistry {
         return node;
     }
 
-    /** Throws IllegalStateException if any archetype references a part type with no eligible part. */
+    /**
+     * Fail-fast validation. Throws IllegalStateException if any archetype references a part type
+     * with no eligible part, references a socket that doesn't resolve on its parent parts, mismatches
+     * a socket's accepted type, or requests mirroring on a socket lacking a mirror group.
+     */
     public void validate() {
         Set<PartType> available = new HashSet<>();
         for (CreaturePartDef p : parts.values()) available.add(p.partType);
-        for (BodyPlanArchetypeDef a : archetypes.values()) checkNode(a, a.root, available);
+        // The root node is its own anchor: validate its type, then recurse into its children using
+        // the root's partType as the parent type to resolve their sockets against.
+        for (BodyPlanArchetypeDef a : archetypes.values())
+            checkNode(a, a.root, a.root.partType, available);
     }
 
-    private void checkNode(BodyPlanArchetypeDef a, AttachmentNode node, Set<PartType> available) {
+    /**
+     * @param parentType the part type the node attaches to (for a non-root node this is the parent's
+     *                    partType; for the root it is its own type, used only for the type-existence check).
+     */
+    private void checkNode(BodyPlanArchetypeDef a, AttachmentNode node, PartType parentType,
+                           Set<PartType> available) {
         if (!available.contains(node.partType))
             throw new IllegalStateException("Archetype '" + a.id + "' needs a part of type "
                 + node.partType + " but none exists in the library");
         if (node.repeat > 1 && node.continuationSocketId == null)
             throw new IllegalStateException("Archetype '" + a.id + "' node with repeat>1 needs continuationSocketId");
-        for (AttachmentNode c : node.children) checkNode(a, c, available);
+
+        // A non-root attachment names a socketId that must resolve on EVERY eligible parent part.
+        if (node.socketId != null) {
+            List<CreaturePartDef> parents = partsFor(parentType, a.bodyPlan);
+            for (CreaturePartDef parent : parents) {
+                Socket s = parent.findSocket(node.socketId);
+                if (s == null)
+                    throw new IllegalStateException("Archetype '" + a.id + "' references socket '"
+                        + node.socketId + "' which does not exist on part '" + parent.id
+                        + "' (type " + parentType + ")");
+                if (s.acceptedType != node.partType)
+                    throw new IllegalStateException("Archetype '" + a.id + "' attaches " + node.partType
+                        + " to socket '" + node.socketId + "' on part '" + parent.id
+                        + "' but that socket accepts " + s.acceptedType);
+                if (node.mirror && s.mirrorGroup == null)
+                    throw new IllegalStateException("Archetype '" + a.id + "' requests mirror on socket '"
+                        + node.socketId + "' of part '" + parent.id + "' which has no mirrorGroup");
+            }
+        }
+
+        for (AttachmentNode c : node.children) checkNode(a, c, node.partType, available);
     }
 
     /** Parts of a type eligible for a body plan (bodyPlans empty = any), in stable id order. */
