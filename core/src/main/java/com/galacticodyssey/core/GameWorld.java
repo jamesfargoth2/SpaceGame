@@ -191,8 +191,19 @@ import com.galacticodyssey.rendering.lighting.LightingSystem;
 import com.galacticodyssey.ship.boarding.systems.ShipSubsystemSystem;
 import com.galacticodyssey.ship.boarding.systems.BoardingOrchestratorSystem;
 import com.galacticodyssey.ship.boarding.systems.ShipProjectileImpactSystem;
+import com.galacticodyssey.core.scene.DeepSpaceLoader;
+import com.galacticodyssey.core.scene.EmptySceneLoader;
+import com.galacticodyssey.core.scene.SceneAssetSource;
+import com.galacticodyssey.core.scene.SceneLoader;
+import com.galacticodyssey.core.scene.SceneManager;
+import com.galacticodyssey.core.scene.SceneStreamingSystem;
+import com.galacticodyssey.core.scene.SceneTransitionRequest;
+import com.galacticodyssey.core.scene.SceneType;
+import com.galacticodyssey.data.AssetCategory;
 import java.io.File;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class GameWorld implements Disposable {
@@ -276,6 +287,8 @@ public class GameWorld implements Disposable {
     private ReactorSpecRegistry reactorSpecRegistry;
     private PowerSystem powerSystem;
     private LightingSystem lightingSystem;
+    private SceneManager sceneManager;
+    private SceneStreamingSystem sceneStreamingSystem;
 
     private final Array<Disposable> disposables = new Array<>();
 
@@ -638,6 +651,27 @@ public class GameWorld implements Disposable {
             engine.addSystem(streamingSystem);
         }
 
+        // Scene orchestration: real asset source when the asset manager exists, else a no-op
+        // source so the engine still runs in headless contexts.
+        SceneAssetSource assetSource = (assetManager != null)
+            ? (id, cat) -> assetManager.enqueue(id, cat, 0f)
+            : (id, cat) -> new com.galacticodyssey.data.AssetHandle<net.mgsx.gltf.scene3d.scene.SceneAsset>(
+                id, cat, h -> {}).retain();
+        DeepSpaceLoader deepSpaceLoader = new DeepSpaceLoader(engine, assetSource);
+        Map<SceneType, SceneLoader> sceneLoaders = new EnumMap<>(SceneType.class);
+        sceneLoaders.put(SceneType.DEEP_SPACE, deepSpaceLoader);
+        // Every other scene type gets a complete empty loader until its bespoke procgen loader lands.
+        for (SceneType t : SceneType.values()) {
+            if (!sceneLoaders.containsKey(t)) {
+                sceneLoaders.put(t, new EmptySceneLoader(t, engine, assetSource, List.of(), AssetCategory.PROP_SMALL));
+            }
+        }
+        sceneManager = new SceneManager(eventBus, engine, sceneLoaders, deepSpaceLoader, 3);
+        sceneStreamingSystem = new SceneStreamingSystem(sceneManager);
+        engine.addSystem(sceneStreamingSystem);
+        // Boot into the deep-space scene so a primary scene always exists.
+        sceneManager.requestTransition(new SceneTransitionRequest(SceneType.DEEP_SPACE, new double[]{0, 0, 0}));
+
         playerInputSystem.setCombatInputSystem(combatInputSystem);
     }
 
@@ -893,6 +927,9 @@ public class GameWorld implements Disposable {
             if (camera != null) streamingSystem.setCameraPosition(camera.position);
             assetManager.update();
         }
+        if (sceneStreamingSystem != null && camera != null) {
+            sceneStreamingSystem.setPlayerPosition(camera.position);
+        }
         engine.update(delta);
 
         if (saveCoordinator != null) {
@@ -944,6 +981,7 @@ public class GameWorld implements Disposable {
     public JobRegistry getJobRegistry() { return jobRegistry; }
     public SagaRegistry getSagaRegistry() { return sagaRegistry; }
     public CandidatePoolSystem getCandidatePoolSystem() { return candidatePoolSystem; }
+    public SceneManager getSceneManager() { return sceneManager; }
 
     /** Wire up the audio system. Call after GameWorld construction, before the first update(). */
     public void initAudio(AudioManager audioManager) {
