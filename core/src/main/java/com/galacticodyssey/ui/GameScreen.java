@@ -87,6 +87,13 @@ import com.galacticodyssey.hacking.events.HackSucceededEvent;
 import com.galacticodyssey.hacking.events.HackFailedEvent;
 import com.galacticodyssey.rendering.DeferredRenderer;
 import com.galacticodyssey.rendering.lighting.LightComponent;
+import com.galacticodyssey.ui.QuestJournalScreen;
+import com.galacticodyssey.mission.shared.QuestJournal;
+import com.galacticodyssey.mission.job.JobBoard;
+import com.galacticodyssey.mission.job.JobRegistry;
+import com.galacticodyssey.mission.job.ReputationQuery;
+import com.galacticodyssey.mission.saga.SagaRegistry;
+import com.galacticodyssey.ui.events.JournalClosedEvent;
 
 import java.util.Random;
 
@@ -154,6 +161,7 @@ public class GameScreen implements Screen {
     private boolean inInventory;
     private OutfitterScreenSystem outfitterScreenSystem;
     private boolean inOutfitter;
+    private boolean inJournal;
 
     // Preserve existing constructor for load-game flow
     public GameScreen(GalacticOdyssey game) {
@@ -277,6 +285,7 @@ public class GameScreen implements Screen {
         buildHackingSystem();
         buildInventorySystem();
         buildOutfitterSystem();
+        buildJournalEventHandler();
 
         atmosphericSkyRenderer = new AtmosphericSkyRenderer();
         dayNightCycle = new DayNightCycle(600f, 23.5f, false);
@@ -294,6 +303,25 @@ public class GameScreen implements Screen {
         if (session == null || session.galaxy == null) return;
         Gdx.input.setCursorCatched(false);
         game.setScreen(new GalaxyMapScreen(game, session, this));
+    }
+
+    private void openQuestJournal() {
+        inJournal = true;
+        Gdx.input.setCursorCatched(false);
+        gameWorld.getPlayerInputSystem().setEnabled(false);
+
+        EventBus eventBus = gameWorld.getEventBus();
+        QuestJournal journal = gameWorld.getQuestJournal();
+        JobBoard jobBoard = null; // null when not docked — shows "No Station Network"
+        JobRegistry jobRegistry = gameWorld.getJobRegistry();
+        SagaRegistry sagaRegistry = gameWorld.getSagaRegistry();
+        ReputationQuery reputation = tag -> 0f; // TODO: wire to real reputation system
+        Skin skin = game.getSkin();
+
+        QuestJournalScreen journalScreen = new QuestJournalScreen(
+            game, this, eventBus, journal, jobBoard, jobRegistry,
+            sagaRegistry, reputation, skin);
+        game.setScreen(journalScreen);
     }
 
     private void setupInput() {
@@ -317,6 +345,10 @@ public class GameScreen implements Screen {
                     if (playerShip != null) {
                         outfitterScreenSystem.open(playerShip, true);
                     }
+                    return true;
+                }
+                if (keycode == Input.Keys.J && !paused && !inDialog && !inInventory && !inOutfitter && !inJournal) {
+                    openQuestJournal();
                     return true;
                 }
                 if (keycode == Input.Keys.F5) {
@@ -668,6 +700,16 @@ public class GameScreen implements Screen {
 
         eventBus.subscribe(OutfitterClosedEvent.class, event -> {
             inOutfitter = false;
+            Gdx.input.setCursorCatched(true);
+            gameWorld.getPlayerInputSystem().setEnabled(true);
+            setupInput();
+        });
+    }
+
+    private void buildJournalEventHandler() {
+        EventBus eventBus = gameWorld.getEventBus();
+        eventBus.subscribe(JournalClosedEvent.class, event -> {
+            inJournal = false;
             Gdx.input.setCursorCatched(true);
             gameWorld.getPlayerInputSystem().setEnabled(true);
             setupInput();

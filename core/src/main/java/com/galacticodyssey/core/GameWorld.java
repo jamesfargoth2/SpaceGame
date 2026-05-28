@@ -892,6 +892,9 @@ public class GameWorld implements Disposable {
     public ReactorSpecRegistry getReactorSpecRegistry() { return reactorSpecRegistry; }
     public PowerSystem getPowerSystem() { return powerSystem; }
     public EquipmentSystem getEquipmentSystem() { return equipmentSystem; }
+    public QuestJournal getQuestJournal() { return questJournal; }
+    public JobRegistry getJobRegistry() { return jobRegistry; }
+    public SagaRegistry getSagaRegistry() { return sagaRegistry; }
 
     /** Wire up the audio system. Call after GameWorld construction, before the first update(). */
     public void initAudio(AudioManager audioManager) {
