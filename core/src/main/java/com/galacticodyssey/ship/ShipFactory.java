@@ -12,6 +12,12 @@ import com.galacticodyssey.core.components.PhysicsBodyComponent;
 import com.galacticodyssey.core.components.TransformComponent;
 import com.galacticodyssey.core.systems.BulletPhysicsSystem;
 import com.galacticodyssey.ship.components.*;
+import com.galacticodyssey.ship.modules.*;
+import com.galacticodyssey.ship.modules.components.ShipCargoComponent;
+import com.galacticodyssey.ship.modules.components.ShipLoadoutComponent;
+import com.galacticodyssey.ship.power.PowerStateComponent;
+import com.galacticodyssey.ship.power.ReactorSpec;
+import com.galacticodyssey.ship.power.ReactorSpecRegistry;
 
 import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
@@ -72,6 +78,8 @@ public class ShipFactory implements Disposable {
     private final BulletPhysicsSystem physics;
     private final ShipHullGenerator hullGenerator = new ShipHullGenerator();
     private final ShipInteriorGenerator interiorGenerator = new ShipInteriorGenerator();
+    private ReactorSpecRegistry reactorSpecRegistry;
+    private ShipModuleRegistry moduleRegistry;
 
     /** All Bullet objects that must be disposed when this factory is disposed. */
     private final Array<Disposable> disposables = new Array<>();
@@ -81,6 +89,14 @@ public class ShipFactory implements Disposable {
     public ShipFactory(Engine engine, BulletPhysicsSystem physics) {
         this.engine  = engine;
         this.physics = physics;
+    }
+
+    public void setReactorSpecRegistry(ReactorSpecRegistry registry) {
+        this.reactorSpecRegistry = registry;
+    }
+
+    public void setModuleRegistry(ShipModuleRegistry registry) {
+        this.moduleRegistry = registry;
     }
 
     // -------------------------------------------------------------------------
@@ -168,6 +184,15 @@ public class ShipFactory implements Disposable {
         entryPoint.interiorPosition.set(layout.airlockPosition);
         entryPoint.localExteriorPosition.set(0f, bboxMin.y - 0.5f, 0f);
         entity.add(entryPoint);
+
+        // Power management
+        PowerStateComponent powerState = buildPowerState(sizeClass);
+        entity.add(powerState);
+
+        // Module loadout and cargo
+        ShipLoadoutComponent loadoutComp = buildLoadoutComponent(sizeClass);
+        entity.add(loadoutComp);
+        entity.add(new ShipCargoComponent());
 
         // Exterior physics body (dynamic, zero-gravity so it hovers in place until piloted)
         PhysicsBodyComponent physicsBody = buildExteriorPhysicsBody(hull, mass, x, adjustedY, z);
@@ -370,6 +395,81 @@ public class ShipFactory implements Disposable {
         convex.recalcLocalAabb();
 
         return convex;
+    }
+
+    // -------------------------------------------------------------------------
+    // Power state
+    // -------------------------------------------------------------------------
+
+    private PowerStateComponent buildPowerState(ShipSizeClass sizeClass) {
+        PowerStateComponent power = new PowerStateComponent();
+        if (reactorSpecRegistry != null) {
+            ReactorSpec spec = reactorSpecRegistry.getBySizeClass(sizeClass.name());
+            if (spec != null) {
+                power.reactorBaseOutput = spec.baseOutput;
+                power.reactorWasteHeatFactor = spec.wasteHeatFactor;
+                power.batteryCapacity = spec.batteryCapacity;
+                power.batteryCharge = spec.batteryCapacity;
+                power.batteryChargeRate = spec.batteryChargeRate;
+                power.batteryDischargeRate = spec.batteryDischargeRate;
+                power.capacitorCapacity = spec.capacitorCapacity;
+                power.capacitorCharge = spec.capacitorCapacity;
+                power.capacitorChargeRate = spec.capacitorChargeRate;
+                power.engineMaxDraw = spec.engineMaxDraw;
+                power.weaponMaxDraw = spec.weaponMaxDraw;
+                power.shieldMaxDraw = spec.shieldMaxDraw;
+                power.lifeSupportDraw = spec.lifeSupportDraw;
+                power.sensorMaxDraw = spec.sensorMaxDraw;
+                return power;
+            }
+        }
+        int si = sizeClass.ordinal();
+        float[] baseOutputs = { 100f, 300f, 800f };
+        float[] battCaps = { 500f, 1500f, 5000f };
+        float[] capCaps = { 100f, 300f, 800f };
+        power.reactorBaseOutput = baseOutputs[si];
+        power.batteryCapacity = battCaps[si];
+        power.batteryCharge = battCaps[si];
+        power.capacitorCapacity = capCaps[si];
+        power.capacitorCharge = capCaps[si];
+        return power;
+    }
+
+    // -------------------------------------------------------------------------
+    // Module loadout
+    // -------------------------------------------------------------------------
+
+    private ShipLoadoutComponent buildLoadoutComponent(ShipSizeClass sizeClass) {
+        ShipLoadoutComponent comp = new ShipLoadoutComponent();
+
+        if (moduleRegistry == null) return comp;
+
+        String classId = getModuleSlotClassId(sizeClass);
+        ShipModuleRegistry.SlotLayout layout = moduleRegistry.getSlotLayout(classId);
+        if (layout == null) return comp;
+
+        comp.maxMass = layout.maxMass;
+
+        for (ShipModuleRegistry.SlotTemplate t : layout.slots) {
+            ShipModuleSlot slot = new ShipModuleSlot(t.id, t.slotType, t.size, t.mandatory);
+            slot.position.set(t.posX, t.posY);
+
+            if (t.defaultModuleId != null) {
+                slot.installedModule = moduleRegistry.createModuleInstance(t.defaultModuleId);
+            }
+
+            comp.moduleSlots.add(slot);
+        }
+
+        return comp;
+    }
+
+    private static String getModuleSlotClassId(ShipSizeClass sizeClass) {
+        switch (sizeClass) {
+            case SMALL:  return "corvette_scout";
+            case MEDIUM: return "frigate_patrol";
+            default:     return "corvette_scout";
+        }
     }
 
     // -------------------------------------------------------------------------
