@@ -1,0 +1,39 @@
+{
+  "nexus_station": {
+    "backgroundKey": "cantina_nexus",
+    "capacity": 5,
+    "seats": [
+      { "id": "bar_stool_1", "x": 0.12, "y": 0.35 },
+      { "id": "bar_stool_2", "x": 0.25, "y": 0.38 },
+      { "id": "center_table", "x": 0.45, "y": 0.48 },
+      { "id": "corner_booth", "x": 0.72, "y": 0.30 },
+      { "id": "wall_standing", "x": 0.82, "y": 0.55 }
+    ],
+    "hiringBoard": { "x": 0.30, "y": 0.22 }
+  },
+  "frontier_outpost": {
+    "backgroundKey": "cantina_frontier",
+    "capacity": 3,
+    "seats": [
+      { "id": "counter_1", "x": 0.20, "y": 0.40 },
+      { "id": "table_1", "x": 0.50, "y": 0.50 },
+      { "id": "corner_1", "x": 0.78, "y": 0.35 }
+    ],
+    "hiringBoard": { "x": 0.15, "y": 0.25 }
+  },
+  "trade_hub": {
+    "backgroundKey": "cantina_trade",
+    "capacity": 8,
+    "seats": [
+      { "id": "bar_1", "x": 0.08, "y": 0.32 },
+      { "id": "bar_2", "x": 0.16, "y": 0.35 },
+      { "id": "bar_3", "x": 0.24, "y": 0.33 },
+      { "id": "booth_1", "x": 0.42, "y": 0.28 },
+      { "id": "booth_2", "x": 0.42, "y": 0.52 },
+      { "id": "table_1", "x": 0.60, "y": 0.42 },
+      { "id": "standing_1", "x": 0.78, "y": 0.30 },
+      { "id": "standing_2", "x": 0.85, "y": 0.55 }
+    ],
+    "hiringBoard": { "x": 0.35, "y": 0.18 }
+  }
+}

@@ -1,0 +1,58 @@
+[
+  {
+    "id": "no_krethians",
+    "type": "SPECIES_AVERSION",
+    "targetId": "krethian",
+    "description": "Won't serve alongside Krethians",
+    "weight": 0.15
+  },
+  {
+    "id": "no_veloxi",
+    "type": "SPECIES_AVERSION",
+    "targetId": "veloxi",
+    "description": "Won't serve alongside Veloxi",
+    "weight": 0.10
+  },
+  {
+    "id": "needs_medbay",
+    "type": "FACILITY_REQUIRED",
+    "targetId": "MEDBAY",
+    "description": "Requires a functional med bay on board",
+    "weight": 0.10
+  },
+  {
+    "id": "needs_engine_room",
+    "type": "FACILITY_REQUIRED",
+    "targetId": "ENGINE_ROOM",
+    "description": "Requires a proper engine room",
+    "weight": 0.08
+  },
+  {
+    "id": "anti_hegemony",
+    "type": "FACTION_ALLEGIANCE",
+    "targetId": "hegemony",
+    "description": "Refuses jobs for the Hegemony",
+    "weight": 0.08
+  },
+  {
+    "id": "anti_syndicate",
+    "type": "FACTION_ALLEGIANCE",
+    "targetId": "syndicate",
+    "description": "Won't work with the Syndicate",
+    "weight": 0.08
+  },
+  {
+    "id": "find_brother",
+    "type": "PERSONAL_QUEST",
+    "targetId": "quest_find_brother",
+    "description": "Help me find my missing brother",
+    "weight": 0.05
+  },
+  {
+    "id": "clear_name",
+    "type": "PERSONAL_QUEST",
+    "targetId": "quest_clear_name",
+    "description": "Clear my name from false charges",
+    "weight": 0.05
+  }
+]
