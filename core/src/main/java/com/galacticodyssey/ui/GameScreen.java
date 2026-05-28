@@ -98,6 +98,7 @@ import com.galacticodyssey.mission.job.ReputationQuery;
 import com.galacticodyssey.mission.saga.SagaRegistry;
 import com.galacticodyssey.npc.events.RecruitmentOpenedEvent;
 import com.galacticodyssey.npc.events.RecruitmentClosedEvent;
+import com.galacticodyssey.ship.components.VehicleBayComponent;
 
 import java.util.Random;
 
@@ -174,6 +175,8 @@ public class GameScreen implements Screen {
     private QuestJournalOverlay questJournalOverlay;
     private ScreenTabManager screenTabManager;
     private com.galacticodyssey.ui.systems.RecruitmentScreenSystem recruitmentScreen;
+    private VehicleBayPanel vehicleBayPanel;
+    private com.badlogic.gdx.scenes.scene2d.Stage vehicleBayStage;
 
     // Preserve existing constructor for load-game flow
     public GameScreen(GalacticOdyssey game) {
@@ -374,6 +377,16 @@ public class GameScreen implements Screen {
                             screenTabManager.closeActive();
                         } else {
                             screenTabManager.switchTo("journal");
+                        }
+                        return true;
+                    }
+                    if (keycode == Input.Keys.B) {
+                        if (vehicleBayPanel != null) {
+                            if (vehicleBayPanel.isVisible()) {
+                                vehicleBayPanel.hide();
+                            } else {
+                                vehicleBayPanel.show();
+                            }
                         }
                         return true;
                     }
@@ -720,6 +733,24 @@ public class GameScreen implements Screen {
                 setupInput();
             }
         });
+
+        // Vehicle bay overlay (standalone panel — not a ManagedScreen)
+        vehicleBayStage = new com.badlogic.gdx.scenes.scene2d.Stage(
+            new com.badlogic.gdx.utils.viewport.ScreenViewport());
+        java.util.function.Supplier<com.badlogic.ashley.core.Entity> bayShipSupplier = () -> {
+            com.badlogic.ashley.utils.ImmutableArray<com.badlogic.ashley.core.Entity> ships =
+                gameWorld.getEngine().getEntitiesFor(
+                    com.badlogic.ashley.core.Family.all(VehicleBayComponent.class).get());
+            return ships.size() > 0 ? ships.first() : null;
+        };
+        vehicleBayPanel = new VehicleBayPanel(
+            game.getSkin(),
+            gameWorld.getVehicleRegistry(),
+            gameWorld.getVehicleBayService(),
+            bayShipSupplier,
+            gameWorld.getEventBus());
+        vehicleBayPanel.setFillParent(true);
+        vehicleBayStage.addActor(vehicleBayPanel);
     }
     private void buildDialogSystem() {
         EventBus eventBus = gameWorld.getEventBus();
@@ -1160,6 +1191,10 @@ public class GameScreen implements Screen {
         if (dialogHudSystem != null) dialogHudSystem.render(delta);
         if (hackingOverlay != null) hackingOverlay.render(delta);
         if (screenTabManager != null) screenTabManager.render(delta);
+        if (vehicleBayPanel != null && vehicleBayPanel.isVisible()) {
+            vehicleBayStage.act(delta);
+            vehicleBayStage.draw();
+        }
         if (paused) { pauseStage.act(delta); pauseStage.draw(); }
     }
 
@@ -1247,6 +1282,7 @@ public class GameScreen implements Screen {
         if (dialogHudSystem != null) dialogHudSystem.resize(width, height);
         if (hackingOverlay != null) hackingOverlay.resize(width, height);
         if (screenTabManager != null) screenTabManager.resize(width, height);
+        if (vehicleBayStage != null) vehicleBayStage.getViewport().update(width, height, true);
     }
 
     @Override
@@ -1324,6 +1360,14 @@ public class GameScreen implements Screen {
         if (questJournalOverlay != null) {
             questJournalOverlay.dispose();
             questJournalOverlay = null;
+        }
+        if (vehicleBayPanel != null) {
+            vehicleBayPanel.dispose();
+            vehicleBayPanel = null;
+        }
+        if (vehicleBayStage != null) {
+            vehicleBayStage.dispose();
+            vehicleBayStage = null;
         }
         if (screenTabManager != null) {
             screenTabManager.dispose();
