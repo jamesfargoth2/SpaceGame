@@ -152,6 +152,10 @@ public class GameScreen implements Screen {
     private float weaponSwayX;
     private float weaponSwayY;
 
+    private Model vehicleFallbackModel;
+    private final java.util.Map<com.badlogic.ashley.core.Entity, com.badlogic.gdx.graphics.g3d.ModelInstance> vehicleInstances =
+        new java.util.HashMap<>();
+
     // Muzzle flash screen-space overlay
     private static final float MUZZLE_FLASH_DURATION = 0.08f;
     private ShapeRenderer debugRenderer;
@@ -289,6 +293,21 @@ public class GameScreen implements Screen {
         debugRenderer = new ShapeRenderer();
         gameWorld.getEventBus().subscribe(WeaponFiredEvent.class, e -> {
             muzzleFlashTimer = MUZZLE_FLASH_DURATION;
+        });
+
+        // Vehicle bay rendering hooks
+        vehicleFallbackModel = new ModelBuilder().createBox(
+            2f, 1f, 4f,
+            new Material(ColorAttribute.createDiffuse(new Color(0.3f, 0.5f, 0.7f, 1f))),
+            VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
+        disposables.add(vehicleFallbackModel);
+        gameWorld.getEventBus().subscribe(com.galacticodyssey.planet.terrain.events.VehicleDeployedEvent.class, e -> {
+            com.badlogic.gdx.graphics.g3d.ModelInstance mi =
+                new com.badlogic.gdx.graphics.g3d.ModelInstance(vehicleFallbackModel);
+            vehicleInstances.put(e.vehicle, mi);
+        });
+        gameWorld.getEventBus().subscribe(com.galacticodyssey.planet.terrain.events.VehicleRetrievedEvent.class, e -> {
+            vehicleInstances.entrySet().removeIf(entry -> entry.getKey().getComponents().size() == 0);
         });
         buildPauseMenu();
         buildDialogSystem();
@@ -1151,6 +1170,13 @@ public class GameScreen implements Screen {
             boxInstances.get(i).transform.setToTranslation(t.position);
             boxInstances.get(i).transform.rotate(t.rotation);
         }
+        for (var entry : vehicleInstances.entrySet()) {
+            TransformComponent t =
+                entry.getKey().getComponent(TransformComponent.class);
+            if (t != null) {
+                entry.getValue().transform.set(t.position, t.rotation);
+            }
+        }
     }
 
     private void renderTerrain() {
@@ -1183,6 +1209,9 @@ public class GameScreen implements Screen {
         gbufferBatch.begin(camera);
         for (int i = 0; i < boxInstances.size; i++) {
             gbufferBatch.render(boxInstances.get(i));
+        }
+        for (com.badlogic.gdx.graphics.g3d.ModelInstance mi : vehicleInstances.values()) {
+            gbufferBatch.render(mi);
         }
         gbufferBatch.end();
     }
