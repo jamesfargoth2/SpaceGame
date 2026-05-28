@@ -1,0 +1,20 @@
+[
+  { "blueprintId": "bp_cockpit", "type": "ROOM", "unlocks": "COCKPIT", "rarity": "COMMON", "shopPrice": 0, "description": "Standard cockpit" },
+  { "blueprintId": "bp_engine_room", "type": "ROOM", "unlocks": "ENGINE_ROOM", "rarity": "COMMON", "shopPrice": 0, "description": "Engine room" },
+  { "blueprintId": "bp_crew_quarters", "type": "ROOM", "unlocks": "CREW_QUARTERS", "rarity": "COMMON", "shopPrice": 0, "description": "Crew quarters" },
+  { "blueprintId": "bp_cargo_bay", "type": "ROOM", "unlocks": "CARGO_BAY", "rarity": "COMMON", "shopPrice": 0, "description": "Cargo bay" },
+  { "blueprintId": "bp_medbay", "type": "ROOM", "unlocks": "MEDBAY", "rarity": "UNCOMMON", "shopPrice": 15000, "description": "Medical bay" },
+  { "blueprintId": "bp_armory", "type": "ROOM", "unlocks": "ARMORY", "rarity": "UNCOMMON", "shopPrice": 18000, "description": "Armory" },
+  { "blueprintId": "bp_brig", "type": "ROOM", "unlocks": "BRIG", "rarity": "RARE", "shopPrice": 25000, "description": "Brig holding cells" },
+  { "blueprintId": "bp_laser_mk1", "type": "MODULE", "unlocks": "laser_mk1", "rarity": "COMMON", "shopPrice": 0, "description": "Basic laser cannon" },
+  { "blueprintId": "bp_laser_mk2", "type": "MODULE", "unlocks": "laser_mk2", "rarity": "UNCOMMON", "shopPrice": 12000, "description": "Improved laser cannon" },
+  { "blueprintId": "bp_missile_s", "type": "MODULE", "unlocks": "missile_rack_s", "rarity": "UNCOMMON", "shopPrice": 20000, "description": "Small missile rack" },
+  { "blueprintId": "bp_thruster_basic", "type": "MODULE", "unlocks": "thruster_basic", "rarity": "COMMON", "shopPrice": 0, "description": "Standard thruster" },
+  { "blueprintId": "bp_fusion_m", "type": "MODULE", "unlocks": "fusion_drive_m", "rarity": "RARE", "shopPrice": 35000, "description": "Medium fusion drive" },
+  { "blueprintId": "bp_shield_1", "type": "MODULE", "unlocks": "shield_gen_mk1", "rarity": "UNCOMMON", "shopPrice": 22000, "description": "Basic shield generator" },
+  { "blueprintId": "bp_scanner_1", "type": "MODULE", "unlocks": "scanner_mk1", "rarity": "COMMON", "shopPrice": 5000, "description": "Basic sensor array" },
+  { "blueprintId": "bp_swept_wing", "type": "APPENDAGE", "unlocks": "SWEPT_WING", "rarity": "COMMON", "shopPrice": 0, "description": "Swept wing" },
+  { "blueprintId": "bp_delta_wing", "type": "APPENDAGE", "unlocks": "DELTA_WING", "rarity": "UNCOMMON", "shopPrice": 10000, "description": "Delta wing" },
+  { "blueprintId": "bp_engine_pod", "type": "APPENDAGE", "unlocks": "ENGINE_POD", "rarity": "COMMON", "shopPrice": 0, "description": "Engine nacelle pod" },
+  { "blueprintId": "bp_dorsal_fin", "type": "APPENDAGE", "unlocks": "DORSAL_FIN", "rarity": "COMMON", "shopPrice": 3000, "description": "Dorsal stabilizer" }
+]
