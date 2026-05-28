@@ -167,12 +167,9 @@ public class GameScreen implements Screen {
     private InputAdapter dialogInputAdapter;
     private HackingOverlay hackingOverlay;
     private InventoryScreenSystem inventoryScreenSystem;
-    private boolean inInventory;
     private OutfitterScreenSystem outfitterScreenSystem;
-    private boolean inOutfitter;
-    private RecruitmentScreenSystem recruitmentScreen;
-    private boolean inRecruitment;
-    private boolean inJournal;
+    private QuestJournalOverlay questJournalOverlay;
+    private ScreenTabManager screenTabManager;
 
     // Preserve existing constructor for load-game flow
     public GameScreen(GalacticOdyssey game) {
@@ -296,10 +293,7 @@ public class GameScreen implements Screen {
         buildPauseMenu();
         buildDialogSystem();
         buildHackingSystem();
-        buildInventorySystem();
-        buildOutfitterSystem();
-        buildRecruitmentSystem();
-        buildJournalEventHandler();
+        buildScreenTabManager();
 
         atmosphericSkyRenderer = new AtmosphericSkyRenderer();
         dayNightCycle = new DayNightCycle(600f, 23.5f, false);
