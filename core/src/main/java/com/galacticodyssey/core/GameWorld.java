@@ -697,8 +697,11 @@ public class GameWorld implements Disposable {
         sceneManager = new SceneManager(eventBus, engine, sceneLoaders, deepSpaceLoader, 3);
         sceneStreamingSystem = new SceneStreamingSystem(sceneManager);
         engine.addSystem(sceneStreamingSystem);
-        // Boot into the deep-space scene so a primary scene always exists.
+        // Boot into the deep-space scene so a primary scene always exists. There is no source
+        // scene to disguise the swap from, so skip the disguise wait and activate immediately
+        // (otherwise the boot scene would sit in READY_OVERLAP for the full disguise timeout).
         sceneManager.requestTransition(new SceneTransitionRequest(SceneType.DEEP_SPACE, new double[]{0, 0, 0}));
+        sceneManager.notifyDisguiseComplete();
 
         playerInputSystem.setCombatInputSystem(combatInputSystem);
     }

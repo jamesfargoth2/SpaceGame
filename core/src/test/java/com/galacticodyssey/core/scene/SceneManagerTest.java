@@ -107,4 +107,24 @@ class SceneManagerTest {
         runToIdle();
         assertEquals(SceneType.PLANET_SURFACE, manager.getPrimaryScene().type);
     }
+
+    @Test
+    void notifyDisguiseCompleteSkipsTimeoutForSourcelessBoot() {
+        // Mirrors the GameWorld boot: a fresh manager with the DEFAULT 5s disguise timeout.
+        SceneManager boot = new SceneManager(bus, engine, loaders, deepLoader, 3);
+        // notifyDisguiseComplete() is called immediately after the sourceless boot request,
+        // while the controller is still in REQUESTED. The flag must persist to READY_OVERLAP
+        // so the scene activates without waiting out the 5s timeout.
+        boot.requestTransition(new SceneTransitionRequest(SceneType.DEEP_SPACE, new double[]{0, 0, 0}));
+        boot.notifyDisguiseComplete();
+
+        // Advance only a handful of small frames (~0.08s total, far below the 5s timeout).
+        for (int i = 0; i < 5 && !boot.getController().isIdle(); i++) {
+            boot.update(1f / 60f);
+        }
+
+        assertTrue(boot.getController().isIdle(), "boot transition should have completed promptly");
+        assertNotNull(boot.getPrimaryScene());
+        assertEquals(SceneType.DEEP_SPACE, boot.getPrimaryScene().type);
+    }
 }
