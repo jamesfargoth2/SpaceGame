@@ -1,0 +1,37 @@
+{
+  "vehicles": [
+    {
+      "id": "rover_light",
+      "displayName": "Light Rover",
+      "modelPath": "models/box.g3db",
+      "sizeClass": "LIGHT",
+      "mass": 900, "wheelbase": 2.6, "trackWidth": 1.8, "groundClearance": 0.45,
+      "maxDriveForce": 6000, "maxSteerAngle": 42,
+      "maxHP": 180, "armorValue": 4, "baySlots": 1,
+      "weapon": { "damage": 18, "fireRate": 6, "range": 90, "hitscan": true,
+        "damageType": "BALLISTIC", "firingMode": "AUTO", "magSize": 100, "reloadTime": 2.0, "spread": 2.0 }
+    },
+    {
+      "id": "scout_armed",
+      "displayName": "Armed Scout",
+      "modelPath": "models/box.g3db",
+      "sizeClass": "LIGHT",
+      "mass": 1400, "wheelbase": 3.0, "trackWidth": 2.0, "groundClearance": 0.5,
+      "maxDriveForce": 9000, "maxSteerAngle": 35,
+      "maxHP": 320, "armorValue": 12, "baySlots": 1,
+      "weapon": { "damage": 40, "fireRate": 3, "range": 140, "hitscan": false, "projectileSpeed": 220,
+        "damageType": "BALLISTIC", "firingMode": "SEMI", "magSize": 30, "reloadTime": 3.0, "spread": 1.0 }
+    },
+    {
+      "id": "tank_medium",
+      "displayName": "Medium Tank",
+      "modelPath": "models/box.g3db",
+      "sizeClass": "MEDIUM",
+      "mass": 8000, "wheelbase": 4.5, "trackWidth": 3.2, "groundClearance": 0.6,
+      "maxDriveForce": 30000, "maxSteerAngle": 22,
+      "maxHP": 900, "armorValue": 40, "baySlots": 2,
+      "weapon": { "damage": 120, "fireRate": 0.8, "range": 200, "hitscan": false, "projectileSpeed": 300,
+        "damageType": "EXPLOSIVE", "firingMode": "SEMI", "magSize": 12, "reloadTime": 4.0, "spread": 0.4 }
+    }
+  ]
+}
