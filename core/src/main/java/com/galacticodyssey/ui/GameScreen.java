@@ -24,6 +24,8 @@ import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.galacticodyssey.combat.events.WeaponFiredEvent;
 import com.badlogic.gdx.math.Interpolation;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
@@ -73,6 +75,7 @@ import com.galacticodyssey.npc.events.DialogClosedEvent;
 import com.galacticodyssey.npc.events.DialogOpenedEvent;
 import com.galacticodyssey.npc.systems.DialogSystem;
 import com.galacticodyssey.ui.systems.DialogHudSystem;
+import com.galacticodyssey.ui.systems.InventoryScreenSystem;
 import com.galacticodyssey.hacking.ui.HackingOverlay;
 import com.galacticodyssey.hacking.HackingStateComponent;
 import com.galacticodyssey.hacking.events.HackStartedEvent;
@@ -129,12 +132,20 @@ public class GameScreen implements Screen {
     private float weaponBobTimer;
     private float weaponSwayX;
     private float weaponSwayY;
+
+    // Muzzle position debug overlay
+    private ShapeRenderer debugRenderer;
+    private final Vector3 debugMuzzleEventPos = new Vector3();
+    private final Vector3 debugBarrelTipWorld = new Vector3();
+    private float debugMarkerTimer;
     private Texture particleTexture;
 
     private DialogHudSystem dialogHudSystem;
     private boolean inDialog;
     private InputAdapter dialogInputAdapter;
     private HackingOverlay hackingOverlay;
+    private InventoryScreenSystem inventoryScreenSystem;
+    private boolean inInventory;
 
     // Preserve existing constructor for load-game flow
     public GameScreen(GalacticOdyssey game) {
@@ -209,6 +220,7 @@ public class GameScreen implements Screen {
         gameWorld.spawnTestNpc(npcX, npcY, npcZ);
 
         shipFactory = new ShipFactory(gameWorld.getEngine(), gameWorld.getBulletPhysicsSystem());
+        shipFactory.setReactorSpecRegistry(gameWorld.getReactorSpecRegistry());
 
         if (session != null && session.shipSpawnPos != null) {
             float shipY = TerrainGenerator.getHeightAt(
@@ -246,14 +258,28 @@ public class GameScreen implements Screen {
         environment.add(new DirectionalLight().set(0.8f, 0.8f, 0.75f, -0.4f, -0.8f, -0.3f));
 
         buildFirstPersonWeaponModel();
+        debugRenderer = new ShapeRenderer();
+        gameWorld.getEventBus().subscribe(WeaponFiredEvent.class, e -> {
+            debugMuzzleEventPos.set(e.muzzlePosition);
+            debugMarkerTimer = 3f;
+            Gdx.app.log("MuzzleDebug", "FIRED: event.muzzlePos=" + e.muzzlePosition
+                + " | last barrelTip=" + debugBarrelTipWorld);
+        });
         buildPauseMenu();
         buildDialogSystem();
         buildHackingSystem();
+        buildInventorySystem();
 
         atmosphericSkyRenderer = new AtmosphericSkyRenderer();
         dayNightCycle = new DayNightCycle(600f, 23.5f, false);
         fogShaderProvider = new FogShaderProvider();
         fogModelBatch = new ModelBatch(fogShaderProvider);
+    }
+
+    private void openGalaxyMap() {
+        if (session == null || session.galaxy == null) return;
+        Gdx.input.setCursorCatched(false);
+        game.setScreen(new GalaxyMapScreen(game, session, this));
     }
 
     private void setupInput() {
@@ -262,6 +288,14 @@ public class GameScreen implements Screen {
             public boolean keyDown(int keycode) {
                 if (keycode == Input.Keys.ESCAPE) {
                     togglePause();
+                    return true;
+                }
+                if (keycode == Input.Keys.M) {
+                    openGalaxyMap();
+                    return true;
+                }
+                if (keycode == Input.Keys.TAB && !paused && !inDialog && !inInventory) {
+                    inventoryScreenSystem.toggle();
                     return true;
                 }
                 return false;
@@ -405,6 +439,11 @@ public class GameScreen implements Screen {
         // Scale the weapon down slightly
         fpWeaponInstance.transform.scl(0.7f);
 
+        // Track actual world-space barrel tip for debug (model muzzle ~(0,0,-0.475) * scale 0.7 = z -0.3325 relative to weapon origin)
+        Matrix4 camToWorld = new Matrix4(camera.view).inv();
+        debugBarrelTipWorld.set(0.18f + bobX + weaponSwayY, -0.14f + bobY + weaponSwayX, -0.5825f);
+        debugBarrelTipWorld.mul(camToWorld);
+
         // Render with cleared depth and tight near plane
         Gdx.gl.glClear(GL20.GL_DEPTH_BUFFER_BIT);
         float savedNear = camera.near;
@@ -417,6 +456,37 @@ public class GameScreen implements Screen {
 
         camera.near = savedNear;
         camera.update();
+    }
+
+    /** Debug overlay: RED = where WeaponFiredEvent placed the muzzle; GREEN = where the barrel tip actually is. */
+    private void renderMuzzleDebug(float delta) {
+        if (debugRenderer == null || debugMarkerTimer <= 0) return;
+        debugMarkerTimer -= delta;
+
+        Vector3 eventScreen = camera.project(new Vector3(debugMuzzleEventPos));
+        Vector3 barrelScreen = camera.project(new Vector3(debugBarrelTipWorld));
+
+        float dx = debugMuzzleEventPos.x - debugBarrelTipWorld.x;
+        float dy = debugMuzzleEventPos.y - debugBarrelTipWorld.y;
+        float dz = debugMuzzleEventPos.z - debugBarrelTipWorld.z;
+        float dist = (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
+        Gdx.app.log("MuzzleDebug", String.format(
+            "event=(%.3f,%.3f,%.3f) barrel=(%.3f,%.3f,%.3f) gap=%.3f",
+            debugMuzzleEventPos.x, debugMuzzleEventPos.y, debugMuzzleEventPos.z,
+            debugBarrelTipWorld.x, debugBarrelTipWorld.y, debugBarrelTipWorld.z, dist));
+
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+        debugRenderer.setProjectionMatrix(
+            new Matrix4().setToOrtho2D(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()));
+        debugRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        // RED = where the WeaponFiredEvent said the muzzle was
+        debugRenderer.setColor(1f, 0.1f, 0.1f, 0.9f);
+        debugRenderer.circle(eventScreen.x, eventScreen.y, 10f);
+        // GREEN = where the barrel tip actually is visually right now
+        debugRenderer.setColor(0.1f, 1f, 0.1f, 0.9f);
+        debugRenderer.circle(barrelScreen.x, barrelScreen.y, 10f);
+        debugRenderer.end();
     }
 
     private void buildPauseMenu() {
@@ -440,6 +510,10 @@ public class GameScreen implements Screen {
         root.add(title).padBottom(40).row();
 
         addPauseButton(root, "Resume", skin, audio, this::togglePause);
+        addPauseButton(root, "Galaxy Map", skin, audio, () -> {
+            togglePause();
+            openGalaxyMap();
+        });
         addPauseButton(root, "Save Game", skin, audio, () -> {
             game.setScreen(new SaveScreen(game, game.getSaveBackend(), GameScreen.this));
         });
@@ -510,6 +584,38 @@ public class GameScreen implements Screen {
         eventBus.subscribe(HackFailedEvent.class, e -> {
             hackingOverlay.hide();
             Gdx.input.setInputProcessor(inputMultiplexer);
+        });
+    }
+
+    private void buildInventorySystem() {
+        EventBus eventBus = gameWorld.getEventBus();
+        inventoryScreenSystem = new InventoryScreenSystem(eventBus, game.getSkin());
+        inventoryScreenSystem.initialize(gameWorld.getEngine(), gameWorld.getEquipmentSystem());
+
+        eventBus.subscribe(com.galacticodyssey.ui.events.InventoryOpenedEvent.class, event -> {
+            inInventory = true;
+            Gdx.input.setCursorCatched(false);
+            gameWorld.getPlayerInputSystem().setEnabled(false);
+            inputMultiplexer.clear();
+            inputMultiplexer.addProcessor(new InputAdapter() {
+                @Override
+                public boolean keyDown(int keycode) {
+                    if (keycode == Input.Keys.TAB || keycode == Input.Keys.ESCAPE) {
+                        inventoryScreenSystem.close();
+                        return true;
+                    }
+                    return false;
+                }
+            });
+            inputMultiplexer.addProcessor(inventoryScreenSystem.getStage());
+            inventoryScreenSystem.refreshAll();
+        });
+
+        eventBus.subscribe(com.galacticodyssey.ui.events.InventoryClosedEvent.class, event -> {
+            inInventory = false;
+            Gdx.input.setCursorCatched(true);
+            gameWorld.getPlayerInputSystem().setEnabled(true);
+            setupInput();
         });
     }
 
@@ -922,6 +1028,7 @@ public class GameScreen implements Screen {
         gameWorld.getParticleRenderSystem().render();
 
         renderFirstPersonWeapon(delta);
+        renderMuzzleDebug(delta);
 
         gameWorld.getCockpitHUDSystem().render(delta);
         gameWorld.getDebugHudSystem().render(delta);
@@ -932,6 +1039,10 @@ public class GameScreen implements Screen {
 
         if (hackingOverlay != null) {
             hackingOverlay.render(delta);
+        }
+
+        if (inventoryScreenSystem != null) {
+            inventoryScreenSystem.render(delta);
         }
 
         if (paused) {
@@ -1038,6 +1149,7 @@ public class GameScreen implements Screen {
         pauseStage.getViewport().update(width, height, true);
         if (dialogHudSystem != null) dialogHudSystem.resize(width, height);
         if (hackingOverlay != null) hackingOverlay.resize(width, height);
+        if (inventoryScreenSystem != null) inventoryScreenSystem.resize(width, height);
     }
 
     @Override
@@ -1083,6 +1195,10 @@ public class GameScreen implements Screen {
             fpWeaponModel = null;
             fpWeaponInstance = null;
         }
+        if (debugRenderer != null) {
+            debugRenderer.dispose();
+            debugRenderer = null;
+        }
         if (particleTexture != null) {
             particleTexture.dispose();
             particleTexture = null;
@@ -1098,6 +1214,10 @@ public class GameScreen implements Screen {
         if (hackingOverlay != null) {
             hackingOverlay.dispose();
             hackingOverlay = null;
+        }
+        if (inventoryScreenSystem != null) {
+            inventoryScreenSystem.dispose();
+            inventoryScreenSystem = null;
         }
         if (pauseStage != null) {
             pauseStage.dispose();

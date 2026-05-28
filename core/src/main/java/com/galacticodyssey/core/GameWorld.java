@@ -157,6 +157,9 @@ import com.galacticodyssey.npc.components.NpcDialogComponent;
 import com.galacticodyssey.npc.components.NpcIdentityComponent;
 import com.galacticodyssey.npc.data.DialogDataRegistry;
 import com.galacticodyssey.npc.systems.DialogSystem;
+import com.galacticodyssey.ship.power.PowerPenaltySystem;
+import com.galacticodyssey.ship.power.PowerSystem;
+import com.galacticodyssey.ship.power.ReactorSpecRegistry;
 import com.galacticodyssey.stealth.BulletLineOfSightQuery;
 import com.galacticodyssey.stealth.NpcAwarenessSystem;
 import com.galacticodyssey.stealth.ShipDetectionSystem;
@@ -247,6 +250,8 @@ public class GameWorld implements Disposable {
     private ShipSignatureSystem shipSignatureSystem;
     private HackableTypeRegistry hackableTypeRegistry;
     private PlayerHackingSystem playerHackingSystem;
+    private ReactorSpecRegistry reactorSpecRegistry;
+    private PowerSystem powerSystem;
 
     private final Array<Disposable> disposables = new Array<>();
 
@@ -403,6 +408,19 @@ public class GameWorld implements Disposable {
             shipClassRegistry.loadShipClasses("data/ships/ship_classes.json");
             shipClassRegistry.loadAtmosphereProfiles("data/planets/atmosphere_profiles.json");
         }
+
+        // Power management
+        reactorSpecRegistry = new ReactorSpecRegistry();
+        if (com.badlogic.gdx.Gdx.files != null) {
+            try {
+                reactorSpecRegistry.loadFromFile("data/power/reactor_specs.json");
+            } catch (Exception e) {
+                com.badlogic.gdx.Gdx.app.error("GameWorld", "Failed to load reactor specs", e);
+            }
+        }
+        powerSystem = new PowerSystem(eventBus);
+        engine.addSystem(powerSystem);
+        engine.addSystem(new PowerPenaltySystem());
 
         // Water / Hydrodynamics
         waveSystem = new WaveSystem(10);
@@ -866,6 +884,9 @@ public class GameWorld implements Disposable {
     public DialogSystem getDialogSystem() { return dialogSystem; }
     public DialogDataRegistry getDialogDataRegistry() { return dialogDataRegistry; }
     public HackableTypeRegistry getHackableTypeRegistry() { return hackableTypeRegistry; }
+    public ReactorSpecRegistry getReactorSpecRegistry() { return reactorSpecRegistry; }
+    public PowerSystem getPowerSystem() { return powerSystem; }
+    public EquipmentSystem getEquipmentSystem() { return equipmentSystem; }
 
     /** Wire up the audio system. Call after GameWorld construction, before the first update(). */
     public void initAudio(AudioManager audioManager) {
