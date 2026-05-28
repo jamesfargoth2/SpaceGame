@@ -1,0 +1,29 @@
+{
+  "category": "INTERIOR_PROP",
+  "assets": [
+    {
+      "id": "chair_crew",
+      "path": "models/props/interior/chair_crew.glb",
+      "lod_mid": "models/props/interior/chair_crew_lod1.glb",
+      "lod_far": null,
+      "memory_tier": 3,
+      "tags": ["SEATING"]
+    },
+    {
+      "id": "console_nav",
+      "path": "models/props/interior/console_nav.glb",
+      "lod_mid": "models/props/interior/console_nav_lod1.glb",
+      "lod_far": null,
+      "memory_tier": 2,
+      "tags": ["CONSOLE", "TECH"]
+    },
+    {
+      "id": "desk_standard",
+      "path": "models/props/interior/desk_standard.glb",
+      "lod_mid": "models/props/interior/desk_standard_lod1.glb",
+      "lod_far": null,
+      "memory_tier": 3,
+      "tags": ["DECORATION"]
+    }
+  ]
+}
