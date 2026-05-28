@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Disposable;
 import com.galacticodyssey.rendering.FullscreenQuad;
@@ -91,7 +92,8 @@ public class SSAOEffect implements Disposable {
         shader.setUniform3fv("u_samples[0]", kernelSamples, 0, kernelSamples.length);
         shader.setUniformi("u_sampleCount", SAMPLE_COUNT);
         shader.setUniformMatrix("u_projection", camera.projection);
-        shader.setUniformMatrix("u_invProjection", camera.invProjectionView);
+        Matrix4 invProj = new Matrix4(camera.projection).inv();
+        shader.setUniformMatrix("u_invProjection", invProj);
         shader.setUniformf("u_noiseScale", halfWidth / (float) NOISE_SIZE, halfHeight / (float) NOISE_SIZE);
         shader.setUniformf("u_radius", radius);
         shader.setUniformf("u_bias", bias);

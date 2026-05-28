@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
+import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.utils.Disposable;
 import com.galacticodyssey.rendering.FullscreenQuad;
 import com.galacticodyssey.rendering.shaders.ShaderCache;
@@ -43,7 +44,8 @@ public class SSREffect implements Disposable {
         depthTex.bind(3);
         shader.setUniformi("u_depthTex", 3);
         shader.setUniformMatrix("u_projection", camera.projection);
-        shader.setUniformMatrix("u_invProjection", camera.invProjectionView);
+        Matrix4 invProj = new Matrix4(camera.projection).inv();
+        shader.setUniformMatrix("u_invProjection", invProj);
         shader.setUniformf("u_maxDistance", maxDistance);
         shader.setUniformf("u_thickness", thickness);
         shader.setUniformi("u_maxSteps", maxSteps);

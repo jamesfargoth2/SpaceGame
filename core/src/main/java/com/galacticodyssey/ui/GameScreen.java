@@ -139,6 +139,8 @@ public class GameScreen implements Screen {
     private final Vector3 barrelTipWorld = new Vector3();
     private float muzzleFlashTimer;
     private Texture particleTexture;
+    private static final Vector3 SUN_COLOR = new Vector3(1f, 0.95f, 0.9f);
+    private static final Vector3 AMBIENT_COLOR = new Vector3(0.1f, 0.1f, 0.15f);
 
     private DialogHudSystem dialogHudSystem;
     private boolean inDialog;
@@ -1044,9 +1046,9 @@ public class GameScreen implements Screen {
             () -> gameWorld.getParticleRenderSystem().render(),
             gameWorld.getLightingSystem(),
             sunDir,
-            new Vector3(1f, 0.95f, 0.9f),
+            SUN_COLOR,
             sunIntensity * 3f,
-            new Vector3(0.1f, 0.1f, 0.15f),
+            AMBIENT_COLOR,
             ambientIntensity
         );
 

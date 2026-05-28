@@ -14,10 +14,11 @@ import com.badlogic.gdx.utils.BufferUtils;
 public class GBuffer implements Disposable {
 
     public static final int COLOR_ATTACHMENT_COUNT = 3;
-    public static final Pixmap.Format RT0_FORMAT = Pixmap.Format.RGBA8888;
-    public static final Pixmap.Format RT1_FORMAT = Pixmap.Format.RGBA8888;
-    public static final Pixmap.Format RT2_FORMAT = Pixmap.Format.RGBA8888;
+    public static final Integer RT0_FORMAT = GL30.GL_RGBA8;
+    public static final Integer RT1_FORMAT = GL30.GL_RGBA16F;
+    public static final Integer RT2_FORMAT = GL30.GL_RGBA16F;
 
+    private final IntBuffer drawBuffers;
     private FrameBuffer fbo;
     private int width;
     private int height;
@@ -25,6 +26,8 @@ public class GBuffer implements Disposable {
     public GBuffer(int width, int height) {
         this.width = width;
         this.height = height;
+        this.drawBuffers = BufferUtils.newIntBuffer(3);
+        drawBuffers.put(GL30.GL_COLOR_ATTACHMENT0).put(GL30.GL_COLOR_ATTACHMENT1).put(GL30.GL_COLOR_ATTACHMENT2).flip();
         createFBO();
     }
 
@@ -44,8 +47,6 @@ public class GBuffer implements Disposable {
 
     public void begin() {
         fbo.begin();
-        IntBuffer drawBuffers = BufferUtils.newIntBuffer(3);
-        drawBuffers.put(GL30.GL_COLOR_ATTACHMENT0).put(GL30.GL_COLOR_ATTACHMENT1).put(GL30.GL_COLOR_ATTACHMENT2).flip();
         Gdx.gl30.glDrawBuffers(3, drawBuffers);
         Gdx.gl.glClearColor(0, 0, 0, 0);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT | GL20.GL_STENCIL_BUFFER_BIT);
