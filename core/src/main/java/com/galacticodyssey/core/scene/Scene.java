@@ -23,6 +23,8 @@ public final class Scene {
     public Scene(int id, SceneType type, double[] galaxyAnchor) {
         this.id = id;
         this.type = type;
-        this.galaxyAnchor = galaxyAnchor;
+        // Defensive copy: callers (e.g. SceneStreamingSystem) reuse one anchor array across
+        // multiple requests/scenes, so each scene must own an independent copy.
+        this.galaxyAnchor = galaxyAnchor.clone();
     }
 }
