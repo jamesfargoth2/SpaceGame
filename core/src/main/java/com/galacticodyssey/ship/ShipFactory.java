@@ -199,6 +199,12 @@ public class ShipFactory implements Disposable {
         entity.add(loadoutComp);
         entity.add(new ShipCargoComponent());
 
+        // Vehicle bay — pre-stocked with a starter rover
+        VehicleBayComponent vehicleBay = new VehicleBayComponent();
+        vehicleBay.capacity = 2;
+        vehicleBay.storedVehicleIds.add("rover_light");
+        entity.add(vehicleBay);
+
         // Exterior physics body (dynamic, zero-gravity so it hovers in place until piloted)
         PhysicsBodyComponent physicsBody = buildExteriorPhysicsBody(hull, mass, x, adjustedY, z);
         entity.add(physicsBody);
@@ -288,6 +294,12 @@ public class ShipFactory implements Disposable {
         ShipLoadoutComponent loadout = buildLoadoutComponent(design.sizeClass);
         entity.add(loadout);
         entity.add(new ShipCargoComponent());
+
+        // Vehicle bay — pre-stocked with a starter rover
+        VehicleBayComponent vehicleBay2 = new VehicleBayComponent();
+        vehicleBay2.capacity = 2;
+        vehicleBay2.storedVehicleIds.add("rover_light");
+        entity.add(vehicleBay2);
 
         PhysicsBodyComponent physComp = buildExteriorPhysicsBody(hull, mass, x, adjustedY, z);
         entity.add(physComp);
