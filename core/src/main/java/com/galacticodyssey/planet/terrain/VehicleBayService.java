@@ -63,6 +63,10 @@ public class VehicleBayService {
         PhysicsBodyComponent physics = vehicle.getComponent(PhysicsBodyComponent.class);
         if (physics != null && physics.body != null) {
             world.removeRigidBody(physics.body);
+            physics.body.dispose();
+            if (physics.shape != null) physics.shape.dispose();
+            physics.body = null;
+            physics.shape = null;
         }
         engine.removeEntity(vehicle);
         bay.storedVehicleIds.add(tag.definitionId);
