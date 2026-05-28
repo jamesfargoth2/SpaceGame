@@ -7,7 +7,14 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class TectonicModelTest {
 
-    // Two plates centered on the equator at +X-ish and -X-ish, boundary near +Z.
+    // Plate A near +X, plate B near -X, shared boundary near +Z. Both use Euler pole +Y.
+    // velocityAt the +Z point: pole +Y with +speed -> +X ; with -speed -> -X.
+    // CONVERGENT (plates close on the boundary): A moves -X (toward boundary) AND B moves +X
+    //   -> A has -speed, B has +speed.
+    // DIVERGENT (plates pull apart): A moves +X (toward its own center) AND B moves -X
+    //   -> A has +speed, B has -speed.
+    // The boundary normal n points from B's center toward A's center (~ +X here), so
+    // vRel = vA - vB has normalComp < 0 for the convergent case and > 0 for the divergent case.
     private Vector3 boundaryDir() { return new Vector3(0, 0, 1).nor(); }
 
     @Test
@@ -20,14 +27,10 @@ class TectonicModelTest {
     }
 
     @Test
-    void convergentBoundaryClassified() {
-        // Both plates rotate so their surface velocities near +Z point toward each other.
-        // Plate A center +X, pole +Y, +speed -> velocity at +Z is +X-ward... we instead
-        // pick poles so motion closes the +Z boundary. Use poles +Y and -Y, both +speed:
-        // vA at +Z = (Y x Z)=+X ; vB at +Z = (-Y x Z)=-X. n (B->A) ~ +X. vRel=vA-vB=+2X. normalComp>0 => divergent.
-        // So to get convergence we flip B's speed sign.
-        Plate a = new Plate(0, new Vector3(1, 0, 0.2f), false, 0.3f, new Vector3(0,1,0), 1f);
-        Plate b = new Plate(1, new Vector3(-1, 0, 0.2f), false, 0.3f, new Vector3(0,1,0), -1f);
+    void convergentOceanicWhenSubducting() {
+        // Both oceanic, plates closing on the +Z boundary -> subduction.
+        Plate a = new Plate(0, new Vector3(1, 0, 0.2f), true, -0.3f, new Vector3(0,1,0), -1f);
+        Plate b = new Plate(1, new Vector3(-1, 0, 0.2f), true, -0.3f, new Vector3(0,1,0), 1f);
         TectonicModel m = new TectonicModel(List.of(a, b), List.of(), TectonicConfig.defaults());
         BoundaryQuery q = m.boundaryAt(boundaryDir());
         assertEquals(BoundaryType.CONVERGENT_OCEANIC, q.type);
@@ -36,19 +39,18 @@ class TectonicModelTest {
 
     @Test
     void convergentContinentalWhenBothContinental() {
-        Plate a = new Plate(0, new Vector3(1, 0, 0.2f), false, 0.4f, new Vector3(0,1,0), 1f);
+        // Both continental, plates closing -> mountain collision.
+        Plate a = new Plate(0, new Vector3(1, 0, 0.2f), false, 0.4f, new Vector3(0,1,0), -1f);
         Plate b = new Plate(1, new Vector3(-1, 0, 0.2f), false, 0.4f, new Vector3(0,1,0), 1f);
-        // mark both continental
-        Plate ac = new Plate(0, a.center, false, 0.4f, a.eulerPole, 1f);
-        Plate bc = new Plate(1, b.center, false, 0.4f, b.eulerPole, -1f);
-        TectonicModel m = new TectonicModel(List.of(continental(ac), continental(bc)), List.of(), TectonicConfig.defaults());
+        TectonicModel m = new TectonicModel(List.of(a, b), List.of(), TectonicConfig.defaults());
         assertEquals(BoundaryType.CONVERGENT_CONTINENTAL, m.boundaryAt(boundaryDir()).type);
     }
 
     @Test
     void divergentBoundaryClassified() {
+        // Plates moving apart at the +Z boundary -> spreading.
         Plate a = new Plate(0, new Vector3(1, 0, 0.2f), true, -0.3f, new Vector3(0,1,0), 1f);
-        Plate b = new Plate(1, new Vector3(-1, 0, 0.2f), true, -0.3f, new Vector3(0,1,0), 1f);
+        Plate b = new Plate(1, new Vector3(-1, 0, 0.2f), true, -0.3f, new Vector3(0,1,0), -1f);
         TectonicModel m = new TectonicModel(List.of(a, b), List.of(), TectonicConfig.defaults());
         assertEquals(BoundaryType.DIVERGENT, m.boundaryAt(boundaryDir()).type);
     }
@@ -62,10 +64,5 @@ class TectonicModelTest {
         BoundaryQuery q = m.boundaryAt(new Vector3(1, 0, 0).nor());
         assertEquals(BoundaryType.NONE, q.type);
         assertEquals(1f, q.distanceNormalized, 1e-4f);
-    }
-
-    // helper: rebuild a plate flagged continental (oceanic=false) — used for readability above
-    private Plate continental(Plate p) {
-        return new Plate(p.id, p.center, false, Math.abs(p.baseElevation), p.eulerPole, p.angularSpeed);
     }
 }

@@ -55,8 +55,8 @@ public final class TectonicModel {
         float dn = MathUtils.clamp(half / config.boundaryInfluence, 0f, 1f);
         if (dn >= 1f) return new BoundaryQuery(BoundaryType.NONE, 1f);
 
-        // Tangential boundary normal pointing from A's center toward B's center.
-        n.set(b.center).sub(a.center);
+        // Tangential boundary normal pointing from B's center toward A's center.
+        n.set(a.center).sub(b.center);
         n.mulAdd(dir, -n.dot(dir)); // project onto tangent plane at dir
         if (n.len2() < 1e-12f) return new BoundaryQuery(BoundaryType.TRANSFORM, dn);
         n.nor();
@@ -70,9 +70,7 @@ public final class TectonicModel {
         BoundaryType type;
         if (Math.abs(normalComp) >= tangMag) {
             if (normalComp < 0f) {
-                boolean aContinental = !a.oceanic && a.baseElevation >= config.continentalBase;
-                boolean bContinental = !b.oceanic && b.baseElevation >= config.continentalBase;
-                type = (aContinental && bContinental)
+                type = (!a.oceanic && !b.oceanic)
                         ? BoundaryType.CONVERGENT_CONTINENTAL
                         : BoundaryType.CONVERGENT_OCEANIC;
             } else {
