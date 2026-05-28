@@ -54,7 +54,7 @@ public class PlayerPersistenceService {
                         rs.getObject("player_id", UUID.class), rs.getString("username"),
                         rs.getObject("last_zone_id", UUID.class),
                         rs.getDouble("last_galaxy_x"), rs.getDouble("last_galaxy_y"), rs.getDouble("last_galaxy_z"),
-                        rs.getString(7), rs.getString(8), rs.getString(9));
+                        rs.getString("inventory"), rs.getString("wallet"), rs.getString("player_state"));
             }
         }
     }

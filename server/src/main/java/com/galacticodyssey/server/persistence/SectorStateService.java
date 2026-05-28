@@ -38,8 +38,10 @@ public class SectorStateService {
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) return null;
                 return new SectorData(
-                        rs.getObject("sector_id", UUID.class), rs.getString(2), rs.getString(3),
-                        rs.getLong("population"), rs.getString(5), rs.getString(6));
+                        rs.getObject("sector_id", UUID.class),
+                        rs.getString("faction_control"), rs.getString("resource_levels"),
+                        rs.getLong("population"),
+                        rs.getString("trade_demand"), rs.getString("trade_supply"));
             }
         }
     }

@@ -11,6 +11,10 @@ public record ZoneDefinition(
         List<UUID> adjacentZoneIds,
         double boundaryOverlap
 ) {
+    public ZoneDefinition {
+        adjacentZoneIds = List.copyOf(adjacentZoneIds);
+    }
+
     public boolean containsPoint(double x, double y, double z) {
         return x >= minX && x <= maxX
                 && y >= minY && y <= maxY

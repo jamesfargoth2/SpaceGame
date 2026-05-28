@@ -50,7 +50,7 @@ public class EntityPersistenceService {
                             rs.getObject("entity_id", UUID.class), rs.getObject("zone_id", UUID.class),
                             rs.getString("entity_type"), rs.getDouble("galaxy_x"),
                             rs.getDouble("galaxy_y"), rs.getDouble("galaxy_z"),
-                            rs.getString(7), rs.getBoolean("is_active")));
+                            rs.getString("component_state"), rs.getBoolean("is_active")));
                 }
             }
         }
@@ -72,15 +72,20 @@ public class EntityPersistenceService {
         try (Connection conn = db.getConnection();
              PreparedStatement ps = conn.prepareStatement(UPSERT_ENTITY_SQL)) {
             conn.setAutoCommit(false);
-            for (EntityData data : entities) {
-                ps.setObject(1, data.entityId()); ps.setObject(2, data.zoneId());
-                ps.setString(3, data.entityType()); ps.setDouble(4, data.galaxyX());
-                ps.setDouble(5, data.galaxyY()); ps.setDouble(6, data.galaxyZ());
-                ps.setString(7, data.componentStateJson()); ps.setBoolean(8, data.isActive());
-                ps.addBatch();
+            try {
+                for (EntityData data : entities) {
+                    ps.setObject(1, data.entityId()); ps.setObject(2, data.zoneId());
+                    ps.setString(3, data.entityType()); ps.setDouble(4, data.galaxyX());
+                    ps.setDouble(5, data.galaxyY()); ps.setDouble(6, data.galaxyZ());
+                    ps.setString(7, data.componentStateJson()); ps.setBoolean(8, data.isActive());
+                    ps.addBatch();
+                }
+                ps.executeBatch();
+                conn.commit();
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
             }
-            ps.executeBatch();
-            conn.commit();
         }
     }
 
@@ -88,13 +93,18 @@ public class EntityPersistenceService {
         try (Connection conn = db.getConnection();
              PreparedStatement ps = conn.prepareStatement(UPDATE_POSITION_SQL)) {
             conn.setAutoCommit(false);
-            for (EntityData data : entities) {
-                ps.setDouble(1, data.galaxyX()); ps.setDouble(2, data.galaxyY());
-                ps.setDouble(3, data.galaxyZ()); ps.setObject(4, data.entityId());
-                ps.addBatch();
+            try {
+                for (EntityData data : entities) {
+                    ps.setDouble(1, data.galaxyX()); ps.setDouble(2, data.galaxyY());
+                    ps.setDouble(3, data.galaxyZ()); ps.setObject(4, data.entityId());
+                    ps.addBatch();
+                }
+                ps.executeBatch();
+                conn.commit();
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
             }
-            ps.executeBatch();
-            conn.commit();
         }
     }
 

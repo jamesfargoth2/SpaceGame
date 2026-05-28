@@ -5,9 +5,13 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.UUID;
-import java.util.function.Supplier;
 
 public class ZoneRouter {
+
+    @FunctionalInterface
+    public interface ConnectionSupplier {
+        Connection get() throws SQLException;
+    }
 
     public record RouteInfo(UUID zoneId, String serverAddress) {}
 
@@ -27,9 +31,9 @@ public class ZoneRouter {
             "JOIN zone_assignments z ON p.last_zone_id = z.zone_id " +
             "WHERE p.username = ? AND z.status = 'ACTIVE'";
 
-    private final Supplier<Connection> connectionSupplier;
+    private final ConnectionSupplier connectionSupplier;
 
-    public ZoneRouter(Supplier<Connection> connectionSupplier) {
+    public ZoneRouter(ConnectionSupplier connectionSupplier) {
         this.connectionSupplier = connectionSupplier;
     }
 

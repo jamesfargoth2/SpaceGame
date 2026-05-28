@@ -43,6 +43,14 @@ public class GatewayNetworkListener {
     }
 
     private void handleLogin(int connectionId, LoginRequest request) {
+        if (request.username == null || request.username.isEmpty()) {
+            LoginResponse response = new LoginResponse();
+            response.success = false;
+            response.failureReason = "Username required";
+            sendCallback.accept(connectionId, response);
+            return;
+        }
+
         UUID playerId = UUID.nameUUIDFromBytes(request.username.getBytes());
 
         String zoneAddress = null;

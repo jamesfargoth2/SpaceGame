@@ -129,26 +129,6 @@ public class ClientNetworkSystem extends EntitySystem {
         destroyQueue.add(destroy);
     }
 
-    /** Drains all queued {@link EntitySpawnMessage}s and returns them as a list. */
-    public java.util.List<EntitySpawnMessage> drainSpawnMessages() {
-        java.util.List<EntitySpawnMessage> result = new java.util.ArrayList<>();
-        EntitySpawnMessage msg;
-        while ((msg = spawnQueue.poll()) != null) {
-            result.add(msg);
-        }
-        return result;
-    }
-
-    /** Drains all queued {@link EntityBatchUpdate}s and returns them as a list. */
-    public java.util.List<EntityBatchUpdate> drainBatchUpdates() {
-        java.util.List<EntityBatchUpdate> result = new java.util.ArrayList<>();
-        EntityBatchUpdate msg;
-        while ((msg = batchQueue.poll()) != null) {
-            result.add(msg);
-        }
-        return result;
-    }
-
     // -------------------------------------------------------------------------
     // Engine update
     // -------------------------------------------------------------------------

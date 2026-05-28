@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class NetworkIntegrationTest {
 
     private Engine serverEngine;
+    private Engine clientEngine;
     private ServerReplicationSystem replicationSystem;
     private ClientNetworkSystem clientSystem;
     private Kryo kryo;
@@ -39,6 +40,8 @@ class NetworkIntegrationTest {
         serverEngine.addSystem(replicationSystem);
 
         clientSystem = new ClientNetworkSystem();
+        clientEngine = new Engine();
+        clientEngine.addSystem(clientSystem);
 
         kryo = new Kryo();
         KryoRegistrar.register(kryo);
@@ -96,7 +99,8 @@ class NetworkIntegrationTest {
             }
         }
         assertTrue(foundSpawn, "Server should have sent spawn");
-        assertEquals(1, clientSystem.drainSpawnMessages().size());
+        clientEngine.update(0.05f);
+        assertNotNull(clientSystem.getRemoteEntity(1), "Client should have spawned remote entity");
 
         // 5. Server ticks again — should produce EntityBatchUpdate
         serverPackets.clear();
@@ -104,13 +108,16 @@ class NetworkIntegrationTest {
         replicationSystem.setServerTick(1);
         serverEngine.update(0.05f);
 
+        boolean foundBatch = false;
         for (var packet : serverPackets) {
             if (packet.message() instanceof EntityBatchUpdate batch) {
                 EntityBatchUpdate receivedBatch = roundTrip(batch, EntityBatchUpdate.class);
                 clientSystem.handleEntityBatchUpdate(receivedBatch);
+                foundBatch = true;
             }
         }
-        assertEquals(1, clientSystem.drainBatchUpdates().size());
+        assertTrue(foundBatch, "Server should have sent batch update");
+        clientEngine.update(0.05f);
 
         // 6. Client sends InputPacket
         InputPacket inputPkt = new InputPacket();
