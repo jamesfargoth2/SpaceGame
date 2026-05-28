@@ -44,10 +44,14 @@ class SceneLoaderTest {
         other.add(new SceneComponent(99));
         engine.addEntity(other);
 
-        assertEquals(1, scene.assets.get(0).getRefCount());
+        com.galacticodyssey.data.AssetHandle<net.mgsx.gltf.scene3d.scene.SceneAsset> handle =
+            scene.assets.get(0);
+        assertEquals(1, handle.getRefCount());
         loader.unload(scene);
 
-        assertEquals(0, scene.assets.get(0).getRefCount());
+        // Handle is released and the scene's asset list is emptied on unload.
+        assertEquals(0, handle.getRefCount());
+        assertEquals(0, scene.assets.size);
         // Only the scene-42 entity is removed.
         assertEquals(1, engine.getEntitiesFor(Family.all(SceneComponent.class).get()).size());
         assertEquals(99, engine.getEntitiesFor(Family.all(SceneComponent.class).get())

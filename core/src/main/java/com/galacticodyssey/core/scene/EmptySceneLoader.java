@@ -55,6 +55,7 @@ public class EmptySceneLoader implements SceneLoader {
         for (AssetHandle<SceneAsset> handle : scene.assets) {
             handle.release();
         }
+        scene.assets.clear();
         removeTaggedEntities(scene.id);
     }
 
