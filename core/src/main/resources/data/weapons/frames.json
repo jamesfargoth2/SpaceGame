@@ -20,6 +20,6 @@
   {"id":"sniper_railgun","name":"Gauss Lance","category":"SNIPER","baseDamage":120.0,"baseFireRate":0.4,"baseSpread":0.1,"baseRecoil":9.0,"magSize":3,"modSlotCount":1,"weight":7.0,"firingMode":"SEMI","hitscan":true,"range":400.0,"reloadTime":4.0},
 
   {"id":"heavy_lmg","name":"Avalanche LMG","category":"HEAVY","baseDamage":18.0,"baseFireRate":12.0,"baseSpread":4.5,"baseRecoil":3.5,"magSize":100,"modSlotCount":1,"weight":8.0,"firingMode":"AUTO","hitscan":true,"range":80.0,"reloadTime":5.0},
-  {"id":"heavy_grenade","name":"Thumper GL","category":"HEAVY","baseDamage":90.0,"baseFireRate":1.0,"baseSpread":3.0,"baseRecoil":8.0,"magSize":6,"modSlotCount":1,"weight":6.5,"firingMode":"SEMI","hitscan":false,"range":120.0,"reloadTime":4.5},
+  {"id":"heavy_grenade","name":"Thumper GL","category":"HEAVY","baseDamage":90.0,"baseFireRate":1.0,"baseSpread":3.0,"baseRecoil":8.0,"magSize":6,"modSlotCount":1,"weight":6.5,"firingMode":"SEMI","hitscan":false,"range":120.0,"reloadTime":4.5,"grenadeTypeId":"frag"},
   {"id":"heavy_flamer","name":"Inferno Mk.II","category":"HEAVY","baseDamage":8.0,"baseFireRate":20.0,"baseSpread":12.0,"baseRecoil":0.5,"magSize":200,"modSlotCount":0,"weight":9.0,"firingMode":"AUTO","hitscan":false,"range":15.0,"reloadTime":6.0}
 ]

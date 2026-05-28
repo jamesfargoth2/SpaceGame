@@ -31,6 +31,7 @@ public final class WeaponStatsResolver {
         public float statusEffectChance;
         public Float projectileSpeed;
         public String ammoTypeId;
+        public String grenadeTypeId;
     }
 
     public static class MeleeStats {
@@ -142,6 +143,7 @@ public final class WeaponStatsResolver {
         stats.statusEffectChance = statusEffectChance;
         stats.projectileSpeed    = projectileSpeed;
         stats.ammoTypeId         = ammoTypeId;
+        stats.grenadeTypeId      = frame.grenadeTypeId;
         return stats;
     }
 

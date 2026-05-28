@@ -11,6 +11,8 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Pools;
 import com.galacticodyssey.combat.CombatEnums.FuseType;
 import com.galacticodyssey.combat.components.GrenadeComponent;
+import com.galacticodyssey.combat.data.GrenadeData;
+import com.galacticodyssey.combat.data.GrenadeDataRegistry;
 import com.galacticodyssey.combat.components.HealthComponent;
 import com.galacticodyssey.combat.components.HitboxComponent;
 import com.galacticodyssey.combat.components.ProjectileComponent;
@@ -31,6 +33,7 @@ public class ProjectileSystem extends IteratingSystem {
     private final EventBus eventBus;
     private Engine engine;
     private final Array<Entity> toRemove = new Array<>();
+    private GrenadeDataRegistry grenadeRegistry;
 
     private static final Family TARGET_FAMILY =
         Family.all(TransformComponent.class, HitboxComponent.class, HealthComponent.class).get();
@@ -43,6 +46,10 @@ public class ProjectileSystem extends IteratingSystem {
         ComponentMapper.getFor(RangedWeaponComponent.class);
     private static final ComponentMapper<HealthComponent> HEALTH_M =
         ComponentMapper.getFor(HealthComponent.class);
+
+    public void setGrenadeDataRegistry(GrenadeDataRegistry registry) {
+        this.grenadeRegistry = registry;
+    }
 
     public ProjectileSystem(EventBus eventBus) {
         super(Family.all(ProjectileComponent.class, TransformComponent.class).get(), PRIORITY);
@@ -95,6 +102,30 @@ public class ProjectileSystem extends IteratingSystem {
 
         projectile.add(transform);
         projectile.add(proj);
+
+        // Attach GrenadeComponent if this is a grenade launcher
+        if (weaponComp.grenadeTypeId != null && grenadeRegistry != null) {
+            GrenadeData gData = grenadeRegistry.get(weaponComp.grenadeTypeId);
+            if (gData != null) {
+                GrenadeComponent gc = new GrenadeComponent();
+                gc.grenadeTypeId = gData.id;
+                gc.fuseType = gData.fuseType;
+                gc.fuseDuration = gData.fuseDuration;
+                gc.fuseTimer = gData.fuseDuration;
+                gc.cookTime = 0f;
+                gc.cookable = false;
+                gc.bounceRestitution = gData.bounceRestitution;
+                gc.maxBounces = gData.maxBounces;
+                gc.damage = gData.damage;
+                gc.blastRadius = gData.blastRadius;
+                gc.blastFraction = gData.blastFraction;
+                gc.thermalFraction = gData.thermalFraction;
+                gc.fragmentFraction = gData.fragmentFraction;
+                gc.isDirectional = gData.isDirectional;
+                projectile.add(gc);
+            }
+        }
+
         engine.addEntity(projectile);
 
         Pools.free(dir);

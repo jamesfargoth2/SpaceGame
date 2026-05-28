@@ -18,4 +18,5 @@ public class WeaponFrameData {
     public boolean hitscan;
     public float range = 100f;
     public float reloadTime = 2.0f;
+    public String grenadeTypeId;
 }

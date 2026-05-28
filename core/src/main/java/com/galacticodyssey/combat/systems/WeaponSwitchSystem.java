@@ -160,6 +160,7 @@ public class WeaponSwitchSystem extends IteratingSystem {
             rangedComp.statusEffectChance  = stats.statusEffectChance;
             rangedComp.projectileSpeed     = stats.projectileSpeed;
             rangedComp.ammoTypeId          = stats.ammoTypeId;
+            rangedComp.grenadeTypeId       = stats.grenadeTypeId;
             // Reset timers and ammo for the newly drawn weapon
             rangedComp.currentAmmo         = stats.magSize;
             rangedComp.fireTimer           = 0f;

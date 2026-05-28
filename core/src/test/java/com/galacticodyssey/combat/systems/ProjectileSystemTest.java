@@ -8,6 +8,8 @@ import com.galacticodyssey.combat.CombatEnums.DamageType;
 import com.galacticodyssey.combat.CombatEnums.FiringMode;
 import com.galacticodyssey.combat.CombatEnums.FuseType;
 import com.galacticodyssey.combat.components.GrenadeComponent;
+import com.galacticodyssey.combat.data.GrenadeData;
+import com.galacticodyssey.combat.data.GrenadeDataRegistry;
 import com.galacticodyssey.combat.components.HealthComponent;
 import com.galacticodyssey.combat.components.HitboxComponent;
 import com.galacticodyssey.combat.components.ProjectileComponent;
@@ -286,5 +288,54 @@ class ProjectileSystemTest {
         assertEquals(0f, gc.fuseTimer, 0.001f);
         // Grenade entity should still exist for GrenadeSystem to handle
         assertTrue(engine.getEntities().size() > 1, "Grenade entity should still exist for GrenadeSystem");
+    }
+
+    @Test
+    void launcherProjectileGetsGrenadeComponent() {
+        GrenadeData frag = new GrenadeData();
+        frag.id = "frag";
+        frag.fuseType = FuseType.TIMED;
+        frag.fuseDuration = 3.0f;
+        frag.damage = 50f;
+        frag.blastRadius = 8f;
+        frag.blastFraction = 0.5f;
+        frag.thermalFraction = 0.1f;
+        frag.fragmentFraction = 0.4f;
+        frag.bounceRestitution = 0.3f;
+        frag.maxBounces = 5;
+        GrenadeDataRegistry grenadeRegistry = new GrenadeDataRegistry();
+        grenadeRegistry.register(frag);
+
+        // Get the ProjectileSystem from the engine and set the registry
+        ProjectileSystem projSystem = engine.getSystem(ProjectileSystem.class);
+        projSystem.setGrenadeDataRegistry(grenadeRegistry);
+
+        // Modify the shooter's weapon to be a grenade launcher
+        RangedWeaponComponent weapon = shooter.getComponent(RangedWeaponComponent.class);
+        weapon.grenadeTypeId = "frag";
+        weapon.hitscan = false;
+        weapon.damageType = DamageType.EXPLOSIVE;
+
+        // Fire weapon
+        eventBus.publish(new WeaponFiredEvent(shooter, new Vector3(0, 0, -1), false));
+        engine.update(0.016f);
+
+        // Find the spawned projectile (not the shooter)
+        Entity projectile = null;
+        for (Entity e : engine.getEntitiesFor(PROJECTILE_FAMILY)) {
+            if (e != shooter) {
+                projectile = e;
+                break;
+            }
+        }
+
+        assertNotNull(projectile, "Projectile should be spawned");
+        GrenadeComponent gc = GrenadeComponent.MAPPER.get(projectile);
+        assertNotNull(gc, "Launcher projectile should have GrenadeComponent");
+        assertEquals("frag", gc.grenadeTypeId);
+        assertEquals(FuseType.TIMED, gc.fuseType);
+        assertEquals(3.0f, gc.fuseDuration, 0.001f);
+        assertEquals(3.0f, gc.fuseTimer, 0.001f);
+        assertFalse(gc.cookable, "Launcher grenades should not be cookable");
     }
 }
