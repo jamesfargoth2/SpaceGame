@@ -7,7 +7,7 @@ public class SwimConfigData {
     public float wadingSpeedMin = 0.4f;
     public float playerDragCoefficient = 1.2f;
     public float playerCrossSectionArea = 0.7f;
-    public float buoyancySpringK = 50.0f;
+    public float buoyancySpringK = 10.0f;
     public float buoyancyDamping = 8.0f;
     public float surfaceSwimForce = 40.0f;
     public float diveSwimForce = 50.0f;

@@ -15,8 +15,15 @@ public class WeaponDataRegistry {
     private final Map<String, WeaponModData> mods = new HashMap<>();
     private final Map<String, QualityTierData> qualities = new HashMap<>();
 
+    @SuppressWarnings("unchecked")
     public void loadFromFiles() {
-        Json json = new Json();
+        Json json = new Json() {
+            @Override
+            protected Object newInstance(Class type) {
+                if (type == java.util.Map.class) return new HashMap<>();
+                return super.newInstance(type);
+            }
+        };
         json.setIgnoreUnknownFields(true);
         JsonReader reader = new JsonReader();
 

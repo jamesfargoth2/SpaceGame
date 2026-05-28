@@ -140,7 +140,7 @@ public class CombatInputSystem extends IteratingSystem {
 
         float cosPitch = MathUtils.cos(pitchRad);
         input.aimDirection.set(
-             MathUtils.sin(yawRad) * cosPitch,   // x
+            -MathUtils.sin(yawRad) * cosPitch,   // x  (matches camera forward; yaw decreases on right-turn)
              MathUtils.sin(pitchRad),             // y  (positive pitch looks up)
             -MathUtils.cos(yawRad) * cosPitch    // z  (negative = forward)
         );
@@ -152,6 +152,7 @@ public class CombatInputSystem extends IteratingSystem {
         input.meleeAttackRequested = pendingMeleeAttack;
         input.blockRequested = pendingBlock;
         input.blockHeld      = pendingBlockHeld;
+        input.aimHeld        = pendingBlockHeld;
         input.quickMeleeRequested = pendingQuickMelee;
         input.switchSlotRequested = pendingSwitchSlot;
         input.grenadeThrowRequested = pendingGrenadeThrow;

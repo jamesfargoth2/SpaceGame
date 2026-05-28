@@ -44,7 +44,7 @@ import com.galacticodyssey.core.EventBus;
 import com.galacticodyssey.core.components.TransformComponent;
 import com.galacticodyssey.player.components.FPSCameraComponent;
 import com.galacticodyssey.player.components.MovementStateComponent;
-import com.galacticodyssey.player.components.PlayerTagComponent;
+import com.galacticodyssey.core.components.PlayerTagComponent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

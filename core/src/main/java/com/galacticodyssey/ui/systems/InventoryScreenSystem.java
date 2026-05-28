@@ -24,6 +24,7 @@ import com.galacticodyssey.equipment.components.InventoryComponent;
 import com.galacticodyssey.equipment.events.EquipmentChangedEvent;
 import com.galacticodyssey.equipment.items.Item;
 import com.galacticodyssey.equipment.systems.EquipmentSystem;
+import com.galacticodyssey.ui.ManagedScreen;
 import com.galacticodyssey.ui.actors.EquipmentSlotsActor;
 import com.galacticodyssey.ui.actors.InventoryGridActor;
 import com.galacticodyssey.ui.actors.ItemDetailPanel;
@@ -38,7 +39,7 @@ import com.galacticodyssey.ui.events.InventoryOpenedEvent;
  *
  *  <p>Call {@link #toggle()} to open or close the screen. Opening publishes
  *  {@link InventoryOpenedEvent}; closing publishes {@link InventoryClosedEvent}.</p> */
-public class InventoryScreenSystem implements Disposable {
+public class InventoryScreenSystem implements ManagedScreen {
 
     private final EventBus eventBus;
     private final Skin skin;
@@ -69,7 +70,10 @@ public class InventoryScreenSystem implements Disposable {
     // State machine
     // -------------------------------------------------------------------------
 
-    /** Returns {@code true} if the inventory screen is currently visible. */
+    @Override
+    public String getDisplayName() { return "Inventory"; }
+
+    @Override
     public boolean isOpen() { return open; }
 
     /** Toggles between open and closed. */
@@ -77,14 +81,14 @@ public class InventoryScreenSystem implements Disposable {
         if (open) close(); else open();
     }
 
-    /** Opens the inventory. No-op (and no event) if already open. */
+    @Override
     public void open() {
         if (open) return;
         open = true;
         eventBus.publish(new InventoryOpenedEvent());
     }
 
-    /** Closes the inventory. No-op (and no event) if already closed. */
+    @Override
     public void close() {
         if (!open) return;
         open = false;
@@ -157,21 +161,21 @@ public class InventoryScreenSystem implements Disposable {
         equipmentSlots.setOnSlotRightClicked(this::onSlotRightClicked);
     }
 
-    /** Returns the Scene2D {@link Stage} so the caller can route input to it. */
+    @Override
     public Stage getStage() { return stage; }
 
     // -------------------------------------------------------------------------
     // Per-frame update
     // -------------------------------------------------------------------------
 
-    /** Acts and draws the stage. Does nothing if the screen is closed or not yet initialised. */
+    @Override
     public void render(float delta) {
         if (!open || stage == null) return;
         stage.act(delta);
         stage.draw();
     }
 
-    /** Updates the stage viewport on window resize. */
+    @Override
     public void resize(int width, int height) {
         if (stage != null) stage.getViewport().update(width, height, true);
     }

@@ -57,6 +57,8 @@ class PlayerMovementSystemTest {
 
         engine = new Engine();
         movementSystem = new PlayerMovementSystem(dynamicsWorld);
+        // Place planet centre far below so localUp stays (0,1,0) on the flat test ground.
+        movementSystem.setPlanetCenter(new Vector3(0f, -1_000_000f, 0f));
         engine.addSystem(movementSystem);
     }
 

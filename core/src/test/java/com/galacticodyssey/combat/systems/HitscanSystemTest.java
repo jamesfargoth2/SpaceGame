@@ -75,12 +75,12 @@ class HitscanSystemTest {
         eventBus.subscribe(HitscanHitEvent.class, hitEvents::add);
     }
 
-    /** Shooter at (0,1,0), target at (0,1,-10), fire toward (0,0,-1) — should register a hit. */
+    /** Muzzle at (0,1.7,0), target at (0,1.7,-10), fire toward (0,0,-1) — should register a hit. */
     @Test
     void hitscanHitPublishedForTargetInRange() {
-        targetTransform.position.set(0f, 1f, -10f);
+        targetTransform.position.set(0f, 1.7f, -10f);
 
-        eventBus.publish(new WeaponFiredEvent(shooter, new Vector3(0f, 0f, -1f), true));
+        eventBus.publish(new WeaponFiredEvent(shooter, new Vector3(0f, 0f, -1f), true, new Vector3(0f, 1.7f, 0f)));
 
         assertEquals(1, hitEvents.size(), "Should publish exactly one HitscanHitEvent");
         HitscanHitEvent event = hitEvents.get(0);
@@ -96,7 +96,7 @@ class HitscanSystemTest {
     void noHitWhenTargetOutOfRange() {
         targetTransform.position.set(0f, 1f, -200f);
 
-        eventBus.publish(new WeaponFiredEvent(shooter, new Vector3(0f, 0f, -1f), true));
+        eventBus.publish(new WeaponFiredEvent(shooter, new Vector3(0f, 0f, -1f), true, new Vector3(0f, 1.7f, -0.5f)));
 
         assertTrue(hitEvents.isEmpty(), "Should not hit a target beyond weapon range");
     }
@@ -107,7 +107,7 @@ class HitscanSystemTest {
         targetTransform.position.set(0f, 1f, -10f);
         weapon.hitscan = false;
 
-        eventBus.publish(new WeaponFiredEvent(shooter, new Vector3(0f, 0f, -1f), false));
+        eventBus.publish(new WeaponFiredEvent(shooter, new Vector3(0f, 0f, -1f), false, new Vector3(0f, 1.7f, -0.5f)));
 
         assertTrue(hitEvents.isEmpty(), "HitscanSystem must not process non-hitscan WeaponFiredEvents");
     }

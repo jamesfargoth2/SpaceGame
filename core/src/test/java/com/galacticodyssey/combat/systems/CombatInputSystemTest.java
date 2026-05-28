@@ -5,7 +5,7 @@ import com.badlogic.ashley.core.Entity;
 import com.galacticodyssey.combat.CombatEnums.AttackDirection;
 import com.galacticodyssey.combat.components.CombatInputComponent;
 import com.galacticodyssey.player.components.FPSCameraComponent;
-import com.galacticodyssey.player.components.PlayerTagComponent;
+import com.galacticodyssey.core.components.PlayerTagComponent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

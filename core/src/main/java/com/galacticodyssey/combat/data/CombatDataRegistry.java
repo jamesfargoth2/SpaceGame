@@ -13,8 +13,15 @@ public class CombatDataRegistry {
     private final Map<String, AIArchetypeData> aiArchetypes = new HashMap<>();
     private DamageConfigData damageConfig;
 
+    @SuppressWarnings("unchecked")
     public void loadFromFiles() {
-        Json json = new Json();
+        Json json = new Json() {
+            @Override
+            protected Object newInstance(Class type) {
+                if (type == java.util.Map.class) return new HashMap<>();
+                return super.newInstance(type);
+            }
+        };
         json.setIgnoreUnknownFields(true);
         JsonReader reader = new JsonReader();
 

@@ -1,0 +1,59 @@
+{
+  "id": "test_merchant",
+  "startNodeId": "greeting",
+  "nodes": {
+    "greeting": {
+      "speakerLabel": "Merchant",
+      "text": "Welcome, traveler. I don't see many visitors out here. What brings you to this rock?",
+      "choices": [
+        { "key": "trade", "text": "I'm looking to trade.", "nextNodeId": "trade_talk" },
+        { "key": "info", "text": "What can you tell me about this place?", "nextNodeId": "local_info" },
+        { "key": "bye", "text": "Just passing through.", "nextNodeId": "farewell" }
+      ]
+    },
+    "trade_talk": {
+      "speakerLabel": "Merchant",
+      "text": "I've got supplies, fuel cells, and a few... specialty items. Nothing comes cheap out here though.",
+      "choices": [
+        { "key": "specialty", "text": "What kind of specialty items?", "nextNodeId": "specialty_items" },
+        { "key": "back", "text": "Maybe later.", "nextNodeId": "farewell" }
+      ]
+    },
+    "specialty_items": {
+      "speakerLabel": "Merchant",
+      "text": "Modified thruster coils, pre-war nav data, the occasional alien artifact. Don't ask where I get them.",
+      "choices": [
+        { "key": "artifacts", "text": "Alien artifacts? Tell me more.", "nextNodeId": "artifacts" },
+        { "key": "back", "text": "Interesting. I'll think about it.", "nextNodeId": "farewell" }
+      ]
+    },
+    "artifacts": {
+      "speakerLabel": "Merchant",
+      "text": "Found deep in derelict stations. Strange alloys, unknown inscriptions. Collectors pay well, but handling them... changes people. Or so they say.",
+      "choices": [
+        { "key": "back", "text": "I'll keep that in mind.", "nextNodeId": "farewell" }
+      ]
+    },
+    "local_info": {
+      "speakerLabel": "Merchant",
+      "text": "This outpost sits at the edge of contested space. Three factions claim it, none defend it. Makes it perfect for trade, terrible for sleeping soundly.",
+      "choices": [
+        { "key": "factions", "text": "Which factions?", "nextNodeId": "factions" },
+        { "key": "trade", "text": "Sounds like opportunity. What do you sell?", "nextNodeId": "trade_talk" },
+        { "key": "bye", "text": "Thanks for the info.", "nextNodeId": "farewell" }
+      ]
+    },
+    "factions": {
+      "speakerLabel": "Merchant",
+      "text": "The Hegemony wants order, the Free Traders want profit, and the Remnant just want to be left alone. Pick your friends carefully out here.",
+      "choices": [
+        { "key": "back", "text": "Good to know. Thanks.", "nextNodeId": "farewell" }
+      ]
+    },
+    "farewell": {
+      "speakerLabel": "Merchant",
+      "text": "Safe travels. The void doesn't forgive carelessness.",
+      "choices": []
+    }
+  }
+}

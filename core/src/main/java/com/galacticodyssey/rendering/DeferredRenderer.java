@@ -137,10 +137,16 @@ public class DeferredRenderer implements Disposable {
             sunDirection, sunColor, sunIntensity,
             ambientColor, ambientIntensity, lights);
 
-        forwardPass.render(lightingPass.getHDRBuffer(), camera,
-            skyRenderer, waterRenderer, particleRenderer);
-
-        postFX.apply(lightingPass.getHDRBuffer(), gBuffer, camera);
+        // DEBUG: blit lighting HDR output directly to screen
+        Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, 0);
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+        Gdx.gl.glDisable(GL20.GL_DEPTH_TEST);
+        ShaderProgram debugBlit = shaderCache.get("fullscreen.vert", "fxaa.frag");
+        debugBlit.bind();
+        lightingPass.getHDRTexture().bind(0);
+        debugBlit.setUniformi("u_inputTex", 0);
+        debugBlit.setUniformf("u_texelSize", 1f / width, 1f / height);
+        quad.render(debugBlit);
     }
 
     public void setDeferredEnabled(boolean enabled) { this.deferredEnabled = enabled; }

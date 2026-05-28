@@ -62,6 +62,7 @@ public final class GalaxyGenerationPipeline {
         StarPosition chosenStar = candidates.get(chosenIdx);
         StarSystem chosenSystem = starGen.generate(chosenStar, targetRegion);
         session.startingSystem = chosenSystem;
+        session.startingStarPosition = chosenStar;
 
         String starName = nameGen.starName(new Random(chosenStar.uniqueId ^ session.seed));
         session.log.add("Habitable zone identified around "
@@ -101,7 +102,7 @@ public final class GalaxyGenerationPipeline {
         float groundH = TerrainGenerator.getHeightAt(
             hmap, TERRAIN_VERTS, TERRAIN_VERTS, TERRAIN_SIZE, TERRAIN_SIZE, 0f, 0f);
         session.playerSpawnPos = new Vector3(0f, groundH + 2f, 0f);
-        float shipX = 15f;
+        float shipX = 75f;
         float shipGroundH = TerrainGenerator.getHeightAt(
             hmap, TERRAIN_VERTS, TERRAIN_VERTS, TERRAIN_SIZE, TERRAIN_SIZE, shipX, 0f);
         session.shipSpawnPos = new Vector3(shipX, shipGroundH + 0.5f, 0f);

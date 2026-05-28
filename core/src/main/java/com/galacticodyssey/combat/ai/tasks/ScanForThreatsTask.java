@@ -10,7 +10,7 @@ import com.badlogic.gdx.ai.btree.Task;
 import com.badlogic.gdx.math.Vector3;
 import com.galacticodyssey.combat.components.CombatAIComponent;
 import com.galacticodyssey.core.components.TransformComponent;
-import com.galacticodyssey.player.components.PlayerTagComponent;
+import com.galacticodyssey.core.components.PlayerTagComponent;
 
 /**
  * Scans engine entities for PlayerTagComponent entities within aggroRange.

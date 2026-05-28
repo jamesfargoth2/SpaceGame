@@ -87,7 +87,7 @@ public class ProjectileSystem extends IteratingSystem {
         Entity projectile = engine.createEntity();
 
         TransformComponent transform = engine.createComponent(TransformComponent.class);
-        transform.position.set(shooterTransform.position);
+        transform.position.set(event.muzzlePosition);
 
         ProjectileComponent proj = engine.createComponent(ProjectileComponent.class);
         proj.velocity.set(dir).scl(speed);

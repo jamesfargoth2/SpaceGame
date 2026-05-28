@@ -5,6 +5,7 @@ import com.badlogic.ashley.utils.ImmutableArray;
 import com.badlogic.gdx.math.Vector3;
 import com.galacticodyssey.core.EventBus;
 import com.galacticodyssey.core.components.TransformComponent;
+import com.galacticodyssey.ship.power.PowerStateComponent;
 import com.galacticodyssey.ship.weapons.ShipWeaponEnums.*;
 import com.galacticodyssey.ship.weapons.components.ShipHardpointComponent;
 import com.galacticodyssey.ship.weapons.components.ShipWeaponHeatComponent;
@@ -50,6 +51,24 @@ public class ShipWeaponSystem extends EntitySystem {
         if (hp.fireTimer > 0) return false;
         if (heat != null && heat.isOverheated(hardpointId)) return false;
         if (!hp.mountedWeapon.canFire()) return false;
+
+        // Consume energy from capacitor/battery if power system is present
+        if (hp.mountedWeapon.energyCost > 0f) {
+            PowerStateComponent power = shipEntity.getComponent(PowerStateComponent.class);
+            if (power != null) {
+                if (power.capacitorCharge >= hp.mountedWeapon.energyCost) {
+                    power.capacitorCharge -= hp.mountedWeapon.energyCost;
+                } else {
+                    float deficit = hp.mountedWeapon.energyCost - power.capacitorCharge;
+                    power.capacitorCharge = 0f;
+                    if (power.batteryCharge >= deficit) {
+                        power.batteryCharge -= deficit;
+                    } else {
+                        return false;
+                    }
+                }
+            }
+        }
 
         hp.mountedWeapon.consumeAmmo();
         hp.fireTimer = 1f / hp.mountedWeapon.fireRate;

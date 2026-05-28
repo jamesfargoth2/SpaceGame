@@ -3,15 +3,18 @@ package com.galacticodyssey.water;
 import com.badlogic.ashley.core.Engine;
 import com.badlogic.ashley.core.Entity;
 import com.badlogic.gdx.math.MathUtils;
+import com.galacticodyssey.water.systems.WaveSystem;
 import java.util.Random;
 
 public class OceanSpawner {
 
     private final Engine engine;
+    private final WaveSystem waveSystem;
     private Entity oceanEntity;
 
-    public OceanSpawner(Engine engine) {
+    public OceanSpawner(Engine engine, WaveSystem waveSystem) {
         this.engine = engine;
+        this.waveSystem = waveSystem;
     }
 
     public Entity spawnOcean(float baseHeight, float density, float viscosity,
@@ -40,6 +43,7 @@ public class OceanSpawner {
 
         oceanEntity.add(water);
         engine.addEntity(oceanEntity);
+        waveSystem.configure(water);
         return oceanEntity;
     }
 

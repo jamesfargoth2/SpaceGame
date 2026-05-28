@@ -5,7 +5,7 @@
   "wadingSpeedMin": 0.4,
   "playerDragCoefficient": 1.2,
   "playerCrossSectionArea": 0.7,
-  "buoyancySpringK": 50.0,
+  "buoyancySpringK": 10.0,
   "buoyancyDamping": 8.0,
   "surfaceSwimForce": 40.0,
   "diveSwimForce": 50.0,

@@ -20,6 +20,7 @@ import com.galacticodyssey.player.components.PlayerTargetComponent;
 import com.galacticodyssey.ship.components.FuelTankComponent;
 import com.galacticodyssey.ship.components.ShipFlightComponent;
 import com.galacticodyssey.ship.components.ShipThermalComponent;
+import com.galacticodyssey.ship.power.PowerStateComponent;
 import com.galacticodyssey.ship.events.ReentryHeatingEvent;
 import com.galacticodyssey.ship.events.StallWarningEvent;
 import com.galacticodyssey.ship.weapons.components.WeaponGroupComponent;
@@ -57,6 +58,8 @@ public class CockpitHUDSystem extends EntitySystem implements Disposable {
     private Label targetInfoLabel;
     private Label fuelLabel;
     private Label heatLabel;
+    private Label powerLabel;
+    private Label capacitorLabel;
     private Label alertLabel;
     private Label[] weaponGroupLabels;
 
@@ -168,6 +171,8 @@ public class CockpitHUDSystem extends EntitySystem implements Disposable {
         targetInfoLabel = new Label("", styleWhite);
         fuelLabel       = new Label("FUEL: ---", styleWhite);
         heatLabel       = new Label("HEAT: 0%", styleWhite);
+        powerLabel      = new Label("PWR: ---", styleWhite);
+        capacitorLabel  = new Label("CAP: ---", styleWhite);
         alertLabel      = new Label("", styleRed);
 
         weaponGroupLabels = new Label[4];
@@ -218,10 +223,12 @@ public class CockpitHUDSystem extends EntitySystem implements Disposable {
         root.row();
 
         // --- Bottom row ---
-        // bottom-left: fuel + heat
+        // bottom-left: fuel + heat + power
         Table btmLeft = new Table();
         btmLeft.add(fuelLabel).left().row();
-        btmLeft.add(heatLabel).left();
+        btmLeft.add(heatLabel).left().row();
+        btmLeft.add(powerLabel).left().row();
+        btmLeft.add(capacitorLabel).left();
         root.add(btmLeft).bottom().left().expand();
 
         // bottom-center: empty
@@ -285,6 +292,39 @@ public class CockpitHUDSystem extends EntitySystem implements Disposable {
         } else {
             heatLabel.setText("HEAT: ---");
             heatLabel.setStyle(styleWhite);
+        }
+
+        // --- Power ---
+        PowerStateComponent power = shipEntity.getComponent(PowerStateComponent.class);
+        if (power != null) {
+            float reactorPct = (power.reactorBaseOutput > 0f)
+                    ? (power.reactorCurrentOutput / power.reactorBaseOutput * 100f) : 0f;
+            powerLabel.setText(String.format("PWR: %.0f/%.0f kW (%.0f%%)",
+                    power.reactorCurrentOutput, power.reactorBaseOutput, reactorPct));
+            if (power.totalDemand > power.totalSupply) {
+                powerLabel.setStyle(styleRed);
+            } else if (reactorPct < 80f) {
+                powerLabel.setStyle(styleOrange);
+            } else {
+                powerLabel.setStyle(styleWhite);
+            }
+
+            float capPct = (power.capacitorCapacity > 0f)
+                    ? (power.capacitorCharge / power.capacitorCapacity * 100f) : 0f;
+            capacitorLabel.setText(String.format("CAP: %.0f%% | BAT: %.0f%%",
+                    capPct,
+                    (power.batteryCapacity > 0f)
+                            ? (power.batteryCharge / power.batteryCapacity * 100f) : 0f));
+            if (capPct < 20f) {
+                capacitorLabel.setStyle(styleOrange);
+            } else {
+                capacitorLabel.setStyle(styleWhite);
+            }
+        } else {
+            powerLabel.setText("PWR: ---");
+            powerLabel.setStyle(styleWhite);
+            capacitorLabel.setText("CAP: ---");
+            capacitorLabel.setStyle(styleWhite);
         }
 
         // --- Weapon groups ---
