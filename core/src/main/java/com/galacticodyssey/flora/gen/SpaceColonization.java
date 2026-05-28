@@ -16,6 +16,13 @@ public final class SpaceColonization {
         public int maxNodes = 500;
     }
 
+    /**
+     * Grows a branch skeleton toward the given attractors. Growth is purely geometric and
+     * therefore fully deterministic from the attractor positions alone — {@code rng} is
+     * accepted for API stability and reserved for future stochastic biasing (lateral
+     * jitter, growth probability), but is intentionally unused today. Vary the attractor
+     * cloud (its seed) to vary the resulting tree, not this parameter.
+     */
     public static BranchSkeleton grow(Array<Vector3> attractors, GrowthParams p, Random rng) {
         BranchSkeleton skel = new BranchSkeleton();
         skel.addNode(new Vector3(0, 0, 0), -1);
