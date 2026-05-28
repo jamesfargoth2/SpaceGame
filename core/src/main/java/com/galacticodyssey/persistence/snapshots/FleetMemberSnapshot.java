@@ -5,4 +5,5 @@ public class FleetMemberSnapshot {
     public int squadronIndex;
     public String role;
     public int formationSlotIndex;
+    public String lodTier;
 }

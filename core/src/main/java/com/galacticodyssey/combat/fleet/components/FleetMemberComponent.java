@@ -8,12 +8,17 @@ import com.galacticodyssey.persistence.Snapshotable;
 import com.galacticodyssey.persistence.snapshots.FleetMemberSnapshot;
 
 public class FleetMemberComponent implements Component, Snapshotable<FleetMemberSnapshot> {
+
+    /** Distance-based AI fidelity tier assigned by {@link com.galacticodyssey.combat.fleet.systems.FleetLODSystem}. */
+    public enum LODTier { FULL, SIMPLIFIED, ABSTRACT }
+
     public Entity fleetEntity;
     public String fleetId;
     public int squadronIndex;
     public FleetRole role = FleetRole.ESCORT;
     public int formationSlotIndex;
     public final Vector3 localFormationOffset = new Vector3();
+    public LODTier lodTier = LODTier.FULL;
 
     @Override
     public FleetMemberSnapshot takeSnapshot() {
@@ -22,6 +27,7 @@ public class FleetMemberComponent implements Component, Snapshotable<FleetMember
         s.squadronIndex = squadronIndex;
         s.role = role.name();
         s.formationSlotIndex = formationSlotIndex;
+        s.lodTier = lodTier.name();
         return s;
     }
 
@@ -31,5 +37,6 @@ public class FleetMemberComponent implements Component, Snapshotable<FleetMember
         squadronIndex = s.squadronIndex;
         role = FleetRole.valueOf(s.role);
         formationSlotIndex = s.formationSlotIndex;
+        lodTier = LODTier.valueOf(s.lodTier);
     }
 }
