@@ -157,6 +157,31 @@ class RefiningSystemTest {
     }
 
     @Test
+    void update_completedJob_storageFullSkipsDeposit() {
+        Entity entity = new Entity();
+        RefineryComponent refinery = new RefineryComponent(1, 4, 1.0f, 10f);
+        RefiningJob job = new RefiningJob("process_iron_ore",
+            Map.of("iron_ore", 5),
+            List.of(new RefiningJob.Output("iron_concentrate", 3)),
+            1.0f);
+        job.setState(RefiningJobState.ACTIVE);
+        refinery.addJob(job);
+        entity.add(refinery);
+        // Storage too small: 3 iron_concentrate * 0.8 volume = 2.4, but max volume = 1.0
+        entity.add(new MaterialStorageComponent(1000f, 1.0f, materialRegistry));
+        engine.addEntity(entity);
+
+        AtomicReference<RefiningCompletedEvent> completed = new AtomicReference<>();
+        eventBus.subscribe(RefiningCompletedEvent.class, completed::set);
+
+        engine.update(1.0f);
+
+        assertNotNull(completed.get());
+        assertTrue(completed.get().producedMaterials.isEmpty());
+        assertEquals(0, entity.getComponent(MaterialStorageComponent.class).getQuantity("iron_concentrate"));
+    }
+
+    @Test
     void update_multipleTicksToComplete() {
         Entity entity = createEntityWithActiveJob(4.0f);
 

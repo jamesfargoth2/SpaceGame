@@ -12,6 +12,7 @@ import com.galacticodyssey.crafting.events.RefiningCompletedEvent;
 import com.galacticodyssey.crafting.events.RefiningQueueChangedEvent;
 import com.galacticodyssey.core.EventBus;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -58,15 +59,14 @@ public class RefiningSystem extends IteratingSystem {
         Map<String, Integer> produced = new HashMap<>();
 
         for (RefiningJob.Output output : job.getOutputs()) {
-            if (storage != null) {
-                storage.tryAdd(output.materialId, output.quantity);
+            if (storage != null && storage.tryAdd(output.materialId, output.quantity)) {
+                produced.put(output.materialId, output.quantity);
             }
-            produced.put(output.materialId, output.quantity);
         }
 
         job.setState(RefiningJobState.COMPLETE);
         refinery.removeJob(job);
-        eventBus.publish(new RefiningCompletedEvent(entity, job, produced));
+        eventBus.publish(new RefiningCompletedEvent(entity, job, Collections.unmodifiableMap(produced)));
         eventBus.publish(new RefiningQueueChangedEvent(entity, refinery.getJobQueue()));
 
         RefiningJob nextJob = refinery.getActiveJob();
