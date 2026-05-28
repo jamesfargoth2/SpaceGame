@@ -79,6 +79,7 @@ public class RealTimeSkillSystem extends EntitySystem {
             stats.unspentPoints += points;
             eventBus.publish(new CharacterLevelUpEvent(player, stats.characterLevel, points));
             if (stats.characterLevel % 5 == 0) {
+                stats.unspentPerkPicks++;
                 eventBus.publish(new PerkAvailableEvent(player));
             }
         }
