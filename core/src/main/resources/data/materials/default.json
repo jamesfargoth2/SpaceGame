@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "albedoMap": null,
+    "normalMap": null,
+    "metallicRoughnessMap": null,
+    "emissiveMap": null,
+    "aoMap": null,
+    "tilingX": 1.0,
+    "tilingY": 1.0,
+    "albedoTint": [0.8, 0.8, 0.8, 1.0],
+    "metallicScale": 0.0,
+    "roughnessScale": 0.5,
+    "emissiveIntensity": 0.0
+  }
+]

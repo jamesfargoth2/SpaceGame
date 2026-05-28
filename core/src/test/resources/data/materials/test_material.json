@@ -1,0 +1,16 @@
+[
+  {
+    "name": "test_metal",
+    "albedoMap": null,
+    "normalMap": null,
+    "metallicRoughnessMap": null,
+    "emissiveMap": null,
+    "aoMap": null,
+    "tilingX": 2.0,
+    "tilingY": 3.0,
+    "albedoTint": [1.0, 0.5, 0.0, 1.0],
+    "metallicScale": 1.0,
+    "roughnessScale": 0.2,
+    "emissiveIntensity": 0.0
+  }
+]
