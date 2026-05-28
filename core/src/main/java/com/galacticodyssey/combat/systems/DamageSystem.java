@@ -25,6 +25,8 @@ import com.galacticodyssey.combat.events.ProjectileHitEvent;
 import com.galacticodyssey.combat.events.ShieldAbsorbEvent;
 import com.galacticodyssey.combat.events.StatusEffectAppliedEvent;
 import com.galacticodyssey.core.EventBus;
+import com.galacticodyssey.player.components.PlayerStatsComponent;
+import com.galacticodyssey.player.stats.PlayerStatQuery;
 
 import java.util.Random;
 
@@ -145,6 +147,14 @@ public class DamageSystem extends EntitySystem {
 
             damage *= (1f - resistance);
             armor.degradeSlot(hitRegion, rawDamage);
+        }
+
+        // Player outgoing-damage perk multiplier (player attackers only)
+        if (attacker != null) {
+            PlayerStatsComponent attackerStats = attacker.getComponent(PlayerStatsComponent.class);
+            if (attackerStats != null) {
+                damage *= PlayerStatQuery.getOutgoingDamageMultiplier(attackerStats, damageType);
+            }
         }
 
         // 4. Apply to health
