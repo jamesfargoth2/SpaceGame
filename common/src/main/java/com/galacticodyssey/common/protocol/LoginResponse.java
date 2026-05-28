@@ -8,6 +8,7 @@ public class LoginResponse extends NetworkMessage {
     public String zoneServerHost;
     public int zoneServerTcpPort;
     public int zoneServerUdpPort;
+    public String zoneServerAddress;
     public UUID playerId;
     public String failureReason;
 
