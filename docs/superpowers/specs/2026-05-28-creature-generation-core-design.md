@@ -193,9 +193,11 @@ procedural provider, so the system runs with zero art assets.
 
 ## Integration
 
-- Cycle A ships a **debug spawn** (dev console command or dev key) that calls
-  `CreatureFactory` to build a creature near the player on the planet surface, anchored via the
-  existing `SurfaceAnchorSystem`, in a static neutral pose — enough to visually confirm output.
+- Cycle A ships a **debug spawn** (dev key, following the existing `GameScreen` F-key pattern)
+  that calls `CreatureFactory` to build a creature a few metres in front of the player in a
+  static neutral pose — enough to visually confirm output. Precise terrain-surface placement
+  (ground-height snapping, slope alignment) is a polish concern deferred with the ecological
+  spawning in Cycle D.
 - Biome-weighted ecological spawning, population density, and predator-prey ratios are Cycle D.
 
 ## Open questions / future hooks
