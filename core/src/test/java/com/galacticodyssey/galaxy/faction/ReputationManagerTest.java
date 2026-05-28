@@ -262,4 +262,40 @@ class ReputationManagerTest {
 
         assertEquals(0f, manager.getStanding("fed"), 0.001f);
     }
+
+    @Test
+    void saveAndRestoreRoundTrip() {
+        eventBus.publish(new ReputationChangeEvent("fed", 30f, "test"));
+        eventBus.publish(new ReputationChangeEvent("pirates", -40f, "test"));
+
+        Map<String, Object> factionState = new HashMap<>();
+        manager.populateSaveData(factionState);
+
+        repComp.standings.clear();
+        assertEquals(0f, manager.getStanding("fed"));
+
+        manager.restoreFromSaveData(factionState);
+
+        assertEquals(30f, manager.getStanding("fed"), 0.001f);
+        assertEquals(-40f, manager.getStanding("pirates"), 0.001f);
+    }
+
+    @Test
+    void restoreFromEmptyStateKeepsDefaults() {
+        Map<String, Object> emptyState = new HashMap<>();
+        manager.restoreFromSaveData(emptyState);
+
+        assertEquals(0f, manager.getStanding("fed"));
+    }
+
+    @Test
+    void saveWithNoStandingsProducesEmptyMap() {
+        Map<String, Object> factionState = new HashMap<>();
+        manager.populateSaveData(factionState);
+
+        @SuppressWarnings("unchecked")
+        Map<String, Float> standings = (Map<String, Float>) factionState.get("standings");
+        assertNotNull(standings);
+        assertTrue(standings.isEmpty());
+    }
 }
