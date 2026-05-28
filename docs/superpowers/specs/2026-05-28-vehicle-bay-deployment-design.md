@@ -57,11 +57,15 @@ Rejected alternatives:
 | `mass`, `wheelbase`, `trackWidth`, `groundClearance` | Physics → `GroundVehicleComponent` |
 | `maxDriveForce`, `maxSteerAngle`, `anchorBreakForce`, `dynamicLift` | Physics → `GroundVehicleComponent` |
 | `maxHP`, `armorValue` | Survivability → `HealthComponent` + `ArmorComponent` |
-| `weaponId` | References an existing weapon definition; built into a `RangedWeaponComponent` the same way the player weapon is |
+| `weapon` (nested object) | Inline weapon stats: `damage`, `fireRate`, `range`, `hitscan`, `projectileSpeed`, `damageType`, `magSize`, `reloadTime` → populate a `RangedWeaponComponent` |
 | `baySlots` | How many bay slots this vehicle occupies |
 
-Vehicles reference an existing `weaponId` rather than inlining weapon stats — keeps a single
-source of truth for weapon balance.
+**Weapon stats are inlined in the vehicle JSON** (decision: 2026-05-28). The codebase has no
+lightweight `weaponId → stats` registry — FPS weapons use the modular `WeaponAssembly` +
+`WeaponInventoryComponent` machinery and ship weapons use a separate `ShipWeaponRegistry`.
+Pulling either onto vehicles is scope creep for an MVP. Inlining maps directly to
+`RangedWeaponComponent` while still reusing the full damage/projectile/hitscan/armor pipeline
+downstream (see §5).
 
 ### `VehicleRegistry`
 
@@ -90,14 +94,24 @@ Loads and holds all `VehicleDefinition`s at bootstrap, lookup by `id`. Follows t
 - `GroundVehicleComponent` — populated from the definition's physics params
 - `HealthComponent` (`maxHP`) + `ArmorComponent` (`armorValue`)
 - `HitboxComponent` — makes the vehicle a valid hitscan/projectile target
-- `RangedWeaponComponent` (built from `weaponId`) + `CombatInputComponent` (driver routes fire/aim here)
+- `RangedWeaponComponent` (populated directly from the definition's inline `weapon` stats) +
+  `CombatInputComponent` (driver routes fire/aim here)
 - `VehicleEntryPointComponent` — `triggerRadius` + local exit offset for walk-in/out
 - `VehicleTagComponent` — holds the source `VehicleDefinition` id (retrieval/serialization)
 - render/model component matching how ships/props render
 
-Because the combat systems key only on component presence, the vehicle is simultaneously a
-damageable target and a firing platform with zero new combat code. Destruction reuses the
-existing `EntityKilledEvent` path.
+**Firing trigger:** a thin `VehicleWeaponSystem` (family
+`VehicleTagComponent + CombatInputComponent + RangedWeaponComponent + TransformComponent`)
+advances the fire-rate timer, decrements ammo, and publishes `WeaponFiredEvent(vehicle,
+aimDirection, hitscan, muzzlePos)` — the **same event the player's `WeaponSystem` publishes**.
+This deliberately does *not* reuse `WeaponSystem` itself (which requires a
+`WeaponInventoryComponent` and handles player melee/switching). MVP supports SEMI + AUTO fire
+modes only.
+
+Because the downstream combat systems key only on the event + component presence, the vehicle is
+simultaneously a damageable target (`HitboxComponent` + `HealthComponent`, mitigated by
+`ArmorComponent` via `DamageSystem`) and a firing platform — reusing the entire damage/projectile/
+hitscan pipeline. Destruction reuses the existing `EntityKilledEvent` path.
 
 ## 6. Player mode, control & camera
 
@@ -190,6 +204,8 @@ interior generation can place bays.
 
 - Register new systems in `GameWorld`:
   - `VehicleControlSystem` — priority alongside `InteractionSystem` (0).
+  - `VehicleWeaponSystem` — priority 4 (alongside the player `WeaponSystem`, before
+    `HitscanSystem` at 6).
   - `VehicleCameraSystem` — priority 4 (with the other camera systems).
   - `SurfaceVehicleSystem` already runs at priority 5 (physics).
 - Load `VehicleRegistry` at bootstrap (where other registries load).
@@ -202,6 +218,8 @@ interior generation can place bays.
 - `VehicleFactory` produces an entity with all required components populated from a definition.
 - `SurfaceVehicleSystem` respects `throttleInput`/`steerInput` — zero throttle → no drive force;
   nonzero steer → steering torque applied.
+- `VehicleWeaponSystem` fires on input (publishes `WeaponFiredEvent`, decrements ammo, respects
+  fire-rate timer); does not fire on empty mag.
 - Deploy removes from bay + spawns entity; retrieve returns id to bay + despawns; capacity enforced.
 - State transitions: enter → `DRIVING`; exit → `ON_FOOT_EXTERIOR`; `PlayerMovementSystem` guarded
   off while `DRIVING`.
