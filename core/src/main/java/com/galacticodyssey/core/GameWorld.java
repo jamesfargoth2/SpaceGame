@@ -112,6 +112,7 @@ import com.galacticodyssey.water.systems.WeatherSystem;
 import com.galacticodyssey.water.data.VesselRegistry;
 import com.galacticodyssey.water.data.WaterDataRegistry;
 import com.galacticodyssey.water.VesselFactory;
+import com.galacticodyssey.combat.systems.BulletTracerSystem;
 import com.galacticodyssey.vfx.components.ParticlePoolComponent;
 import com.galacticodyssey.vfx.data.VFXEventBindings;
 import com.galacticodyssey.vfx.data.VFXRegistry;
@@ -137,6 +138,15 @@ import com.galacticodyssey.vfx.systems.ParticleUpdateSystem;
 import com.galacticodyssey.persistence.LocalFileSaveBackend;
 import com.galacticodyssey.persistence.PersistenceIdComponent;
 import com.galacticodyssey.persistence.SaveCoordinator;
+import com.galacticodyssey.mission.job.JobRegistry;
+import com.galacticodyssey.mission.job.ProceduralJobGenerator;
+import com.galacticodyssey.mission.job.EventJobGenerator;
+import com.galacticodyssey.mission.saga.SagaRegistry;
+import com.galacticodyssey.mission.saga.SagaRunner;
+import com.galacticodyssey.mission.shared.QuestJournal;
+import com.galacticodyssey.mission.shared.ObjectiveTrackingSystem;
+import com.galacticodyssey.mission.shared.RewardSystem;
+import com.galacticodyssey.mission.discovery.QuestDiscoverySystem;
 import java.io.File;
 import java.util.List;
 import java.util.UUID;
@@ -197,6 +207,15 @@ public class GameWorld implements Disposable {
     private VesselFactory vesselFactory;
     private UUID playerEntityId;
     private SaveCoordinator saveCoordinator;
+    private JobRegistry jobRegistry;
+    private SagaRegistry sagaRegistry;
+    private ProceduralJobGenerator proceduralJobGenerator;
+    private EventJobGenerator eventJobGenerator;
+    private QuestJournal questJournal;
+    private ObjectiveTrackingSystem objectiveTrackingSystem;
+    private SagaRunner sagaRunner;
+    private RewardSystem rewardSystem;
+    private QuestDiscoverySystem questDiscoverySystem;
 
     private final Array<Disposable> disposables = new Array<>();
 
@@ -396,7 +415,7 @@ public class GameWorld implements Disposable {
         swimCameraSystem.setWaveSystem(waveSystem);
         engine.addSystem(swimCameraSystem);
 
-        oceanSpawner = new OceanSpawner(engine);
+        oceanSpawner = new OceanSpawner(engine, waveSystem);
 
         vesselRegistry = new VesselRegistry();
         if (com.badlogic.gdx.Gdx.files != null) {
@@ -420,6 +439,9 @@ public class GameWorld implements Disposable {
         particleUpdateSystem = new ParticleUpdateSystem(particlePool);
         engine.addSystem(particleSpawnSystem);
         engine.addSystem(particleUpdateSystem);
+
+        BulletTracerSystem bulletTracerSystem = new BulletTracerSystem(eventBus, particlePool);
+        engine.addSystem(bulletTracerSystem);
 
         // Shooting feedback
         recoilSystem = new RecoilSystem(eventBus);
@@ -446,6 +468,25 @@ public class GameWorld implements Disposable {
         engine.addSystem(planetaryStockSystem);
         transactionService = new TransactionService(commodityRegistry, eventBus);
         planetaryEconomyManager = new PlanetaryEconomyManager(eventBus, planetEconomyRegistry);
+
+        // Mission / Quest System
+        questJournal = new QuestJournal();
+        jobRegistry = new JobRegistry();
+        sagaRegistry = new SagaRegistry();
+        proceduralJobGenerator = new ProceduralJobGenerator(jobRegistry);
+        eventJobGenerator = new EventJobGenerator(eventBus, jobRegistry, proceduralJobGenerator);
+        questDiscoverySystem = new QuestDiscoverySystem(eventBus, questJournal);
+        objectiveTrackingSystem = new ObjectiveTrackingSystem(eventBus, questJournal);
+        sagaRunner = new SagaRunner(eventBus, questJournal, sagaRegistry);
+        rewardSystem = new RewardSystem(eventBus);
+
+        eventJobGenerator.setJobListener(job -> {
+            if (job.lead != null) questDiscoverySystem.registerLead(job, job.lead);
+            questJournal.addRumour(job);
+        });
+
+        engine.addSystem(objectiveTrackingSystem);
+        engine.addSystem(sagaRunner);
 
         playerInputSystem.setCombatInputSystem(combatInputSystem);
     }
@@ -762,6 +803,10 @@ public class GameWorld implements Disposable {
 
     public KeplerianOrbitSystem getKeplerianOrbitSystem() {
         return keplerianOrbitSystem;
+    }
+
+    public ParticleRenderSystem getParticleRenderSystem() {
+        return particleRenderSystem;
     }
 
     @Override
