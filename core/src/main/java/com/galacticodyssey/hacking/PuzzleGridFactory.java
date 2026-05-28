@@ -15,6 +15,9 @@ public final class PuzzleGridFactory {
      * @param rng          random source (caller provides for testability)
      */
     public static PuzzleGrid create(int gridSize, int difficulty, int hackingSkill, Random rng) {
+        if (gridSize < 2) {
+            throw new IllegalArgumentException("gridSize must be at least 2, got: " + gridSize);
+        }
         PuzzleGrid grid = new PuzzleGrid(gridSize, gridSize);
 
         // --- Build L-path tile list ---
@@ -44,7 +47,7 @@ public final class PuzzleGridFactory {
                 solvedTypes[i] = TileType.STRAIGHT;
                 solvedRotations[i] = 1;
             } else if (i == cornerIndex) {
-                // Corner turning east→south: ELBOW S+W (rotation 2)
+                // Corner: connects West (from horizontal run) and South (into vertical run) — ELBOW S+W (rotation 2)
                 solvedTypes[i] = TileType.ELBOW;
                 solvedRotations[i] = 2;
             } else {
