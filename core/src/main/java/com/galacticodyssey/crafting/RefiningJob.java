@@ -41,9 +41,9 @@ public class RefiningJob {
     }
 
     /**
-     * Package-private constructor for restoring a job from saved state.
+     * Constructor for restoring a job from saved state (e.g. snapshot restore).
      */
-    RefiningJob(String jobId, String recipeId, Map<String, Integer> inputsConsumed,
+    public RefiningJob(String jobId, String recipeId, Map<String, Integer> inputsConsumed,
                 List<Output> outputs, float totalTime, RefiningJobState state, float progress) {
         this.jobId = jobId;
         this.recipeId = recipeId;
