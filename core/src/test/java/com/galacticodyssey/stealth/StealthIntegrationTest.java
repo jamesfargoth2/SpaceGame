@@ -89,18 +89,19 @@ class StealthIntegrationTest {
 
     @Test
     void loudPlayer_risesToCuriousThenAlerted() {
-        // Tick many times at 0.1s steps — accumulator should rise
         for (int i = 0; i < 60; i++) engine.update(0.1f);
 
-        // Must have transitioned at least to CURIOUS
-        assertTrue(npcState.state.ordinal() >= AwarenessState.CURIOUS.ordinal(),
-            "NPC should be at least CURIOUS after 6 seconds of loud player");
-        assertFalse(stateChanges.isEmpty(), "State change events should have been published");
-        assertEquals(AwarenessState.UNAWARE, stateChanges.get(0).oldState);
+        // Verify UNAWARE → CURIOUS transition occurred (not just any state change)
+        boolean passedThroughCurious = stateChanges.stream()
+            .anyMatch(e -> e.newState == AwarenessState.CURIOUS);
+        assertTrue(passedThroughCurious,
+            "NPC should transition through CURIOUS state, not jump straight to ALERTED");
+        assertEquals(AwarenessState.UNAWARE, stateChanges.get(0).oldState,
+            "First transition should be from UNAWARE");
     }
 
     @Test
-    void loudPlayerInViewCone_reachesAlerted() {
+    void loudPlayerNearby_reachesAlerted() {
         // Tick aggressively to ensure ALERTED is reached
         for (int i = 0; i < 200; i++) engine.update(0.1f);
 
@@ -115,9 +116,15 @@ class StealthIntegrationTest {
         // Move player beyond hearing range (12m)
         playerEntity.getComponent(TransformComponent.class).position.set(0, 0, 13);
 
+        // Prime the accumulator so we can witness it decaying
+        npcState.detectionAccumulator = 0.4f;
+
         for (int i = 0; i < 100; i++) engine.update(0.1f);
 
         assertEquals(AwarenessState.UNAWARE, npcState.state);
+        // Accumulator should have decayed from 0.4 toward 0 over 10 seconds
+        assertTrue(npcState.detectionAccumulator < 0.1f,
+            "Accumulator should decay when player is undetectable");
     }
 
     @Test
@@ -125,11 +132,16 @@ class StealthIntegrationTest {
         playerSig.noiseLevel = 0f; // silent player
         npcXform.position.set(0, 0, 3); // 3m from origin
 
-        // Burst at origin: falloff = 1 - 3/10 = 0.7; spike = 1.0 * 0.7 = 0.7
+        // EventBus is synchronous — NoiseBurstEvent spikes accumulator immediately on publish
+        // falloff = 1 - 3/10 = 0.7; spike = 1.0 * 0.7 = 0.7
         eventBus.publish(new NoiseBurstEvent(0, 0, 0, 10f, 1.0f));
-
         assertTrue(npcState.detectionAccumulator > 0.5f,
-            "NoiseBurst should spike the NPC accumulator");
+            "NoiseBurst should spike the NPC accumulator immediately (synchronous EventBus)");
+
+        // Verify the spike persists through one frame (accumulator decays gradually, not instantly)
+        engine.update(0.1f);
+        assertTrue(npcState.detectionAccumulator > 0.3f,
+            "Accumulator should still be elevated after one frame of decay");
     }
 
     @Test
