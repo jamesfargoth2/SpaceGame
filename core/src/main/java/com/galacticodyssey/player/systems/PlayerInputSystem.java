@@ -148,9 +148,6 @@ public class PlayerInputSystem extends IteratingSystem {
             }
             if (keycode == Input.Keys.T) {
                 targetLockPressed = true;
-                return true;
-            }
-            if (keycode == Input.Keys.TAB) {
                 nextTargetPressed = true;
                 return true;
             }
