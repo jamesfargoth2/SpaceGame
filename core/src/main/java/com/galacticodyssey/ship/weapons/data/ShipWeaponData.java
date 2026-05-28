@@ -14,6 +14,7 @@ public class ShipWeaponData {
     public float range;
     public float energyCost;
     public float heatPerShot;
+    public float powerDraw;
     public Integer ammoCapacity;
     public Integer currentAmmo;
     public float trackingSpeed;

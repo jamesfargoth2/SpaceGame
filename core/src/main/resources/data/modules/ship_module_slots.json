@@ -1,0 +1,35 @@
+{
+  "corvette_scout": {
+    "maxMass": 30.0,
+    "silhouettePoints": [[100,10],[130,60],[140,120],[145,200],[135,280],[120,320],[100,330],[80,320],[65,280],[55,200],[60,120],[70,60]],
+    "wingPoints": [
+      [[55,180],[30,200],[28,240],[55,230]],
+      [[145,180],[170,200],[172,240],[145,230]]
+    ],
+    "engineGlows": [[85,325],[115,325]],
+    "moduleSlots": [
+      { "id": "reactor_0", "slotType": "REACTOR", "size": "SMALL", "position": [100, 140], "mandatory": true, "defaultModuleId": "reactor_compact_sm" },
+      { "id": "engine_0", "slotType": "ENGINE", "size": "SMALL", "position": [100, 270], "mandatory": true, "defaultModuleId": "engine_ion_sm" },
+      { "id": "internal_0", "slotType": "INTERNAL", "size": "SMALL", "position": [100, 175] },
+      { "id": "internal_1", "slotType": "INTERNAL", "size": "SMALL", "position": [100, 210] },
+      { "id": "internal_2", "slotType": "INTERNAL", "size": "SMALL", "position": [100, 245] }
+    ]
+  },
+  "frigate_patrol": {
+    "maxMass": 80.0,
+    "silhouettePoints": [[100,5],[140,50],[155,110],[160,200],[150,300],[130,350],[100,360],[70,350],[50,300],[40,200],[45,110],[60,50]],
+    "wingPoints": [
+      [[40,170],[15,195],[12,260],[40,245]],
+      [[160,170],[185,195],[188,260],[160,245]]
+    ],
+    "engineGlows": [[75,355],[100,358],[125,355]],
+    "moduleSlots": [
+      { "id": "reactor_0", "slotType": "REACTOR", "size": "MEDIUM", "position": [100, 130], "mandatory": true, "defaultModuleId": "reactor_standard_md" },
+      { "id": "engine_0", "slotType": "ENGINE", "size": "MEDIUM", "position": [100, 300], "mandatory": true, "defaultModuleId": "engine_plasma_md" },
+      { "id": "internal_0", "slotType": "INTERNAL", "size": "MEDIUM", "position": [100, 170] },
+      { "id": "internal_1", "slotType": "INTERNAL", "size": "SMALL", "position": [100, 200] },
+      { "id": "internal_2", "slotType": "INTERNAL", "size": "SMALL", "position": [100, 230] },
+      { "id": "internal_3", "slotType": "INTERNAL", "size": "SMALL", "position": [100, 260] }
+    ]
+  }
+}
