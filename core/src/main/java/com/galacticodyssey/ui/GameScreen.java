@@ -290,10 +290,6 @@ public class GameScreen implements Screen {
         buildPauseMenu();
         buildDialogSystem();
         buildHackingSystem();
-        buildInventorySystem();
-        buildOutfitterSystem();
-        buildRecruitmentSystem();
-        buildJournalEventHandler();
 
         atmosphericSkyRenderer = new AtmosphericSkyRenderer();
         dayNightCycle = new DayNightCycle(600f, 23.5f, false);
@@ -313,30 +309,19 @@ public class GameScreen implements Screen {
         game.setScreen(new GalaxyMapScreen(game, session, this));
     }
 
-    private void openQuestJournal() {
-        inJournal = true;
-        Gdx.input.setCursorCatched(false);
-        gameWorld.getPlayerInputSystem().setEnabled(false);
-
-        EventBus eventBus = gameWorld.getEventBus();
-        QuestJournal journal = gameWorld.getQuestJournal();
-        JobBoard jobBoard = null; // null when not docked — shows "No Station Network"
-        JobRegistry jobRegistry = gameWorld.getJobRegistry();
-        SagaRegistry sagaRegistry = gameWorld.getSagaRegistry();
-        ReputationQuery reputation = tag -> 0f; // TODO: wire to real reputation system
-        Skin skin = game.getSkin();
-
-        QuestJournalScreen journalScreen = new QuestJournalScreen(
-            game, this, eventBus, journal, jobBoard, jobRegistry,
-            sagaRegistry, reputation, skin);
-        game.setScreen(journalScreen);
+    private boolean isAnyScreenOpen() {
+        return screenTabManager != null && screenTabManager.isAnyOpen();
     }
 
     private void setupInput() {
-        InputAdapter escapeHandler = new InputAdapter() {
+        InputAdapter keyHandler = new InputAdapter() {
             @Override
             public boolean keyDown(int keycode) {
                 if (keycode == Input.Keys.ESCAPE) {
+                    if (isAnyScreenOpen()) {
+                        screenTabManager.closeActive();
+                        return true;
+                    }
                     togglePause();
                     return true;
                 }
@@ -344,20 +329,31 @@ public class GameScreen implements Screen {
                     openGalaxyMap();
                     return true;
                 }
-                if (keycode == Input.Keys.TAB && !paused && !inDialog && !inInventory) {
-                    inventoryScreenSystem.toggle();
-                    return true;
-                }
-                if (keycode == Input.Keys.O && !paused && !inDialog && !inInventory && !inOutfitter) {
-                    Entity playerShip = shipEntities.size > 0 ? shipEntities.first() : null;
-                    if (playerShip != null) {
-                        outfitterScreenSystem.open(playerShip, true);
+                if (!paused && !inDialog) {
+                    if (keycode == Input.Keys.TAB) {
+                        if (isAnyScreenOpen() && "inventory".equals(screenTabManager.getActiveScreenName())) {
+                            screenTabManager.closeActive();
+                        } else {
+                            screenTabManager.switchTo("inventory");
+                        }
+                        return true;
                     }
-                    return true;
-                }
-                if (keycode == Input.Keys.J && !paused && !inDialog && !inInventory && !inOutfitter && !inJournal) {
-                    openQuestJournal();
-                    return true;
+                    if (keycode == Input.Keys.O) {
+                        Entity playerShip = shipEntities.size > 0 ? shipEntities.first() : null;
+                        if (playerShip != null) {
+                            outfitterScreenSystem.open(playerShip, true);
+                            screenTabManager.switchTo("outfitter");
+                        }
+                        return true;
+                    }
+                    if (keycode == Input.Keys.J) {
+                        if (isAnyScreenOpen() && "journal".equals(screenTabManager.getActiveScreenName())) {
+                            screenTabManager.closeActive();
+                        } else {
+                            screenTabManager.switchTo("journal");
+                        }
+                        return true;
+                    }
                 }
                 if (keycode == Input.Keys.F5) {
                     if (deferredRenderer != null) deferredRenderer.reloadShaders();
@@ -368,9 +364,15 @@ public class GameScreen implements Screen {
         };
 
         inputMultiplexer = new InputMultiplexer();
-        inputMultiplexer.addProcessor(escapeHandler);
+        inputMultiplexer.addProcessor(keyHandler);
         if (paused) {
             inputMultiplexer.addProcessor(pauseStage);
+        } else if (isAnyScreenOpen()) {
+            inputMultiplexer.addProcessor(screenTabManager.getTabBarStage());
+            ManagedScreen active = screenTabManager.getActiveScreen();
+            if (active != null && active.getStage() != null) {
+                inputMultiplexer.addProcessor(active.getStage());
+            }
         } else {
             inputMultiplexer.addProcessor(gameWorld.getPlayerInputSystem().getInputAdapter());
         }
@@ -647,8 +649,13 @@ public class GameScreen implements Screen {
 
     private void buildInventorySystem() {
         EventBus eventBus = gameWorld.getEventBus();
-        inventoryScreenSystem = new InventoryScreenSystem(eventBus, game.getSkin());
+        Skin skin = game.getSkin();
+
+        screenTabManager = new ScreenTabManager(skin);
+
+        inventoryScreenSystem = new InventoryScreenSystem(eventBus, skin);
         inventoryScreenSystem.initialize(gameWorld.getEngine(), gameWorld.getEquipmentSystem());
+        screenTabManager.register("inventory", inventoryScreenSystem);
 
         eventBus.subscribe(com.galacticodyssey.ui.events.InventoryOpenedEvent.class, event -> {
             inInventory = true;
