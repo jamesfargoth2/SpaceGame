@@ -83,6 +83,21 @@ public class FloraRegistry {
         return Color.valueOf(h);
     }
 
-    // loadPalettes() added in Task 4
-    private void loadPalettes(String json) { /* stub — implemented in Task 4 */ }
+    /** Parses per-biome palettes from a raw JSON string (unit-test friendly). */
+    public void loadPalettes(String json) {
+        JsonValue arr = new JsonReader().parse(json).get("palettes");
+        for (JsonValue e = arr.child; e != null; e = e.next) {
+            BiomeType biome = BiomeType.valueOf(e.getString("biome"));
+            BiomePalette p = new BiomePalette(biome);
+            p.density = e.getFloat("density", 0f);
+            p.tintJitter = e.getFloat("tintJitter", p.tintJitter);
+            JsonValue sp = e.get("species");
+            if (sp != null) {
+                for (JsonValue se = sp.child; se != null; se = se.next) {
+                    p.add(se.getString("id"), se.getFloat("weight", 1f));
+                }
+            }
+            palettes.put(biome, p);
+        }
+    }
 }
