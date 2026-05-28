@@ -1,5 +1,3 @@
-val gdxVersion: String by project
-val ashleyVersion: String by project
 val junitVersion: String by project
 val hikariVersion: String by project
 val jedisVersion: String by project
@@ -10,9 +8,7 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":core"))
-    implementation("com.badlogicgames.gdx:gdx-backend-headless:$gdxVersion")
-    implementation("com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop")
+    implementation(project(":common"))
 
     implementation("com.zaxxer:HikariCP:$hikariVersion")
     implementation("org.postgresql:postgresql:$postgresVersion")
@@ -23,5 +19,5 @@ dependencies {
 }
 
 application {
-    mainClass.set("com.galacticodyssey.server.ServerLauncher")
+    mainClass.set("com.galacticodyssey.gateway.GatewayServer")
 }
