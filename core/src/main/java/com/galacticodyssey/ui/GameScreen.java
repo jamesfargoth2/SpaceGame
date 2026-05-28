@@ -81,6 +81,7 @@ import com.galacticodyssey.hacking.HackingStateComponent;
 import com.galacticodyssey.hacking.events.HackStartedEvent;
 import com.galacticodyssey.hacking.events.HackSucceededEvent;
 import com.galacticodyssey.hacking.events.HackFailedEvent;
+import com.galacticodyssey.rendering.DeferredRenderer;
 
 import java.util.Random;
 
@@ -115,6 +116,7 @@ public class GameScreen implements Screen {
     private WorldPopulator.PopulatedWorld populatedWorld;
 
     private AtmosphericSkyRenderer atmosphericSkyRenderer;
+    private DeferredRenderer deferredRenderer;
     private DayNightCycle dayNightCycle;
     private FogShaderProvider fogShaderProvider;
     private ModelBatch fogModelBatch;
@@ -133,11 +135,13 @@ public class GameScreen implements Screen {
     private float weaponSwayX;
     private float weaponSwayY;
 
-    // Muzzle position debug overlay
+    // Muzzle flash screen-space overlay + debug markers
+    private static final float MUZZLE_FLASH_DURATION = 0.08f;
     private ShapeRenderer debugRenderer;
     private final Vector3 debugMuzzleEventPos = new Vector3();
     private final Vector3 debugBarrelTipWorld = new Vector3();
     private float debugMarkerTimer;
+    private float muzzleFlashTimer;
     private Texture particleTexture;
 
     private DialogHudSystem dialogHudSystem;
@@ -176,6 +180,8 @@ public class GameScreen implements Screen {
         camera = new PerspectiveCamera(75, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         camera.near = 0.1f;
         camera.far = 5000f;
+
+        deferredRenderer = new DeferredRenderer(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
         EventBus eventBus = new EventBus();
         CoordinateManager coordinateManager = new CoordinateManager(eventBus);
@@ -262,6 +268,7 @@ public class GameScreen implements Screen {
         gameWorld.getEventBus().subscribe(WeaponFiredEvent.class, e -> {
             debugMuzzleEventPos.set(e.muzzlePosition);
             debugMarkerTimer = 3f;
+            muzzleFlashTimer = MUZZLE_FLASH_DURATION;
             Gdx.app.log("MuzzleDebug", "FIRED: event.muzzlePos=" + e.muzzlePosition
                 + " | last barrelTip=" + debugBarrelTipWorld);
         });
@@ -296,6 +303,10 @@ public class GameScreen implements Screen {
                 }
                 if (keycode == Input.Keys.TAB && !paused && !inDialog && !inInventory) {
                     inventoryScreenSystem.toggle();
+                    return true;
+                }
+                if (keycode == Input.Keys.F5) {
+                    if (deferredRenderer != null) deferredRenderer.reloadShaders();
                     return true;
                 }
                 return false;
@@ -439,10 +450,11 @@ public class GameScreen implements Screen {
         // Scale the weapon down slightly
         fpWeaponInstance.transform.scl(0.7f);
 
-        // Track actual world-space barrel tip for debug (model muzzle ~(0,0,-0.475) * scale 0.7 = z -0.3325 relative to weapon origin)
-        Matrix4 camToWorld = new Matrix4(camera.view).inv();
-        debugBarrelTipWorld.set(0.18f + bobX + weaponSwayY, -0.14f + bobY + weaponSwayX, -0.5825f);
-        debugBarrelTipWorld.mul(camToWorld);
+        // Compute world-space barrel tip by transforming model-local muzzle point through the
+        // final weapon transform — this handles bob, sway, and lean correctly.
+        Vector3 muzzleTip = new Vector3(0f, 0.005f, -0.475f).mul(fpWeaponInstance.transform);
+        debugBarrelTipWorld.set(muzzleTip);
+        if (cam != null) cam.worldBarrelTip.set(muzzleTip);
 
         // Render with cleared depth and tight near plane
         Gdx.gl.glClear(GL20.GL_DEPTH_BUFFER_BIT);
@@ -456,6 +468,29 @@ public class GameScreen implements Screen {
 
         camera.near = savedNear;
         camera.update();
+    }
+
+    /** Screen-space muzzle flash drawn after the FP weapon so it always appears in front of the gun. */
+    private void renderMuzzleFlash(float delta) {
+        if (debugRenderer == null || muzzleFlashTimer <= 0) return;
+        muzzleFlashTimer = Math.max(0, muzzleFlashTimer - delta);
+        float t = muzzleFlashTimer / MUZZLE_FLASH_DURATION;
+
+        Vector3 screenPos = camera.project(new Vector3(debugBarrelTipWorld));
+
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE); // additive
+        debugRenderer.setProjectionMatrix(
+            new Matrix4().setToOrtho2D(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()));
+        debugRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        // Outer glow expands and fades
+        debugRenderer.setColor(1f, 0.7f, 0.2f, t * 0.45f);
+        debugRenderer.circle(screenPos.x, screenPos.y, 40f + 20f * (1f - t));
+        // Inner flash stays compact and bright
+        debugRenderer.setColor(1f, 0.95f, 0.7f, t * 0.85f);
+        debugRenderer.circle(screenPos.x, screenPos.y, 18f);
+        debugRenderer.end();
+        Gdx.gl.glDisable(GL20.GL_BLEND);
     }
 
     /** Debug overlay: RED = where WeaponFiredEvent placed the muzzle; GREEN = where the barrel tip actually is. */
@@ -1001,8 +1036,6 @@ public class GameScreen implements Screen {
 
     @Override
     public void render(float delta) {
-        ScreenUtils.clear(0.0f, 0.0f, 0.0f, 1f, true);
-
         if (!paused) {
             float clampedDelta = Math.min(delta, 1f / 30f);
             gameWorld.update(clampedDelta);
@@ -1010,45 +1043,57 @@ public class GameScreen implements Screen {
             gameTime += clampedDelta;
         }
 
-        atmosphericSkyRenderer.setSunDirection(dayNightCycle.getSunDirection());
-        atmosphericSkyRenderer.setTime(gameTime);
-        atmosphericSkyRenderer.render(camera);
-
         if (!paused) {
             WorldPopulator.updateAnimals(populatedWorld, delta,
                 heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH);
         }
 
         syncBoxTransforms();
-        renderTerrain();
-        renderBoxes();
-        renderWorldObjects();
-        renderShips();
 
-        gameWorld.getParticleRenderSystem().render();
+        atmosphericSkyRenderer.setSunDirection(dayNightCycle.getSunDirection());
+        atmosphericSkyRenderer.setTime(gameTime);
 
-        renderFirstPersonWeapon(delta);
+        Vector3 sunDir = dayNightCycle.getSunDirection();
+        float sunIntensity = dayNightCycle.getSunIntensity();
+        float ambientIntensity = dayNightCycle.getAmbientIntensity();
+
+        deferredRenderer.render(
+            camera,
+            () -> {
+                renderTerrain();
+                renderBoxes();
+                renderWorldObjects();
+                renderShips();
+            },
+            () -> renderFirstPersonWeapon(delta),
+            atmosphericSkyRenderer,
+            () -> {
+                if (populatedWorld != null && populatedWorld.waterInstance != null) {
+                    modelBatch.begin(camera);
+                    modelBatch.render(populatedWorld.waterInstance, environment);
+                    modelBatch.end();
+                }
+            },
+            () -> gameWorld.getParticleRenderSystem().render(),
+            gameWorld.getLightingSystem(),
+            sunDir,
+            new Vector3(1f, 0.95f, 0.9f),
+            sunIntensity * 3f,
+            new Vector3(0.1f, 0.1f, 0.15f),
+            ambientIntensity
+        );
+
+        // Screen-space effects (after deferred pipeline outputs to screen)
+        renderMuzzleFlash(delta);
         renderMuzzleDebug(delta);
 
+        // HUD / UI (renders to screen directly)
         gameWorld.getCockpitHUDSystem().render(delta);
         gameWorld.getDebugHudSystem().render(delta);
-
-        if (dialogHudSystem != null) {
-            dialogHudSystem.render(delta);
-        }
-
-        if (hackingOverlay != null) {
-            hackingOverlay.render(delta);
-        }
-
-        if (inventoryScreenSystem != null) {
-            inventoryScreenSystem.render(delta);
-        }
-
-        if (paused) {
-            pauseStage.act(delta);
-            pauseStage.draw();
-        }
+        if (dialogHudSystem != null) dialogHudSystem.render(delta);
+        if (hackingOverlay != null) hackingOverlay.render(delta);
+        if (inventoryScreenSystem != null) inventoryScreenSystem.render(delta);
+        if (paused) { pauseStage.act(delta); pauseStage.draw(); }
     }
 
     private void syncBoxTransforms() {
@@ -1145,6 +1190,7 @@ public class GameScreen implements Screen {
         camera.viewportWidth = width;
         camera.viewportHeight = height;
         camera.update();
+        if (deferredRenderer != null) deferredRenderer.resize(width, height);
         gameWorld.resize(width, height);
         pauseStage.getViewport().update(width, height, true);
         if (dialogHudSystem != null) dialogHudSystem.resize(width, height);
@@ -1163,6 +1209,7 @@ public class GameScreen implements Screen {
 
     @Override
     public void dispose() {
+        if (deferredRenderer != null) { deferredRenderer.dispose(); deferredRenderer = null; }
         // ShipFactory must dispose before gameWorld, because it removes rigid bodies
         // from the dynamics world that gameWorld owns.
         if (shipFactory != null) { shipFactory.dispose(); shipFactory = null; }

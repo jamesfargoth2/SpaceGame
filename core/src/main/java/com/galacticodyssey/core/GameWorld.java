@@ -169,6 +169,7 @@ import com.galacticodyssey.hacking.HackingStateComponent;
 import com.galacticodyssey.hacking.data.HackableTypeRegistry;
 import com.galacticodyssey.hacking.systems.HackingSystem;
 import com.galacticodyssey.hacking.systems.PlayerHackingSystem;
+import com.galacticodyssey.rendering.lighting.LightingSystem;
 import java.io.File;
 import java.util.List;
 import java.util.UUID;
@@ -252,6 +253,7 @@ public class GameWorld implements Disposable {
     private PlayerHackingSystem playerHackingSystem;
     private ReactorSpecRegistry reactorSpecRegistry;
     private PowerSystem powerSystem;
+    private LightingSystem lightingSystem;
 
     private final Array<Disposable> disposables = new Array<>();
 
@@ -362,6 +364,9 @@ public class GameWorld implements Disposable {
         engine.addSystem(statusEffectSystem);
         engine.addSystem(combatAISystem);
         engine.addSystem(squadTacticsSystem);
+
+        lightingSystem = new LightingSystem();
+        engine.addSystem(lightingSystem);
 
         // Equipment
         lootTableRegistry = new LootTableRegistry();
@@ -953,6 +958,8 @@ public class GameWorld implements Disposable {
     public ParticleRenderSystem getParticleRenderSystem() {
         return particleRenderSystem;
     }
+
+    public LightingSystem getLightingSystem() { return lightingSystem; }
 
     @Override
     public void dispose() {
