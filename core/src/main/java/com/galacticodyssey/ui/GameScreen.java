@@ -173,6 +173,8 @@ public class GameScreen implements Screen {
     private InventoryScreenSystem inventoryScreenSystem;
     private OutfitterScreenSystem outfitterScreenSystem;
     private QuestJournalOverlay questJournalOverlay;
+    private com.galacticodyssey.ui.CharacterScreen characterScreen;
+    private com.galacticodyssey.ui.LevelUpToastOverlay levelUpToast;
     private ScreenTabManager screenTabManager;
     private com.galacticodyssey.ui.systems.RecruitmentScreenSystem recruitmentScreen;
     private VehicleBayPanel vehicleBayPanel;
@@ -377,6 +379,14 @@ public class GameScreen implements Screen {
                             screenTabManager.closeActive();
                         } else {
                             screenTabManager.switchTo("journal");
+                        }
+                        return true;
+                    }
+                    if (keycode == Input.Keys.C) {
+                        if (isAnyScreenOpen() && "character".equals(screenTabManager.getActiveScreenName())) {
+                            screenTabManager.closeActive();
+                        } else {
+                            screenTabManager.switchTo("character");
                         }
                         return true;
                     }
@@ -717,6 +727,13 @@ public class GameScreen implements Screen {
         recruitmentScreen = new com.galacticodyssey.ui.systems.RecruitmentScreenSystem(eventBus, skin);
         recruitmentScreen.initialize(gameWorld.getEngine());
         screenTabManager.register("recruitment", recruitmentScreen);
+
+        characterScreen = new com.galacticodyssey.ui.CharacterScreen(eventBus, skin);
+        characterScreen.initialize(gameWorld.getEngine(),
+            gameWorld.getRealTimeSkillSystem(), gameWorld.getPerkSystem(), gameWorld.getPerkRegistry());
+        screenTabManager.register("character", characterScreen);
+
+        levelUpToast = new com.galacticodyssey.ui.LevelUpToastOverlay(eventBus, skin);
 
         screenTabManager.setTransitionListener(new ScreenTabManager.ScreenTransitionListener() {
             @Override
@@ -1194,6 +1211,7 @@ public class GameScreen implements Screen {
         gameWorld.getDebugHudSystem().render(delta);
         if (dialogHudSystem != null) dialogHudSystem.render(delta);
         if (hackingOverlay != null) hackingOverlay.render(delta);
+        if (levelUpToast != null) levelUpToast.render(delta);
         if (screenTabManager != null) screenTabManager.render(delta);
         if (vehicleBayPanel != null && vehicleBayPanel.isVisible()) {
             vehicleBayStage.act(delta);
@@ -1285,6 +1303,7 @@ public class GameScreen implements Screen {
         pauseStage.getViewport().update(width, height, true);
         if (dialogHudSystem != null) dialogHudSystem.resize(width, height);
         if (hackingOverlay != null) hackingOverlay.resize(width, height);
+        if (levelUpToast != null) levelUpToast.resize(width, height);
         if (screenTabManager != null) screenTabManager.resize(width, height);
         if (vehicleBayStage != null) vehicleBayStage.getViewport().update(width, height, true);
     }
@@ -1365,6 +1384,11 @@ public class GameScreen implements Screen {
             questJournalOverlay.dispose();
             questJournalOverlay = null;
         }
+        if (characterScreen != null) {
+            characterScreen.dispose();
+            characterScreen = null;
+        }
+        if (levelUpToast != null) { levelUpToast.dispose(); levelUpToast = null; }
         if (vehicleBayPanel != null) {
             vehicleBayPanel.dispose();
             vehicleBayPanel = null;
