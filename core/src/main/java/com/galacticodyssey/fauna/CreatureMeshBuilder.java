@@ -28,8 +28,9 @@ public final class CreatureMeshBuilder implements Disposable {
     public Array<ModelInstance> build(CreatureSpec spec) {
         Array<ModelInstance> out = new Array<>();
         for (AssembledNode node : spec.allNodes) {
-            Model model = providerFor(node.part.geometry).buildPartModel(node.part.geometry);
-            ownedModels.add(model);
+            PartGeometryProvider prov = providerFor(node.part.geometry);
+            Model model = prov.buildPartModel(node.part.geometry);
+            if (prov.ownsBuiltModels()) ownedModels.add(model);
             ModelInstance inst = new ModelInstance(model);
             Matrix4 m = new Matrix4(node.worldTransform);
             m.scl(node.scale);

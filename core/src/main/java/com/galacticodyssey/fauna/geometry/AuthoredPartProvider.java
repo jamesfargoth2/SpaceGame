@@ -21,5 +21,7 @@ public final class AuthoredPartProvider implements PartGeometryProvider {
         return assets.get(spec.modelRef, Model.class);
     }
 
+    @Override public boolean ownsBuiltModels() { return false; }
+
     @Override public void dispose() { /* models owned by AssetManager */ }
 }
