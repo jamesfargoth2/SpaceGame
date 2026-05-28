@@ -6,7 +6,7 @@ Full multi-zone, server-authoritative multiplayer networking for Galactic Odysse
 
 ### Dependencies
 
-KryoNet 2.22.9 added to `common/build.gradle.kts` (transitively available to core, server, and gateway). New `common/` Gradle module holds shared protocol classes (pure Java, Kryo + KryoNet only — no libGDX rendering).
+KryoNet 2.22.0-RC1 added to `common/build.gradle.kts` (transitively available to core, server, and gateway). New `common/` Gradle module holds shared protocol classes (pure Java, Kryo + KryoNet only — no libGDX rendering).
 
 ### Module Dependency Graph
 

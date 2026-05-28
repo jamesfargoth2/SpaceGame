@@ -8,7 +8,6 @@ import com.galacticodyssey.networking.components.NetworkIdComponent;
 import com.galacticodyssey.server.network.PlayerSession;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Ashley {@link EntitySystem} that runs each server tick and sends interest-based
@@ -46,7 +45,7 @@ public class ServerReplicationSystem extends EntitySystem {
 
     private final PacketSender packetSender;
     private final InterestManager interestManager = new InterestManager();
-    private final Map<Integer, PlayerSession> sessions = new ConcurrentHashMap<>();
+    private final Map<Integer, PlayerSession> sessions = new HashMap<>();
 
     /** connectionId -> (networkId -> ReplicationState) */
     private final Map<Integer, Map<Integer, ReplicationState>> clientStates = new HashMap<>();

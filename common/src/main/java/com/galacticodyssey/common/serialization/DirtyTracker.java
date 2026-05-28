@@ -12,6 +12,9 @@ public class DirtyTracker {
     }
 
     public void markDirty(int fieldIndex) {
+        if (fieldIndex < 0 || fieldIndex >= fieldCount) {
+            throw new IndexOutOfBoundsException("fieldIndex " + fieldIndex + " out of range [0, " + fieldCount + ")");
+        }
         mask |= (1L << fieldIndex);
     }
 
@@ -28,6 +31,9 @@ public class DirtyTracker {
     }
 
     public boolean isBitDirty(int fieldIndex) {
+        if (fieldIndex < 0 || fieldIndex >= fieldCount) {
+            throw new IndexOutOfBoundsException("fieldIndex " + fieldIndex + " out of range [0, " + fieldCount + ")");
+        }
         return (mask & (1L << fieldIndex)) != 0;
     }
 

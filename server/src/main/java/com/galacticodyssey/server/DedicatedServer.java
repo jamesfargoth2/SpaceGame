@@ -98,10 +98,23 @@ public class DedicatedServer extends ApplicationAdapter {
         networkListener = new ServerNetworkListener(runnable ->
             com.badlogic.gdx.Gdx.app.postRunnable(runnable));
 
+        networkListener.setOnSessionCreated(session ->
+            replicationSystem.addSession(session));
+
         // Start KryoNet server
         kryoServer = new Server(131072, 16384);
         KryoRegistrar.register(kryoServer.getKryo());
         NetworkKryoRegistrar.register(kryoServer.getKryo());
+
+        networkListener.setSendCallback((connectionId, message) -> {
+            Connection[] connections = kryoServer.getConnections();
+            for (Connection conn : connections) {
+                if (conn.getID() == connectionId) {
+                    conn.sendTCP(message);
+                    break;
+                }
+            }
+        });
 
         kryoServer.addListener(new Listener() {
             @Override
@@ -116,8 +129,10 @@ public class DedicatedServer extends ApplicationAdapter {
 
             @Override
             public void disconnected(Connection connection) {
-                networkListener.simulateDisconnected(connection.getID());
-                replicationSystem.removeSession(connection.getID());
+                final int connId = connection.getID();
+                networkListener.simulateDisconnected(connId);
+                com.badlogic.gdx.Gdx.app.postRunnable(() ->
+                    replicationSystem.removeSession(connId));
             }
         });
 

@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
@@ -24,6 +25,8 @@ public class ServerNetworkListener {
 
     private final Consumer<Runnable> mainThreadPoster;
     private final Map<Integer, PlayerSession> sessions = new ConcurrentHashMap<>();
+    private Consumer<PlayerSession> onSessionCreated;
+    private BiConsumer<Integer, Object> sendCallback;
 
     /**
      * @param mainThreadPoster callback used to marshal work onto the main game-loop
@@ -31,6 +34,14 @@ public class ServerNetworkListener {
      */
     public ServerNetworkListener(Consumer<Runnable> mainThreadPoster) {
         this.mainThreadPoster = mainThreadPoster;
+    }
+
+    public void setOnSessionCreated(Consumer<PlayerSession> callback) {
+        this.onSessionCreated = callback;
+    }
+
+    public void setSendCallback(BiConsumer<Integer, Object> callback) {
+        this.sendCallback = callback;
     }
 
     // -------------------------------------------------------------------------
@@ -82,6 +93,18 @@ public class ServerNetworkListener {
         String token = UUID.randomUUID().toString();
         PlayerSession session = new PlayerSession(connectionId, playerId, token);
         sessions.put(connectionId, session);
+
+        if (onSessionCreated != null) {
+            onSessionCreated.accept(session);
+        }
+
+        LoginResponse response = new LoginResponse();
+        response.success = true;
+        response.sessionToken = token;
+        response.playerId = playerId;
+        if (sendCallback != null) {
+            sendCallback.accept(connectionId, response);
+        }
     }
 
     private void handleInput(int connectionId, InputPacket packet) {

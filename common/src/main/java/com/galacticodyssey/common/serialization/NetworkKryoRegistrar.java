@@ -41,7 +41,14 @@ public final class NetworkKryoRegistrar {
         kryo.register(EntityBatchUpdate.class, 122);
         kryo.register(EntitySpawnMessage.class, 123);
         kryo.register(EntityDestroyMessage.class, 124);
-        kryo.register(byte[].class, 125);
-        kryo.register(String.class, 126);
+
+        // byte[] and String are registered by KryoRegistrar (IDs 15 and implicit).
+        // Guard to avoid ID conflicts when both registrars are active.
+        if (kryo.getClassResolver().getRegistration(byte[].class) == null) {
+            kryo.register(byte[].class, 125);
+        }
+        if (kryo.getClassResolver().getRegistration(String.class) == null) {
+            kryo.register(String.class, 126);
+        }
     }
 }
