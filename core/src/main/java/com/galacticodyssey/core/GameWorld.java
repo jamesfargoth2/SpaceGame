@@ -153,6 +153,15 @@ import com.galacticodyssey.mission.shared.QuestJournal;
 import com.galacticodyssey.mission.shared.ObjectiveTrackingSystem;
 import com.galacticodyssey.mission.shared.RewardSystem;
 import com.galacticodyssey.mission.discovery.QuestDiscoverySystem;
+import com.galacticodyssey.npc.components.NpcDialogComponent;
+import com.galacticodyssey.npc.components.NpcIdentityComponent;
+import com.galacticodyssey.npc.data.DialogDataRegistry;
+import com.galacticodyssey.npc.systems.DialogSystem;
+import com.galacticodyssey.stealth.BulletLineOfSightQuery;
+import com.galacticodyssey.stealth.NpcAwarenessSystem;
+import com.galacticodyssey.stealth.ShipDetectionSystem;
+import com.galacticodyssey.stealth.ShipSignatureSystem;
+import com.galacticodyssey.stealth.SignatureComponent;
 import java.io.File;
 import java.util.List;
 import java.util.UUID;
@@ -227,6 +236,11 @@ public class GameWorld implements Disposable {
     private GalacticAssetManager assetManager;
     private StreamingSystem streamingSystem;
     private com.badlogic.gdx.graphics.PerspectiveCamera camera;
+    private DialogDataRegistry dialogDataRegistry;
+    private DialogSystem dialogSystem;
+    private NpcAwarenessSystem npcAwarenessSystem;
+    private ShipDetectionSystem shipDetectionSystem;
+    private ShipSignatureSystem shipSignatureSystem;
 
     private final Array<Disposable> disposables = new Array<>();
 
@@ -502,6 +516,28 @@ public class GameWorld implements Disposable {
         engine.addSystem(objectiveTrackingSystem);
         engine.addSystem(sagaRunner);
 
+        // Stealth System
+        BulletLineOfSightQuery losQuery = new BulletLineOfSightQuery(bulletPhysicsSystem.getDynamicsWorld());
+        disposables.add(losQuery);
+        npcAwarenessSystem  = new NpcAwarenessSystem(eventBus, losQuery);
+        shipSignatureSystem = new ShipSignatureSystem();
+        shipDetectionSystem = new ShipDetectionSystem(eventBus);
+        engine.addSystem(npcAwarenessSystem);
+        engine.addSystem(shipSignatureSystem);
+        engine.addSystem(shipDetectionSystem);
+
+        // Dialog system
+        dialogDataRegistry = new DialogDataRegistry();
+        if (com.badlogic.gdx.Gdx.files != null) {
+            try {
+                dialogDataRegistry.loadFromFiles();
+            } catch (Exception e) {
+                com.badlogic.gdx.Gdx.app.error("GameWorld", "Failed to load dialog data", e);
+            }
+        }
+        dialogSystem = new DialogSystem(eventBus, dialogDataRegistry);
+        engine.addSystem(dialogSystem);
+
         // Asset streaming
         if (com.badlogic.gdx.Gdx.files != null) {
             assetManager = new GalacticAssetManager();
@@ -600,6 +636,7 @@ public class GameWorld implements Disposable {
         player.add(new HitboxComponent());
 
         player.add(new PlayerStatsComponent());
+        player.add(new SignatureComponent());
 
         // Shooting feedback and equipment components.
         player.add(new RecoilComponent());
@@ -787,6 +824,31 @@ public class GameWorld implements Disposable {
         debugHudSystem.resize(width, height);
         cockpitHUDSystem.resize(width, height);
     }
+
+    public Entity spawnTestNpc(float x, float y, float z) {
+        Entity npc = new Entity();
+
+        TransformComponent transform = new TransformComponent();
+        transform.position.set(x, y, z);
+        npc.add(transform);
+
+        NpcIdentityComponent identity = new NpcIdentityComponent();
+        identity.npcId = "test_merchant";
+        identity.name = "Zara Voss";
+        identity.role = com.galacticodyssey.npc.NPCRole.MERCHANT;
+        npc.add(identity);
+
+        NpcDialogComponent dialog = new NpcDialogComponent();
+        dialog.dialogTreeId = "test_merchant";
+        dialog.interactionRadius = 3f;
+        npc.add(dialog);
+
+        engine.addEntity(npc);
+        return npc;
+    }
+
+    public DialogSystem getDialogSystem() { return dialogSystem; }
+    public DialogDataRegistry getDialogDataRegistry() { return dialogDataRegistry; }
 
     /** Wire up the audio system. Call after GameWorld construction, before the first update(). */
     public void initAudio(AudioManager audioManager) {
