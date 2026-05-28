@@ -82,4 +82,16 @@ public final class CombatEnums {
     public enum CoverQuality {
         HALF, FULL
     }
+
+    public enum FuseType {
+        TIMED,
+        IMPACT,
+        PROXIMITY
+    }
+
+    public enum ThrowState {
+        IDLE,
+        COOKING,
+        THROWN
+    }
 }
