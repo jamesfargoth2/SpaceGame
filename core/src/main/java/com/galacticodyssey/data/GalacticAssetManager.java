@@ -11,7 +11,7 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 
-public final class GalacticAssetManager implements Disposable {
+public class GalacticAssetManager implements Disposable {
 
     private static final int MAX_LOADS_PER_FRAME = 3;
 
