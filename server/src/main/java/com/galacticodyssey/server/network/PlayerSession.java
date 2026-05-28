@@ -28,6 +28,10 @@ public class PlayerSession {
     private double galaxyX;
     private double galaxyY;
     private double galaxyZ;
+    private UUID zoneId;
+
+    public UUID getZoneId() { return zoneId; }
+    public void setZoneId(UUID zoneId) { this.zoneId = zoneId; }
 
     /**
      * @param connectionId  KryoNet connection identifier for this session
