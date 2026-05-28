@@ -92,9 +92,86 @@ public final class TectonicModel {
         return best;
     }
 
+    public float baseElevation(Vector3 dir) {
+        Plate p = nearest(dir);
+        float e = p.baseElevation;
+
+        BoundaryQuery q = boundaryAt(dir);
+        float falloff = 1f - q.distanceNormalized;      // 1 at boundary, 0 at edge
+        float s = falloff * falloff * (3f - 2f * falloff); // smoothstep
+        switch (q.type) {
+            case CONVERGENT_CONTINENTAL -> e += config.mountainUplift * s;
+            case CONVERGENT_OCEANIC -> e -= config.trenchDepth * s;
+            case DIVERGENT -> e += (p.oceanic ? config.ridgeUplift : -config.riftDepth) * s;
+            default -> { /* TRANSFORM/NONE: no elevation change */ }
+        }
+
+        for (Vector3 h : hotspots) {
+            float ang = (float) Math.acos(MathUtils.clamp(dir.dot(h), -1f, 1f));
+            if (ang < config.hotspotInfluence) {
+                float hf = 1f - ang / config.hotspotInfluence;
+                e += config.hotspotUplift * (hf * hf * (3f - 2f * hf));
+            }
+        }
+        return e;
+    }
+
+    public float continentalFraction() { return continentalFraction; }
+
+    public List<TectonicFeature> features() { return features; }
+
     // --- baked in Task 5 ---
-    private void bakeContinentalFraction() { /* Task 5 */ }
-    private void bakeFeatures() { /* Task 5 */ }
+    private static final int SAMPLE_COUNT = 600;
+
+    private void bakeContinentalFraction() {
+        int land = 0;
+        Vector3 d = new Vector3();
+        for (int i = 0; i < SAMPLE_COUNT; i++) {
+            fibSphere(i, SAMPLE_COUNT, d);
+            if (nearest(d).baseElevation >= 0f) land++;
+        }
+        continentalFraction = land / (float) SAMPLE_COUNT;
+    }
+
+    private void bakeFeatures() {
+        for (Vector3 h : hotspots) {
+            features.add(new TectonicFeature(FeatureType.HOTSPOT, h.cpy().nor()));
+        }
+        List<Vector3> placed = new ArrayList<>();
+        Vector3 d = new Vector3();
+        float minSpacing = config.boundaryInfluence * 2f;
+        for (int i = 0; i < SAMPLE_COUNT; i++) {
+            fibSphere(i, SAMPLE_COUNT, d);
+            BoundaryQuery q = boundaryAt(d);
+            if (q.distanceNormalized > 0.25f) continue;
+            FeatureType ft;
+            switch (q.type) {
+                case CONVERGENT_OCEANIC -> ft = FeatureType.VOLCANIC_ARC;
+                case DIVERGENT -> ft = FeatureType.RIFT;
+                default -> { continue; }
+            }
+            boolean tooClose = false;
+            for (Vector3 placedDir : placed) {
+                if (Math.acos(MathUtils.clamp(placedDir.dot(d), -1f, 1f)) < minSpacing) { tooClose = true; break; }
+            }
+            if (tooClose) continue;
+            Vector3 pos = d.cpy().nor();
+            placed.add(pos);
+            features.add(new TectonicFeature(ft, pos));
+            if (ft == FeatureType.VOLCANIC_ARC) {
+                features.add(new TectonicFeature(FeatureType.TRENCH, pos)); // colocated trench
+            }
+        }
+    }
+
+    /** Deterministic evenly-distributed point i of n on the unit sphere (Fibonacci spiral). */
+    private static void fibSphere(int i, int n, Vector3 out) {
+        float ga = MathUtils.PI * (3f - (float) Math.sqrt(5.0)); // golden angle
+        float y = 1f - 2f * (i + 0.5f) / n;
+        float r = (float) Math.sqrt(Math.max(0f, 1f - y * y));
+        float theta = ga * i;
+        out.set(r * MathUtils.cos(theta), y, r * MathUtils.sin(theta)).nor();
+    }
 
     List<Plate> plates() { return plates; }
     TectonicConfig config() { return config; }

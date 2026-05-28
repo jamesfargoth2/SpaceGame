@@ -65,4 +65,50 @@ class TectonicModelTest {
         assertEquals(BoundaryType.NONE, q.type);
         assertEquals(1f, q.distanceNormalized, 1e-4f);
     }
+
+    @Test
+    void convergentRaisesElevationAboveBase() {
+        // Continental plates closing on the boundary (A -speed, B +speed) -> mountains.
+        Plate a = new Plate(0, new Vector3(1, 0, 0.2f), false, 0.4f, new Vector3(0,1,0), -1f);
+        Plate b = new Plate(1, new Vector3(-1, 0, 0.2f), false, 0.4f, new Vector3(0,1,0), 1f);
+        TectonicModel m = new TectonicModel(List.of(a, b), List.of(), TectonicConfig.defaults());
+        Vector3 bd = new Vector3(0, 0, 1).nor();
+        assertTrue(m.baseElevation(bd) > 0.4f, "mountains at a convergent boundary exceed plate base");
+    }
+
+    @Test
+    void divergentLowersElevationBelowBase() {
+        // Continental plates pulling apart (A +speed, B -speed) -> rift drops below base.
+        Plate a = new Plate(0, new Vector3(1, 0, 0.2f), false, 0.4f, new Vector3(0,1,0), 1f);
+        Plate b = new Plate(1, new Vector3(-1, 0, 0.2f), false, 0.4f, new Vector3(0,1,0), -1f);
+        TectonicModel m = new TectonicModel(List.of(a, b), List.of(), TectonicConfig.defaults());
+        Vector3 bd = new Vector3(0, 0, 1).nor();
+        assertTrue(m.baseElevation(bd) < 0.4f, "continental rift drops below plate base");
+    }
+
+    @Test
+    void continentalFractionReflectsPlateMix() {
+        // 3 continental + 1 oceanic plate, roughly evenly spread -> fraction in a sane band.
+        Plate c1 = new Plate(0, new Vector3(1,0,0), false, 0.35f, new Vector3(0,1,0), 0f);
+        Plate c2 = new Plate(1, new Vector3(-1,0,0), false, 0.35f, new Vector3(0,1,0), 0f);
+        Plate c3 = new Plate(2, new Vector3(0,1,0), false, 0.35f, new Vector3(1,0,0), 0f);
+        Plate o1 = new Plate(3, new Vector3(0,-1,0), true, -0.35f, new Vector3(1,0,0), 0f);
+        TectonicModel m = new TectonicModel(List.of(c1,c2,c3,o1), List.of(), TectonicConfig.defaults());
+        float f = m.continentalFraction();
+        assertTrue(f > 0.4f && f < 0.95f, "continental fraction was " + f);
+    }
+
+    @Test
+    void hotspotsAndArcsExported() {
+        // Oceanic plate A subducting under continental plate B (closing: A -speed, B +speed)
+        // -> a CONVERGENT_OCEANIC boundary that must export a volcanic arc.
+        Plate a = new Plate(0, new Vector3(1, 0, 0.2f), true, -0.35f, new Vector3(0,1,0), -1f);
+        Plate b = new Plate(1, new Vector3(-1, 0, 0.2f), false, 0.4f, new Vector3(0,1,0), 1f);
+        Vector3 hotspot = new Vector3(0, 1, 0).nor();
+        TectonicModel m = new TectonicModel(List.of(a, b), List.of(hotspot), TectonicConfig.defaults());
+        boolean hasHotspot = m.features().stream().anyMatch(f -> f.type == FeatureType.HOTSPOT);
+        boolean hasArc = m.features().stream().anyMatch(f -> f.type == FeatureType.VOLCANIC_ARC);
+        assertTrue(hasHotspot, "hotspot must be exported as a feature");
+        assertTrue(hasArc, "oceanic subduction must export a volcanic arc");
+    }
 }
