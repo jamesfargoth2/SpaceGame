@@ -76,6 +76,10 @@ import com.galacticodyssey.npc.events.DialogOpenedEvent;
 import com.galacticodyssey.npc.systems.DialogSystem;
 import com.galacticodyssey.ui.systems.DialogHudSystem;
 import com.galacticodyssey.ui.systems.InventoryScreenSystem;
+import com.galacticodyssey.ui.outfitter.OutfitterScreenSystem;
+import com.galacticodyssey.ui.events.OutfitterOpenedEvent;
+import com.galacticodyssey.ui.events.OutfitterClosedEvent;
+import com.galacticodyssey.ship.modules.ShipModuleRegistry;
 import com.galacticodyssey.hacking.ui.HackingOverlay;
 import com.galacticodyssey.hacking.HackingStateComponent;
 import com.galacticodyssey.hacking.events.HackStartedEvent;
@@ -148,6 +152,8 @@ public class GameScreen implements Screen {
     private HackingOverlay hackingOverlay;
     private InventoryScreenSystem inventoryScreenSystem;
     private boolean inInventory;
+    private OutfitterScreenSystem outfitterScreenSystem;
+    private boolean inOutfitter;
 
     // Preserve existing constructor for load-game flow
     public GameScreen(GalacticOdyssey game) {
@@ -270,6 +276,7 @@ public class GameScreen implements Screen {
         buildDialogSystem();
         buildHackingSystem();
         buildInventorySystem();
+        buildOutfitterSystem();
 
         atmosphericSkyRenderer = new AtmosphericSkyRenderer();
         dayNightCycle = new DayNightCycle(600f, 23.5f, false);
@@ -303,6 +310,13 @@ public class GameScreen implements Screen {
                 }
                 if (keycode == Input.Keys.TAB && !paused && !inDialog && !inInventory) {
                     inventoryScreenSystem.toggle();
+                    return true;
+                }
+                if (keycode == Input.Keys.O && !paused && !inDialog && !inInventory && !inOutfitter) {
+                    Entity playerShip = shipEntities.size > 0 ? shipEntities.first() : null;
+                    if (playerShip != null) {
+                        outfitterScreenSystem.open(playerShip, true);
+                    }
                     return true;
                 }
                 if (keycode == Input.Keys.F5) {
@@ -617,6 +631,43 @@ public class GameScreen implements Screen {
 
         eventBus.subscribe(com.galacticodyssey.ui.events.InventoryClosedEvent.class, event -> {
             inInventory = false;
+            Gdx.input.setCursorCatched(true);
+            gameWorld.getPlayerInputSystem().setEnabled(true);
+            setupInput();
+        });
+    }
+
+    private void buildOutfitterSystem() {
+        EventBus eventBus = gameWorld.getEventBus();
+        ShipModuleRegistry moduleRegistry = new ShipModuleRegistry();
+        moduleRegistry.loadModules("data/modules/ship_modules.json");
+        moduleRegistry.loadSlotLayouts("data/modules/ship_module_slots.json");
+
+        outfitterScreenSystem = new OutfitterScreenSystem(eventBus, game.getSkin(), moduleRegistry);
+        outfitterScreenSystem.initialize(gameWorld.getEngine());
+
+        shipFactory.setModuleRegistry(moduleRegistry);
+
+        eventBus.subscribe(OutfitterOpenedEvent.class, event -> {
+            inOutfitter = true;
+            Gdx.input.setCursorCatched(false);
+            gameWorld.getPlayerInputSystem().setEnabled(false);
+            inputMultiplexer.clear();
+            inputMultiplexer.addProcessor(new InputAdapter() {
+                @Override
+                public boolean keyDown(int keycode) {
+                    if (keycode == Input.Keys.ESCAPE) {
+                        outfitterScreenSystem.close();
+                        return true;
+                    }
+                    return false;
+                }
+            });
+            inputMultiplexer.addProcessor(outfitterScreenSystem.getStage());
+        });
+
+        eventBus.subscribe(OutfitterClosedEvent.class, event -> {
+            inOutfitter = false;
             Gdx.input.setCursorCatched(true);
             gameWorld.getPlayerInputSystem().setEnabled(true);
             setupInput();
@@ -1061,6 +1112,7 @@ public class GameScreen implements Screen {
         if (dialogHudSystem != null) dialogHudSystem.render(delta);
         if (hackingOverlay != null) hackingOverlay.render(delta);
         if (inventoryScreenSystem != null) inventoryScreenSystem.render(delta);
+        if (outfitterScreenSystem != null) outfitterScreenSystem.render(delta);
         if (paused) { pauseStage.act(delta); pauseStage.draw(); }
     }
 
@@ -1148,6 +1200,7 @@ public class GameScreen implements Screen {
         if (dialogHudSystem != null) dialogHudSystem.resize(width, height);
         if (hackingOverlay != null) hackingOverlay.resize(width, height);
         if (inventoryScreenSystem != null) inventoryScreenSystem.resize(width, height);
+        if (outfitterScreenSystem != null) outfitterScreenSystem.resize(width, height);
     }
 
     @Override
@@ -1209,6 +1262,10 @@ public class GameScreen implements Screen {
         if (inventoryScreenSystem != null) {
             inventoryScreenSystem.dispose();
             inventoryScreenSystem = null;
+        }
+        if (outfitterScreenSystem != null) {
+            outfitterScreenSystem.dispose();
+            outfitterScreenSystem = null;
         }
         if (pauseStage != null) {
             pauseStage.dispose();
