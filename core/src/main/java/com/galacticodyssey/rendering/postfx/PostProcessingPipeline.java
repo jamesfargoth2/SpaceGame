@@ -75,6 +75,30 @@ public class PostProcessingPipeline implements Disposable {
         fxaa.apply(toneMapping.getResult());
     }
 
+    public void applyForward(FrameBuffer hdrBuffer) {
+        Texture hdrTex = hdrBuffer.getColorBufferTexture();
+        ShaderProgram blitShader = shaderCache.get("fullscreen.vert", "bloom_upsample.frag");
+
+        bloom.apply(hdrTex);
+        hdrBuffer.begin();
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_ONE, GL20.GL_ONE);
+        blitShader.bind();
+        bloom.getResult().bind(0);
+        blitShader.setUniformi("u_inputTex", 0);
+        blitShader.setUniformf("u_texelSize", 1f / bloom.getResult().getWidth(), 1f / bloom.getResult().getHeight());
+        blitShader.setUniformf("u_intensity", bloom.intensity);
+        quad.render(blitShader);
+        Gdx.gl.glDisable(GL20.GL_BLEND);
+        hdrBuffer.end();
+
+        toneMapping.apply(hdrBuffer.getColorBufferTexture());
+
+        Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, 0);
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+        fxaa.apply(toneMapping.getResult());
+    }
+
     public SSAOEffect getSSAO() { return ssao; }
     public BloomEffect getBloom() { return bloom; }
     public ToneMappingEffect getToneMapping() { return toneMapping; }
