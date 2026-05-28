@@ -19,6 +19,10 @@ import java.util.Queue;
  */
 public class BoardingOrchestratorSystem extends EntitySystem {
 
+    // Runs early (low number = first in Ashley's ascending order), before
+    // ShipSubsystemSystem (PRIORITY 9). SubsystemDisabledEvents published by that system
+    // this frame are therefore consumed here on the NEXT frame — an intentional, harmless
+    // one-frame delay before a ship is flagged boardable.
     public static final int PRIORITY = 1;
 
     private final EventBus eventBus;

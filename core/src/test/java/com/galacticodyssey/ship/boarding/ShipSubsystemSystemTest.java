@@ -2,6 +2,7 @@ package com.galacticodyssey.ship.boarding;
 
 import com.badlogic.ashley.core.Engine;
 import com.badlogic.ashley.core.Entity;
+import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 import com.galacticodyssey.combat.CombatEnums.DamageType;
 import com.galacticodyssey.core.EventBus;
@@ -94,5 +95,19 @@ class ShipSubsystemSystemTest {
         // Advance well past the timer.
         engine.update(timer + 1f);
         assertTrue(subsystems.enginesOperational(), "engines recover after EMP expires");
+    }
+
+    @Test
+    void hitRoutingRespectsShipRotation() {
+        // Yaw the ship 180° about Y: its aft (local -Z) now points to world +Z.
+        // A hit at world +Z must therefore route to ENGINES, not WEAPONS.
+        ship.getComponent(TransformComponent.class).rotation.setFromAxis(0f, 1f, 0f, 180f);
+        eventBus.publish(new ShipDamageEvent(ship, null, 120f,
+            DamageType.BALLISTIC, new Vector3(0, 0, 10)));
+        engine.update(0.016f);
+        assertEquals(0f, subsystems.get(SubsystemType.ENGINES).health, 0.01f,
+            "world +Z hit on a 180°-yawed ship is an aft (engines) hit");
+        assertEquals(1, disabled.size());
+        assertEquals(SubsystemType.ENGINES, disabled.get(0).subsystem);
     }
 }

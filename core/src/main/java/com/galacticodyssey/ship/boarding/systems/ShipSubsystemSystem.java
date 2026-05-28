@@ -6,6 +6,7 @@ import com.badlogic.ashley.core.Entity;
 import com.badlogic.ashley.core.EntitySystem;
 import com.badlogic.ashley.core.Family;
 import com.badlogic.ashley.utils.ImmutableArray;
+import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 import com.galacticodyssey.combat.CombatEnums.DamageType;
 import com.galacticodyssey.core.EventBus;
@@ -44,6 +45,10 @@ public class ShipSubsystemSystem extends EntitySystem {
     private final List<ShipDamageEvent> pending = new ArrayList<>();
     private ImmutableArray<Entity> empTickEntities;
 
+    // Scratch objects for world→local hit transform (single-threaded per update).
+    private final Vector3 tmpLocal = new Vector3();
+    private final Quaternion tmpRot = new Quaternion();
+
     public ShipSubsystemSystem(EventBus eventBus) {
         super(PRIORITY);
         this.eventBus = eventBus;
@@ -69,6 +74,8 @@ public class ShipSubsystemSystem extends EntitySystem {
         pending.clear();
 
         // 2. Tick EMP timers; recovery does not re-publish disable events.
+        // Applying then ticking in the same frame costs one deltaTime of the fresh timer,
+        // which is negligible against multi-second EMP durations and keeps the order simple.
         if (empTickEntities != null) {
             for (int i = 0, n = empTickEntities.size(); i < n; i++) {
                 ShipSubsystemsComponent c = SUB_M.get(empTickEntities.get(i));
@@ -119,10 +126,22 @@ public class ShipSubsystemSystem extends EntitySystem {
     /**
      * Map a world-space hit to a subsystem by the hit's ship-local Z.
      * Aft (forward is -Z in this engine) = ENGINES, fore = WEAPONS, mid = SHIELDS.
+     * The hit is transformed into the ship's local frame so routing is correct at any
+     * orientation. (Coarse axial split; a richer hardpoint-geometry mapping can replace
+     * this without touching callers.)
      */
     private SubsystemType resolveSubsystem(Entity ship, Vector3 hitWorld) {
         TransformComponent tc = TRANSFORM_M.get(ship);
-        float localZ = tc == null ? 0f : (hitWorld.z - tc.position.z);
+        float localZ;
+        if (tc == null) {
+            localZ = 0f;
+        } else {
+            // World → local: subtract ship position, then apply the inverse rotation
+            // (conjugate == inverse for a unit quaternion).
+            tmpLocal.set(hitWorld).sub(tc.position);
+            tmpRot.set(tc.rotation).conjugate().transform(tmpLocal);
+            localZ = tmpLocal.z;
+        }
         if (localZ < -3f) return SubsystemType.ENGINES;   // aft
         if (localZ > 3f) return SubsystemType.WEAPONS;     // fore
         return SubsystemType.SHIELDS;                      // midships
