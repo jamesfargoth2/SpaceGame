@@ -17,7 +17,7 @@ public final class DayNightCycle {
         this.dayLengthSeconds = Math.max(1f, dayLengthSeconds);
         this.axialTiltRadians = axialTiltDegrees * MathUtils.degreesToRadians;
         this.tidallyLocked = tidallyLocked;
-        this.elapsed = dayLengthSeconds * 0.5f;
+        this.elapsed = this.dayLengthSeconds * 0.5f;
         recalcSunDirection();
     }
 
