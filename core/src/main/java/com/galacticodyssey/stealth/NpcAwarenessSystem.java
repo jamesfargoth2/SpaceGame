@@ -101,9 +101,12 @@ public final class NpcAwarenessSystem extends EntitySystem {
             float rate    = contrib > state.detectionAccumulator ? RISE_RATE : DECAY_RATE;
             state.detectionAccumulator = MathUtils.lerp(state.detectionAccumulator, target, rate * dt);
 
-            boolean visible = contrib > 0f;
+            // 'playerPerceived' is true when any detection channel (hearing OR vision) contributes.
+            // An ALERTED NPC will stay ALERTED as long as it can hear the player, even without LoS.
+            // This is intentional: a loud player cannot hide just by breaking line-of-sight.
+            boolean playerPerceived = contrib > 0f;
             AwarenessState before = state.state;
-            tickFsm(state, perc, playerPos, visible, dt);
+            tickFsm(state, perc, playerPos, playerPerceived, dt);
 
             if (state.state != before) {
                 eventBus.publish(new AwarenessChangedEvent(
@@ -166,11 +169,11 @@ public final class NpcAwarenessSystem extends EntitySystem {
     /**
      * Advances the NPC FSM one tick.
      *
-     * @param playerVisible true if {@code computeContribution} returned > 0 this frame.
-     * @param dt            elapsed seconds.
+     * @param playerPerceived true if {@code computeContribution} returned > 0 this frame.
+     * @param dt              elapsed seconds.
      */
     void tickFsm(AwarenessStateComponent state, PerceptionComponent perc,
-                 Vector3 playerPos, boolean playerVisible, float dt) {
+                 Vector3 playerPos, boolean playerPerceived, float dt) {
         switch (state.state) {
             case UNAWARE -> {
                 if (state.detectionAccumulator > perc.curiousThreshold) {
@@ -189,8 +192,8 @@ public final class NpcAwarenessSystem extends EntitySystem {
                 }
             }
             case ALERTED -> {
-                // Keep last-known position fresh while visible
-                if (playerVisible) {
+                // Keep last-known position fresh while perceived
+                if (playerPerceived) {
                     state.lastKnownPosition.set(playerPos);
                 } else {
                     transition(state, AwarenessState.SEARCHING);
@@ -198,7 +201,7 @@ public final class NpcAwarenessSystem extends EntitySystem {
             }
             case SEARCHING -> {
                 state.searchTimer += dt;
-                if (playerVisible && state.detectionAccumulator > perc.curiousThreshold) {
+                if (playerPerceived && state.detectionAccumulator > perc.curiousThreshold) {
                     state.lastKnownPosition.set(playerPos);
                     transition(state, AwarenessState.ALERTED);
                 } else if (state.searchTimer > SEARCH_DURATION) {

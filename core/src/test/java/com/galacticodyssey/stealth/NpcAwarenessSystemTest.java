@@ -67,7 +67,9 @@ class NpcAwarenessSystemTest {
         PerceptionComponent p = makePerception(0f, 0f, 10f);
         com.galacticodyssey.core.components.TransformComponent npcT = makeTransform(0, 0, 10);
         float c = system.computeContribution(p, npcT, new Vector3(0, 0, 0), sig);
-        assertEquals(0f, c, 0.01f); // falloff = 1 - 10/10 = 0
+        // NPC is at exactly hearingRange — the strict `dist < hearingRange` guard excludes it,
+        // so contribution is 0 regardless of noiseLevel.
+        assertEquals(0f, c, 0.01f);
     }
 
     @Test
