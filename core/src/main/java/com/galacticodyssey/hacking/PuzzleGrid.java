@@ -186,4 +186,7 @@ public class PuzzleGrid {
         }
         return hasTargets && allPowered;
     }
+
+    public int getRows() { return rows; }
+    public int getCols() { return cols; }
 }
