@@ -4,9 +4,12 @@ import com.badlogic.gdx.math.Vector3;
 import com.galacticodyssey.galaxy.GalaxyManager;
 import com.galacticodyssey.galaxy.GalaxySize;
 import com.galacticodyssey.galaxy.GalaxyType;
+import com.galacticodyssey.galaxy.StarPosition;
 import com.galacticodyssey.galaxy.StarSystem;
 import com.galacticodyssey.galaxy.StartingRegion;
 import com.galacticodyssey.planet.Planet;
+import com.galacticodyssey.shipbuilder.ShipDesign;
+import com.galacticodyssey.shipbuilder.planning.BuildOrder;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -24,10 +27,21 @@ public class GameSession {
     // --- Generated results (populated by GalaxyGenerationPipeline on worker thread) ---
     public volatile GalaxyManager galaxy;
     public volatile StarSystem startingSystem;
+    public volatile StarPosition startingStarPosition;
     public volatile Planet startingPlanet;
     public volatile long terrainSeed;
     public volatile Vector3 playerSpawnPos;
     public volatile Vector3 shipSpawnPos;
+
+    // --- Ship builder state ---
+    private ShipDesign playerShipDesign;
+    private BuildOrder pendingBuildOrder;
+
+    public ShipDesign getPlayerShipDesign() { return playerShipDesign; }
+    public void setPlayerShipDesign(ShipDesign design) { this.playerShipDesign = design; }
+
+    public BuildOrder getPendingBuildOrder() { return pendingBuildOrder; }
+    public void setPendingBuildOrder(BuildOrder order) { this.pendingBuildOrder = order; }
 
     // --- Thread coordination ---
     public volatile boolean complete = false;
