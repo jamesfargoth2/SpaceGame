@@ -69,7 +69,7 @@ class EnemyBoardingAISystemTest {
     void hostileNpcBoardsDisabledPlayerShip() {
         BoardingAttachSystem attach = new BoardingAttachSystem(eventBus);
         engine.addSystem(attach);
-        EnemyBoardingAISystem ai = new EnemyBoardingAISystem(attach);
+        EnemyBoardingAISystem ai = new EnemyBoardingAISystem(attach, null);
         engine.addSystem(ai);
 
         Entity playerShip = disabledPlayerShipAt(0);
@@ -88,7 +88,7 @@ class EnemyBoardingAISystemTest {
     void noNpcInRangeDoesNothing() {
         BoardingAttachSystem attach = new BoardingAttachSystem(eventBus);
         engine.addSystem(attach);
-        engine.addSystem(new EnemyBoardingAISystem(attach));
+        engine.addSystem(new EnemyBoardingAISystem(attach, null));
 
         Entity playerShip = disabledPlayerShipAt(0);
         npcShipAt(5000); // far away

@@ -9,7 +9,9 @@ import com.badlogic.ashley.utils.ImmutableArray;
 import com.badlogic.gdx.math.Vector3;
 import com.galacticodyssey.core.components.PlayerTagComponent;
 import com.galacticodyssey.core.components.TransformComponent;
+import com.galacticodyssey.mission.job.ReputationQuery;
 import com.galacticodyssey.player.components.PlayerStateComponent;
+import com.galacticodyssey.ship.boarding.BoardingDefenseComponent;
 import com.galacticodyssey.ship.boarding.BoardingOperationComponent;
 import com.galacticodyssey.ship.boarding.BoardingOperationComponent.BoardingPhase;
 import com.galacticodyssey.ship.components.ShipDataComponent;
@@ -32,14 +34,21 @@ public class EnemyBoardingAISystem extends EntitySystem {
         ComponentMapper.getFor(TransformComponent.class);
     private static final ComponentMapper<PlayerStateComponent> STATE_M =
         ComponentMapper.getFor(PlayerStateComponent.class);
+    private static final ComponentMapper<BoardingDefenseComponent> DEF_M =
+        ComponentMapper.getFor(BoardingDefenseComponent.class);
+
+    /** Standing strictly below this is HOSTILE (matches ReputationTier.HOSTILE). */
+    private static final float HOSTILE_STANDING = -50f;
 
     private final BoardingAttachSystem attachSystem;
+    private final ReputationQuery reputation; // nullable: when null, any ship is treated hostile
     private ImmutableArray<Entity> players;
     private ImmutableArray<Entity> ships;
 
-    public EnemyBoardingAISystem(BoardingAttachSystem attachSystem) {
+    public EnemyBoardingAISystem(BoardingAttachSystem attachSystem, ReputationQuery reputation) {
         super(PRIORITY);
         this.attachSystem = attachSystem;
+        this.reputation = reputation;
     }
 
     @Override
@@ -79,13 +88,13 @@ public class EnemyBoardingAISystem extends EntitySystem {
     }
 
     private Entity nearestHostileNpc(Entity playerShip, Vector3 origin) {
-        // TODO: filter by faction hostility — any ship in range is currently treated as hostile
         if (ships == null) return null;
         Entity best = null;
         float bestDist2 = BOARD_RANGE * BOARD_RANGE;
         for (int i = 0, n = ships.size(); i < n; i++) {
             Entity ship = ships.get(i);
             if (ship == playerShip) continue;
+            if (!isHostile(ship)) continue;
             // An NPC ship: not the player's own. (Player ownership is implied by currentShip.)
             float d2 = TRANSFORM_M.get(ship).position.dst2(origin);
             if (d2 <= bestDist2) {
@@ -94,5 +103,14 @@ public class EnemyBoardingAISystem extends EntitySystem {
             }
         }
         return best;
+    }
+
+    /** A ship is a valid boarding aggressor if its faction is hostile to the player. */
+    private boolean isHostile(Entity ship) {
+        if (reputation == null) return true; // no reputation wired → preserve prior behavior
+        BoardingDefenseComponent def = DEF_M.get(ship);
+        String factionId = (def != null) ? def.factionId : null;
+        if (factionId == null) return true; // unknown faction → treat as hostile
+        return reputation.getStanding(factionId) < HOSTILE_STANDING;
     }
 }
