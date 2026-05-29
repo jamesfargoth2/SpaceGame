@@ -8,6 +8,7 @@ import com.galacticodyssey.persistence.snapshots.FPSCameraSnapshot;
 public class FPSCameraComponent implements Component, Snapshotable<FPSCameraSnapshot> {
     public float eyeHeight = 1.7f;
     public float crouchEyeHeight = 1.0f;
+    public float proneEyeHeight = 0.3f;
     public float currentEyeHeight = 1.7f;
     public float headBobAmplitude = 0.04f;
     public float headBobFrequency = 8.0f;
