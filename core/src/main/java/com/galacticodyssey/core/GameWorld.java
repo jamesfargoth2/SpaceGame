@@ -405,6 +405,8 @@ public class GameWorld implements Disposable {
         engine.addSystem(physicsBodySystem);
         engine.addSystem(cameraSystem);
         engine.addSystem(new PlayerAnimationSystem());
+        engine.addSystem(new com.galacticodyssey.fauna.behavior.CreatureDriveSystem(43));
+        engine.addSystem(new com.galacticodyssey.fauna.behavior.CreatureBehaviorSystem(44));
         engine.addSystem(new com.galacticodyssey.fauna.animation.CreatureGaitSystem(45));
         engine.addSystem(debugHudSystem);
 

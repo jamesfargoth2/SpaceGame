@@ -46,6 +46,14 @@ public final class CreatureFactory {
         anim.params.sizeMultiplier = spec.sizeMultiplier;
         e.add(anim);
 
+        com.galacticodyssey.fauna.behavior.CreatureBehaviorComponent beh =
+            new com.galacticodyssey.fauna.behavior.CreatureBehaviorComponent();
+        beh.stateMachine = new com.badlogic.gdx.ai.fsm.DefaultStateMachine<>(e,
+            com.galacticodyssey.fauna.behavior.CreatureState.IDLE);
+        e.add(beh);
+
+        e.add(new com.galacticodyssey.fauna.behavior.CreatureDrivesComponent());
+
         engine.addEntity(e);
         return e;
     }
