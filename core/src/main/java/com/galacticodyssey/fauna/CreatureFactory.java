@@ -36,6 +36,8 @@ public final class CreatureFactory {
         e.add(health);
 
         e.add(new CreatureRenderComponent());
+        CreatureRenderComponent renderComp = e.getComponent(CreatureRenderComponent.class);
+        renderComp.skinSpec = spec.skinSpec;
 
         CreatureRig rig = new CreatureRigBuilder().build(spec);
         CreatureAnimationComponent anim = new CreatureAnimationComponent();

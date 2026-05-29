@@ -35,6 +35,7 @@ public final class FaunaDebugSpawner {
         instance.transform.translate(pos);
         CreatureRenderComponent render = e.getComponent(CreatureRenderComponent.class);
         render.skinnedInstance = instance;
+        render.skinSpec = spec.skinSpec;
         return e;
     }
 }
