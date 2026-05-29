@@ -19,6 +19,17 @@ public final class DebrisFieldGenerator {
     private DebrisFieldGenerator() {}
 
     public static Entity createAsteroid(Engine engine, Vector3 position, float mass, float radius) {
+        // Standalone spawn: derive a deterministic RNG from the spawn parameters
+        // so the result is reproducible without touching the global libGDX RNG.
+        long localSeed = (long) Float.floatToIntBits(position.x) * 0x9E3779B97F4A7C15L
+                       ^ (long) Float.floatToIntBits(position.y) * 0x6C62272E07BB0142L
+                       ^ (long) Float.floatToIntBits(position.z) * 0x94D049BB133111EBL
+                       ^ (long) Float.floatToIntBits(mass);
+        return createAsteroid(engine, position, mass, radius, new Random(localSeed));
+    }
+
+    public static Entity createAsteroid(Engine engine, Vector3 position, float mass, float radius,
+                                        Random rng) {
         Entity entity = engine.createEntity();
 
         TransformComponent transform = engine.createComponent(TransformComponent.class);
@@ -35,9 +46,9 @@ public final class DebrisFieldGenerator {
         debris.inertiaTensor.set(inertia, inertia, inertia);
 
         debris.angularVelocity.set(
-            MathUtils.random(-0.05f, 0.05f),
-            MathUtils.random(-0.05f, 0.05f),
-            MathUtils.random(-0.05f, 0.05f)
+            (rng.nextFloat() - 0.5f) * 0.1f,
+            (rng.nextFloat() - 0.5f) * 0.1f,
+            (rng.nextFloat() - 0.5f) * 0.1f
         );
 
         entity.add(debris);
@@ -68,7 +79,7 @@ public final class DebrisFieldGenerator {
             float radius = (float) Math.cbrt(3.0 * mass / (4.0 * Math.PI * DENSITY));
 
             Vector3 pos = new Vector3(x, y, z);
-            Entity entity = createAsteroid(engine, pos, mass, radius);
+            Entity entity = createAsteroid(engine, pos, mass, radius, rng);
 
             DebrisComponent debris = entity.getComponent(DebrisComponent.class);
 
