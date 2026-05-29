@@ -2,6 +2,7 @@ package com.galacticodyssey.ship.boarding;
 
 import com.badlogic.ashley.core.Engine;
 import com.badlogic.ashley.core.Entity;
+import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 import com.galacticodyssey.core.EventBus;
 import com.galacticodyssey.core.components.PlayerTagComponent;
@@ -87,5 +88,31 @@ class BoardingEntrySystemTest {
             targetShip.getComponent(BoardingOperationComponent.class).phase);
         assertEquals(1, entered.size());
         assertSame(targetShip, entered.get(0).targetShip);
+    }
+
+    @Test
+    void entryWorldPositionRespectsTargetRotation() {
+        // Rotate the target ship 90° about Y; entry math must use the full rotated+translated
+        // transform (entryWorld = entryLocal · shipMat), not a plain position offset.
+        TransformComponent tt = targetShip.getComponent(TransformComponent.class);
+        tt.rotation.setFromAxis(0f, 1f, 0f, 90f);
+
+        Vector3 entryLocal = new Vector3(1f, 0f, 2f);
+        eventBus.publish(new ShipBreachedEvent(aggressorShip, targetShip, AttachMethod.CLAMP,
+            new Vector3(entryLocal)));
+        engine.update(0.016f);
+
+        // Expected: build the same ship matrix and transform the local entry point through it.
+        Matrix4 shipMat = new Matrix4().set(tt.position, tt.rotation);
+        Vector3 expected = new Vector3(entryLocal).mul(shipMat);
+
+        Vector3 actual = player.getComponent(TransformComponent.class).position;
+        assertEquals(expected.x, actual.x, 1e-4f, "rotated entry world x");
+        assertEquals(expected.y, actual.y, 1e-4f, "rotated entry world y");
+        assertEquals(expected.z, actual.z, 1e-4f, "rotated entry world z");
+        // Sanity: 90°-about-Y maps local (1,0,2) → (2,0,-1), then +translation (100,0,0).
+        assertEquals(102f, actual.x, 1e-4f);
+        assertEquals(0f, actual.y, 1e-4f);
+        assertEquals(-1f, actual.z, 1e-4f);
     }
 }

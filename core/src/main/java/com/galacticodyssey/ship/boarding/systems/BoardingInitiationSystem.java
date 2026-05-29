@@ -62,9 +62,11 @@ public class BoardingInitiationSystem extends EntitySystem {
         Entity player = players.first();
         PlayerStateComponent state = STATE_M.get(player);
         PlayerInputComponent input = INPUT_M.get(player);
-        if (state.currentMode != PlayerMode.PILOTING || state.currentShip == null) return;
         if (!input.boardPressed) return;
+        // Consume the press unconditionally once read, so a press while not actionable doesn't
+        // linger into a later frame where the player has become actionable.
         input.boardPressed = false;
+        if (state.currentMode != PlayerMode.PILOTING || state.currentShip == null) return;
 
         TransformComponent shipT = TRANSFORM_M.get(state.currentShip);
         Vector3 origin = (shipT != null) ? shipT.position : Vector3.Zero;

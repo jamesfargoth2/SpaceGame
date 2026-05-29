@@ -82,7 +82,6 @@ public class BoardingAttachSystem extends EntitySystem {
         Entity aggressor = (target == shipA) ? shipB : shipA;
 
         BoardingOperationComponent op = OP_M.get(target);
-        if (op.phase != BoardingPhase.VULNERABLE) return;
 
         ShipEntryPointComponent entry = ENTRY_M.get(target);
         Vector3 entryLocal = (entry != null) ? entry.interiorPosition : Vector3.Zero;

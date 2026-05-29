@@ -118,6 +118,9 @@ public class BoardingEntrySystem extends EntitySystem {
         if (mainWorld == null) return;
         PhysicsBodyComponent physics = PHYSICS_M.get(player);
         if (physics != null && physics.body != null) {
+            // NOTE: removed from main world but not re-added to interiorWorld — on-foot interior
+            // body physics is not wired project-wide yet.
+            // TODO: add to interior.interiorWorld once it lands.
             mainWorld.removeRigidBody(physics.body);
         }
     }
