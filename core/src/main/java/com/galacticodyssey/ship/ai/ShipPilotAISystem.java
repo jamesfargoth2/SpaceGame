@@ -103,6 +103,7 @@ public class ShipPilotAISystem extends IteratingSystem {
         }
 
         PhysicsBodyComponent selfPhys = PHYS_M.get(entity);
+        if (selfPhys == null || selfPhys.body == null) { zero(input); return; }
         TransformComponent selfTx = TX_M.get(entity);
         TransformComponent tgtTx = TX_M.get(ai.currentTarget);
         PhysicsBodyComponent tgtPhys = PHYS_M.get(ai.currentTarget);
