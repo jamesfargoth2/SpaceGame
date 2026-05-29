@@ -30,4 +30,12 @@ class ShipFlightInputComponentTest {
         assertEquals(4, input.fireGroup.length);
         assertEquals(4, input.fireHeld.length);
     }
+
+    @Test
+    void newControlFlagsDefaultFalse() {
+        com.galacticodyssey.ship.components.ShipFlightInputComponent in =
+            new com.galacticodyssey.ship.components.ShipFlightInputComponent();
+        assertFalse(in.flightAssistTogglePressed);
+        assertFalse(in.boostPressed);
+    }
 }
