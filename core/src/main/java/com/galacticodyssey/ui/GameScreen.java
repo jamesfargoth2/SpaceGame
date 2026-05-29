@@ -133,6 +133,7 @@ public class GameScreen implements Screen {
     private ShaderProgram terrainShader;
     private ModelBatch modelBatch;
     private ModelBatch gbufferBatch;
+    private com.badlogic.gdx.graphics.g3d.ModelBatch creatureBatch;
     private Environment environment;
     private final Matrix4 tmpMat4 = new Matrix4();
     private final Matrix4 tmpViewModelMat4 = new Matrix4();
@@ -302,6 +303,8 @@ public class GameScreen implements Screen {
 
         modelBatch = new ModelBatch();
         gbufferBatch = new ModelBatch(new GBufferBatchShaderProvider(deferredRenderer.getShaderCache()));
+        creatureBatch = new com.badlogic.gdx.graphics.g3d.ModelBatch(
+            new com.galacticodyssey.fauna.skin.CreatureSkinShaderProvider());
         environment = new Environment();
         environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.3f, 0.3f, 0.35f, 1f));
         environment.add(new DirectionalLight().set(0.8f, 0.8f, 0.75f, -0.4f, -0.8f, -0.3f));
@@ -1357,17 +1360,19 @@ public class GameScreen implements Screen {
         creatureRenderQueue.clear();
         for (int i = 0; i < creatures.size(); i++) {
             CreatureRenderComponent render = creatures.get(i).getComponent(CreatureRenderComponent.class);
-            if (render.modelInstance instanceof Array) {
+            if (render.skinnedInstance != null) {
+                creatureRenderQueue.add(render.skinnedInstance);
+            } else if (render.modelInstance instanceof Array) {
                 creatureRenderQueue.addAll((Array<ModelInstance>) render.modelInstance);
             }
         }
         if (creatureRenderQueue.size == 0) return;
 
-        gbufferBatch.begin(camera);
+        creatureBatch.begin(camera);
         for (int i = 0; i < creatureRenderQueue.size; i++) {
-            gbufferBatch.render(creatureRenderQueue.get(i));
+            creatureBatch.render(creatureRenderQueue.get(i));
         }
-        gbufferBatch.end();
+        creatureBatch.end();
     }
 
     @Override
@@ -1437,6 +1442,10 @@ public class GameScreen implements Screen {
         if (gbufferBatch != null) {
             gbufferBatch.dispose();
             gbufferBatch = null;
+        }
+        if (creatureBatch != null) {
+            creatureBatch.dispose();
+            creatureBatch = null;
         }
         if (dialogHudSystem != null) {
             dialogHudSystem.dispose();

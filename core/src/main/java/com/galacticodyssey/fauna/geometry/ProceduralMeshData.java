@@ -1,12 +1,13 @@
 package com.galacticodyssey.fauna.geometry;
 
-/** GL-free triangle mesh: flat position array (x,y,z triples) + triangle indices. */
 public final class ProceduralMeshData {
-    public final float[] positions; // length = vertexCount * 3
+    public final float[] positions;
+    public final float[] normals;
     public final short[] indices;
 
-    public ProceduralMeshData(float[] positions, short[] indices) {
+    public ProceduralMeshData(float[] positions, float[] normals, short[] indices) {
         this.positions = positions;
+        this.normals = normals;
         this.indices = indices;
     }
 

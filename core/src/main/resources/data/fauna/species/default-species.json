@@ -1,0 +1,43 @@
+{ "species": [
+  { "id": "plains_grazer", "archetypeId": "grazer_quad", "diet": "HERBIVORE",
+    "temperament": "TIMID", "socialStructure": "HERD",
+    "herdSizeMin": 4, "herdSizeMax": 12,
+    "biomes": { "GRASSLAND": 1.0, "SAVANNA": 0.8, "STEPPE": 0.6, "TUNDRA": 0.3 },
+    "trophicLevel": 1, "preySpecies": [], "activityCycle": "DIURNAL",
+    "detectionRadius": 30, "fleeRadius": 18, "fleeSpeedMultiplier": 1.6, "safeDistance": 50,
+    "birthRate": 0.025, "carryingCapacityBase": 30 },
+
+  { "id": "forest_browser", "archetypeId": "strider_biped", "diet": "HERBIVORE",
+    "temperament": "NEUTRAL", "socialStructure": "SOLITARY",
+    "herdSizeMin": 1, "herdSizeMax": 3,
+    "biomes": { "TEMPERATE_FOREST": 1.0, "BOREAL_FOREST": 0.7, "TROPICAL_FOREST": 0.9 },
+    "trophicLevel": 1, "preySpecies": [], "activityCycle": "DIURNAL",
+    "detectionRadius": 20, "fleeRadius": 12, "fleeSpeedMultiplier": 1.3, "safeDistance": 35,
+    "birthRate": 0.015, "carryingCapacityBase": 15 },
+
+  { "id": "swarm_skitter", "archetypeId": "skitterer_hex", "diet": "OMNIVORE",
+    "temperament": "NEUTRAL", "socialStructure": "HERD",
+    "herdSizeMin": 6, "herdSizeMax": 20,
+    "biomes": { "SWAMP": 1.0, "TROPICAL_FOREST": 0.8, "TEMPERATE_FOREST": 0.5, "GRASSLAND": 0.3 },
+    "trophicLevel": 1, "preySpecies": [], "activityCycle": "CREPUSCULAR",
+    "detectionRadius": 12, "fleeRadius": 8, "fleeSpeedMultiplier": 2.0, "safeDistance": 25,
+    "birthRate": 0.05, "carryingCapacityBase": 50 },
+
+  { "id": "dune_serpent", "archetypeId": "crawler_serpent", "diet": "CARNIVORE",
+    "temperament": "TERRITORIAL", "socialStructure": "SOLITARY",
+    "herdSizeMin": 1, "herdSizeMax": 1,
+    "biomes": { "DESERT": 1.0, "SAVANNA": 0.5, "BADLANDS": 0.7, "ARID_SHRUB": 0.6 },
+    "trophicLevel": 2, "preySpecies": ["plains_grazer"],
+    "activityCycle": "NOCTURNAL",
+    "detectionRadius": 35, "fleeRadius": 10, "fleeSpeedMultiplier": 1.2, "safeDistance": 30,
+    "birthRate": 0.008, "carryingCapacityBase": 8 },
+
+  { "id": "pack_hunter", "archetypeId": "grazer_quad", "diet": "CARNIVORE",
+    "temperament": "AGGRESSIVE", "socialStructure": "PACK",
+    "herdSizeMin": 3, "herdSizeMax": 6,
+    "biomes": { "GRASSLAND": 0.8, "SAVANNA": 1.0, "STEPPE": 0.7, "TUNDRA": 0.4 },
+    "trophicLevel": 2, "preySpecies": ["plains_grazer", "forest_browser"],
+    "activityCycle": "CREPUSCULAR",
+    "detectionRadius": 40, "fleeRadius": 8, "fleeSpeedMultiplier": 1.3, "safeDistance": 25,
+    "birthRate": 0.01, "carryingCapacityBase": 10 }
+] }
