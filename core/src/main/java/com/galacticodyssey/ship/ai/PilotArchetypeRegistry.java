@@ -12,10 +12,10 @@ import java.util.Map;
 public class PilotArchetypeRegistry {
 
     private final Map<String, PilotArchetype> archetypes = new HashMap<>();
-    private final Json json = new Json();
 
     /** Parse archetypes from a JSON array string (test-friendly, no Gdx.files dependency). */
     public void parse(String jsonText) {
+        Json json = new Json();
         JsonValue root = new JsonReader().parse(jsonText);
         for (JsonValue entry = root.child; entry != null; entry = entry.next) {
             PilotArchetype a = json.readValue(PilotArchetype.class, entry);
@@ -28,6 +28,8 @@ public class PilotArchetypeRegistry {
         parse(Gdx.files.internal("data/ai/pilot_archetypes.json").readString());
     }
 
+    /** Returns the archetype for {@code id}, or null if unknown.
+     *  The returned instance is shared, read-only tuning — do not mutate it. */
     public PilotArchetype get(String id) {
         return archetypes.get(id);
     }
