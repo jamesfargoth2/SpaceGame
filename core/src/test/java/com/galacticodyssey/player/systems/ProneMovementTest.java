@@ -181,7 +181,8 @@ class ProneMovementTest {
         engine.update(1f / 60f);
         assertTrue(state.isProne);
 
-        // Add a ceiling at 1.6 m — between prone top (0.9+0.3=1.2) and standing top (0.9+0.9=1.8)
+        // No physics step between toggles is deliberate: body centre stays at ~0.9 m (settled standing
+        // position). Ceiling at 1.6 m sits between prone top (0.9+0.3=1.2 m) and standing top (0.9+0.9=1.8 m).
         btBoxShape ceilingShape = new btBoxShape(new Vector3(500, 0.1f, 500));
         btRigidBody.btRigidBodyConstructionInfo ceilingInfo =
             new btRigidBody.btRigidBodyConstructionInfo(0f, null, ceilingShape);

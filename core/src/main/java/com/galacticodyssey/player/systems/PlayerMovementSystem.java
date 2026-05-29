@@ -351,7 +351,7 @@ public class PlayerMovementSystem extends IteratingSystem {
     private boolean isClearToStand(PhysicsBodyComponent physics) {
         physics.body.getWorldTransform(tempMat);
         tempMat.getTranslation(rayFrom);
-        rayTo.set(localUp).scl(CAPSULE_HALF_HEIGHT).add(rayFrom);
+        rayTo.set(localUp).scl(CAPSULE_HALF_HEIGHT + 0.05f).add(rayFrom);
         ClosestRayResultCallback callback = new ClosestRayResultCallback(rayFrom, rayTo);
         dynamicsWorld.rayTest(rayFrom, rayTo, callback);
         boolean clear = !callback.hasHit();
