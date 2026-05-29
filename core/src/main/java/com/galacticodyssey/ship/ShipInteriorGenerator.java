@@ -2,6 +2,7 @@ package com.galacticodyssey.ship;
 
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.BoundingBox;
+import com.galacticodyssey.galaxy.SeedDeriver;
 import java.util.*;
 
 /**
@@ -28,7 +29,8 @@ public class ShipInteriorGenerator {
 
     /** Entry point: generate a full {@link InteriorLayout} from blueprint + hull mesh. */
     public InteriorLayout generate(ShipBlueprint blueprint, HullGeometry hull) {
-        Random rng = new Random(blueprint.seed + 100);
+        Random rng = new Random(SeedDeriver.forId(
+            SeedDeriver.shipDomain(blueprint.seed), ShipHullGenerator.SUBSEED_INTERIOR));
         BoundingBox bbox = hull.boundingBox;
 
         Vector3 min = new Vector3();
