@@ -20,7 +20,8 @@ public class FPSCameraComponent implements Component, Snapshotable<FPSCameraSnap
     public float leanAngle;
     public float maxLeanAngle = 15f;
     public float leanSpeed = 8f;
-    public float leanHorizontalOffset = 0.4f;
+    public float leanBodyShift = 0.25f;       // how far the body slides sideways at full lean (m); must be < leanHorizontalOffset
+    public float leanHorizontalOffset = 0.4f; // total camera-eye offset from capsule centre at full lean (m)
 
     public final Vector3 localUp = new Vector3(0, 1, 0);
 
