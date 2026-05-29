@@ -25,5 +25,8 @@ public class IsBeingThreatenedCondition extends LeafTask<Entity> {
     }
 
     @Override
-    protected Task<Entity> copyTo(Task<Entity> task) { return task; }
+    protected Task<Entity> copyTo(Task<Entity> task) {
+        ((IsBeingThreatenedCondition) task).threatRange = threatRange;
+        return task;
+    }
 }

@@ -24,5 +24,8 @@ public class TargetInWeaponArcCondition extends LeafTask<Entity> {
     }
 
     @Override
-    protected Task<Entity> copyTo(Task<Entity> task) { return task; }
+    protected Task<Entity> copyTo(Task<Entity> task) {
+        ((TargetInWeaponArcCondition) task).arcDeg = arcDeg;
+        return task;
+    }
 }
