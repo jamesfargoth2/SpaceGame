@@ -27,20 +27,50 @@ public class DialogDataRegistry {
     }
 
     public void loadFromFiles() {
-        FileHandle dir = Gdx.files.internal("data/dialogues");
-        if (!dir.exists()) return;
-
         JsonReader reader = new JsonReader();
-        for (FileHandle file : dir.list()) {
-            if (!file.name().endsWith(".json")) continue;
+        int loaded = 0;
+
+        // Prefer manifest-based loading: individual file lookups work on the classpath
+        // regardless of working directory (directory listing does not).
+        FileHandle manifest = Gdx.files.internal("data/dialogues/manifest.json");
+        if (manifest.exists()) {
+            Gdx.app.log("Dialog", "DialogDataRegistry: loading via manifest");
             try {
-                JsonValue root = reader.parse(file);
-                DialogTree tree = parseTree(root);
-                register(tree);
+                JsonValue arr = reader.parse(manifest);
+                for (JsonValue entry = arr.child; entry != null; entry = entry.next) {
+                    String id = entry.asString();
+                    FileHandle file = Gdx.files.internal("data/dialogues/" + id + ".json");
+                    try {
+                        DialogTree tree = parseTree(reader.parse(file));
+                        register(tree);
+                        loaded++;
+                        Gdx.app.log("Dialog", "DialogDataRegistry: loaded tree id='" + tree.id + "'");
+                    } catch (Exception e) {
+                        Gdx.app.error("Dialog", "DialogDataRegistry: failed to load " + id, e);
+                    }
+                }
             } catch (Exception e) {
-                Gdx.app.error("DialogDataRegistry", "Failed to load " + file.name(), e);
+                Gdx.app.error("Dialog", "DialogDataRegistry: failed to parse manifest", e);
+            }
+        } else {
+            // Fallback: scan directory (works in Gradle run where workingDir is set correctly)
+            FileHandle dir = Gdx.files.internal("data/dialogues");
+            Gdx.app.log("Dialog", "DialogDataRegistry: no manifest, scanning dir exists=" + dir.exists());
+            if (dir.exists()) {
+                for (FileHandle file : dir.list()) {
+                    if (!file.name().endsWith(".json")) continue;
+                    try {
+                        DialogTree tree = parseTree(reader.parse(file));
+                        register(tree);
+                        loaded++;
+                        Gdx.app.log("Dialog", "DialogDataRegistry: loaded tree id='" + tree.id + "'");
+                    } catch (Exception e) {
+                        Gdx.app.error("Dialog", "DialogDataRegistry: failed to load " + file.name(), e);
+                    }
+                }
             }
         }
+        Gdx.app.log("Dialog", "DialogDataRegistry: total trees=" + loaded);
     }
 
     private DialogTree parseTree(JsonValue root) {

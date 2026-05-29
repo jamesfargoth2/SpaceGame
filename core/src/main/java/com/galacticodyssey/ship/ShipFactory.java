@@ -486,6 +486,7 @@ public class ShipFactory implements Disposable {
             }
         }
 
+        disposables.add(comp);
         return comp;
     }
 

@@ -80,6 +80,7 @@ public class DialogHudSystem extends EntitySystem implements Disposable {
     }
 
     private void onDialogOpened(DialogOpenedEvent event) {
+        Gdx.app.log("Dialog", "DialogHudSystem: DialogOpenedEvent npcId='" + event.npcId + "' stage=" + (stage != null ? "OK" : "NULL") + " node=" + (event.node != null ? event.node.id : "null"));
         visible = true;
         showNode(event.npcName, event.node);
     }

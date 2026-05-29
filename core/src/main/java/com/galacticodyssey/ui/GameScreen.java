@@ -305,7 +305,7 @@ public class GameScreen implements Screen {
                 session.shipSpawnPos.x, shipY, session.shipSpawnPos.z);
             shipEntities.add(starterShip);
         } else {
-            float smallX = 5f, smallZ = 5f;
+            float smallX = 0f, smallZ = -20f;
             float smallY = TerrainGenerator.getHeightAt(
                 heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, smallX, smallZ) + 2f;
             Entity smallShip = shipFactory.createShip(42L, ShipSizeClass.SMALL, smallX, smallY, smallZ);
@@ -886,6 +886,7 @@ public class GameScreen implements Screen {
         };
 
         eventBus.subscribe(DialogOpenedEvent.class, event -> {
+            Gdx.app.log("Dialog", "GameScreen: DialogOpenedEvent -> disabling player input, switching to dialogInputAdapter");
             inDialog = true;
             Gdx.input.setCursorCatched(false);
             gameWorld.getPlayerInputSystem().setEnabled(false);
