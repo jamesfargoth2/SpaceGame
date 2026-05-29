@@ -69,6 +69,22 @@ public class ShipFactory implements Disposable {
     private static final float[] LINEAR_DRAG         = { 0.6f,     0.7f,     0.85f };
     private static final float[] ANGULAR_DRAG        = { 0.5f,     0.6f,     0.7f };
 
+    // ED flight tuning per size class [SMALL, MEDIUM, LARGE]
+    private static final float[] REVERSE_FRACTION   = { 0.40f,   0.40f,   0.35f };
+    private static final float[] FA_LINEAR_GAIN      = { 1.5f,    1.3f,    1.1f };
+    private static final float[] FA_LATERAL_BLEED    = { 1.2f,    1.0f,    0.8f };
+    private static final float[] BLUE_ZONE_LOW       = { 0.40f,   0.40f,   0.40f };
+    private static final float[] BLUE_ZONE_HIGH      = { 0.80f,   0.80f,   0.80f };
+    private static final float[] OFF_BAND_TURN_SCALE = { 0.50f,   0.55f,   0.60f };
+    private static final float[] ROT_STIFFNESS       = { 4.0f,    3.5f,    3.0f };
+    private static final float[] BOOST_SPEED_MULT    = { 1.6f,    1.4f,    1.25f };
+    private static final float[] BOOST_FORCE         = { 40_000f, 120_000f, 200_000f };
+    private static final float[] BOOST_DURATION      = { 5f,      6f,      8f };
+    private static final float[] BOOST_ENERGY_COST   = { 50f,     60f,     70f };
+    private static final float[] BOOST_MAX_ENERGY    = { 100f,    100f,    100f };
+    private static final float[] BOOST_RECHARGE       = { 12f,     8f,      5f };
+    private static final float[] BOOST_COOLDOWN       = { 3f,      5f,      8f };
+
     /**
      * Maximum number of hull vertices sampled when building the exterior
      * convex-hull collision shape (keeps Bullet overhead low).
@@ -197,6 +213,22 @@ public class ShipFactory implements Disposable {
         flight.linearDrag            = LINEAR_DRAG[si];
         flight.angularDrag           = ANGULAR_DRAG[si];
         flight.currentThrottle       = 0f;
+        flight.reverseFraction     = REVERSE_FRACTION[si];
+        flight.faLinearGain        = FA_LINEAR_GAIN[si];
+        flight.faLateralBleed      = FA_LATERAL_BLEED[si];
+        flight.blueZoneLow         = BLUE_ZONE_LOW[si];
+        flight.blueZoneHigh        = BLUE_ZONE_HIGH[si];
+        flight.offBandTurnScale    = OFF_BAND_TURN_SCALE[si];
+        flight.rotStiffness        = ROT_STIFFNESS[si];
+        flight.boostSpeedMultiplier = BOOST_SPEED_MULT[si];
+        flight.boostForce          = BOOST_FORCE[si];
+        flight.boostDuration       = BOOST_DURATION[si];
+        flight.boostEnergyCost     = BOOST_ENERGY_COST[si];
+        flight.boostMaxEnergy      = BOOST_MAX_ENERGY[si];
+        flight.boostEnergy         = BOOST_MAX_ENERGY[si];
+        flight.boostRechargeRate   = BOOST_RECHARGE[si];
+        flight.boostCooldown       = BOOST_COOLDOWN[si];
+        flight.flightAssistEnabled = true;
         entity.add(flight);
 
         // Pilot seat
@@ -298,6 +330,22 @@ public class ShipFactory implements Disposable {
         flight.linearDrag = LINEAR_DRAG[si];
         flight.angularDrag = ANGULAR_DRAG[si];
         flight.currentThrottle = 0f;
+        flight.reverseFraction     = REVERSE_FRACTION[si];
+        flight.faLinearGain        = FA_LINEAR_GAIN[si];
+        flight.faLateralBleed      = FA_LATERAL_BLEED[si];
+        flight.blueZoneLow         = BLUE_ZONE_LOW[si];
+        flight.blueZoneHigh        = BLUE_ZONE_HIGH[si];
+        flight.offBandTurnScale    = OFF_BAND_TURN_SCALE[si];
+        flight.rotStiffness        = ROT_STIFFNESS[si];
+        flight.boostSpeedMultiplier = BOOST_SPEED_MULT[si];
+        flight.boostForce          = BOOST_FORCE[si];
+        flight.boostDuration       = BOOST_DURATION[si];
+        flight.boostEnergyCost     = BOOST_ENERGY_COST[si];
+        flight.boostMaxEnergy      = BOOST_MAX_ENERGY[si];
+        flight.boostEnergy         = BOOST_MAX_ENERGY[si];
+        flight.boostRechargeRate   = BOOST_RECHARGE[si];
+        flight.boostCooldown       = BOOST_COOLDOWN[si];
+        flight.flightAssistEnabled = true;
         entity.add(flight);
 
         PilotSeatComponent seat = new PilotSeatComponent();
