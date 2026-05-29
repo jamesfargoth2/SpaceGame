@@ -66,6 +66,7 @@ class SeedDeriverTest {
             SeedDeriver.STATION_DOMAIN, SeedDeriver.INTERIOR_DOMAIN, SeedDeriver.FACTION_DOMAIN,
             SeedDeriver.NAME_DOMAIN, SeedDeriver.NEBULA_DOMAIN,
             SeedDeriver.CITY_DOMAIN
+            SeedDeriver.FLORA_DOMAIN
         };
         Set<Long> derived = new HashSet<>();
         for (long domain : domains) {
@@ -73,6 +74,16 @@ class SeedDeriverTest {
         }
         assertEquals(domains.length, derived.size(),
             "All " + domains.length + " domain constants must produce unique seeds");
+    }
+
+    @Test
+    void floraDomainReturnsSameOutputForSameSeed() {
+        assertEquals(SeedDeriver.floraDomain(12345L), SeedDeriver.floraDomain(12345L));
+    }
+
+    @Test
+    void floraDomainReturnsDifferentOutputForDifferentSeeds() {
+        assertNotEquals(SeedDeriver.floraDomain(12345L), SeedDeriver.floraDomain(12346L));
     }
 
     @Test

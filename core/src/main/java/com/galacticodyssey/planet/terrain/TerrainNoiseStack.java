@@ -4,11 +4,13 @@ import com.badlogic.gdx.math.Vector3;
 import com.galacticodyssey.galaxy.GalaxyNoise;
 import com.galacticodyssey.planet.BiomeMap;
 import com.galacticodyssey.planet.BiomeType;
+import com.galacticodyssey.planet.tectonic.TectonicModel;
 
 public final class TerrainNoiseStack {
     private final GalaxyNoise continentNoise;
     private final GalaxyNoise ridgeNoise;
     private final GalaxyNoise detailNoise;
+    private final TectonicModel tectonic; // nullable: null -> legacy noise-only continents
 
     public static final class Sample {
         public float height;
@@ -16,9 +18,14 @@ public final class TerrainNoiseStack {
     }
 
     public TerrainNoiseStack(long seed) {
+        this(seed, null);
+    }
+
+    public TerrainNoiseStack(long seed, TectonicModel tectonic) {
         this.continentNoise = new GalaxyNoise(seed);
         this.ridgeNoise = new GalaxyNoise(seed + 1);
         this.detailNoise = new GalaxyNoise(seed + 2);
+        this.tectonic = tectonic;
     }
 
     public float heightAt(Vector3 dir, BiomeMap biomeMap, int lod) {
@@ -30,7 +37,14 @@ public final class TerrainNoiseStack {
         float cx = dir.x * 2f;
         float cy = dir.y * 2f;
         float cz = dir.z * 2f;
-        float continent = continentNoise.domainWarp3D(cx, cy, cz, 0.7f, 3, 6);
+        float warp = continentNoise.domainWarp3D(cx, cy, cz, 0.7f, 3, 6);
+        float continent;
+        if (tectonic != null) {
+            // Tectonics drives the macro shape; noise only warps coastlines.
+            continent = tectonic.baseElevation(dir) + 0.15f * warp;
+        } else {
+            continent = warp;
+        }
 
         float rx = dir.x * 8f;
         float ry = dir.y * 8f;

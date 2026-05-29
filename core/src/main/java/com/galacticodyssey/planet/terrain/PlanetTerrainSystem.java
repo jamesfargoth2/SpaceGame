@@ -7,6 +7,8 @@ import com.badlogic.gdx.utils.Disposable;
 import com.galacticodyssey.galaxy.SeedDeriver;
 import com.galacticodyssey.planet.BiomeMap;
 import com.galacticodyssey.planet.Planet;
+import com.galacticodyssey.planet.tectonic.PlateGenerator;
+import com.galacticodyssey.planet.tectonic.TectonicModel;
 
 import java.util.Collections;
 import java.util.List;
@@ -22,10 +24,15 @@ public final class PlanetTerrainSystem extends EntitySystem implements Disposabl
     }
 
     public void loadPlanet(Planet planet, BiomeMap biomeMap) {
+        // Convenience path: build a tectonic model from the planet seed (deterministic).
+        loadPlanet(planet, biomeMap, new PlateGenerator().generate(planet));
+    }
+
+    public void loadPlanet(Planet planet, BiomeMap biomeMap, TectonicModel tectonic) {
         if (quadtree != null) quadtree.dispose();
         long terrainSeed = SeedDeriver.forId(
             SeedDeriver.domain(planet.seed, SeedDeriver.TERRAIN_DOMAIN), 0);
-        TerrainNoiseStack noise = new TerrainNoiseStack(terrainSeed);
+        TerrainNoiseStack noise = new TerrainNoiseStack(terrainSeed, tectonic);
         planetRadius = planet.radius * 6371f;
         quadtree = new TerrainQuadtree(planetRadius, noise, biomeMap, dynamicsWorld);
     }

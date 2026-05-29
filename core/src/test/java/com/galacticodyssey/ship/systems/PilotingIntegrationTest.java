@@ -5,13 +5,8 @@ import com.badlogic.ashley.core.Entity;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.bullet.Bullet;
-import com.badlogic.gdx.physics.bullet.collision.btBoxShape;
-import com.badlogic.gdx.physics.bullet.collision.btCollisionDispatcher;
-import com.badlogic.gdx.physics.bullet.collision.btDbvtBroadphase;
-import com.badlogic.gdx.physics.bullet.collision.btDefaultCollisionConfiguration;
-import com.badlogic.gdx.physics.bullet.dynamics.btDiscreteDynamicsWorld;
-import com.badlogic.gdx.physics.bullet.dynamics.btRigidBody;
-import com.badlogic.gdx.physics.bullet.dynamics.btSequentialImpulseConstraintSolver;
+import com.badlogic.gdx.physics.bullet.collision.*;
+import com.badlogic.gdx.physics.bullet.dynamics.*;
 import com.galacticodyssey.core.EventBus;
 import com.galacticodyssey.core.components.PhysicsBodyComponent;
 import com.galacticodyssey.core.components.PlayerTagComponent;
@@ -25,6 +20,7 @@ import com.galacticodyssey.ship.components.ShipFlightComponent;
 import com.galacticodyssey.ship.components.ShipFlightInputComponent;
 import com.galacticodyssey.ui.events.CockpitHUDHideEvent;
 import com.galacticodyssey.ui.events.CockpitHUDShowEvent;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -47,12 +43,27 @@ class PilotingIntegrationTest {
     // Helpers
     // -----------------------------------------------------------------------
 
+    private btCollisionConfiguration collisionConfig;
+    private btCollisionDispatcher dispatcher;
+    private btBroadphaseInterface broadphase;
+    private btConstraintSolver solver;
+    private btDiscreteDynamicsWorld world;
+
+    @AfterEach
+    void tearDownWorld() {
+        if (world != null) world.dispose();
+        if (solver != null) solver.dispose();
+        if (broadphase != null) broadphase.dispose();
+        if (dispatcher != null) dispatcher.dispose();
+        if (collisionConfig != null) collisionConfig.dispose();
+    }
+
     private btDiscreteDynamicsWorld createWorld() {
-        btDefaultCollisionConfiguration config = new btDefaultCollisionConfiguration();
-        btCollisionDispatcher dispatcher = new btCollisionDispatcher(config);
-        btDbvtBroadphase broadphase = new btDbvtBroadphase();
-        btSequentialImpulseConstraintSolver solver = new btSequentialImpulseConstraintSolver();
-        btDiscreteDynamicsWorld world = new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, config);
+        collisionConfig = new btDefaultCollisionConfiguration();
+        dispatcher = new btCollisionDispatcher(collisionConfig);
+        broadphase = new btDbvtBroadphase();
+        solver = new btSequentialImpulseConstraintSolver();
+        world = new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, collisionConfig);
         world.setGravity(new Vector3(0, 0, 0));
         return world;
     }
@@ -107,7 +118,7 @@ class PilotingIntegrationTest {
     @Test
     void fullPilotingLoop() {
         // Setup
-        btDiscreteDynamicsWorld world = createWorld();
+        createWorld();
         Engine engine = new Engine();
         EventBus eventBus = new EventBus();
 
@@ -153,7 +164,6 @@ class PilotingIntegrationTest {
         // Cleanup
         physics.body.dispose();
         physics.shape.dispose();
-        world.dispose();
     }
 
     /**

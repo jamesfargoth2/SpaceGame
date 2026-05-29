@@ -4,6 +4,7 @@ import com.galacticodyssey.data.FaunaDataRegistry;
 import com.galacticodyssey.fauna.archetype.BodyPlanArchetypeDef;
 import com.galacticodyssey.fauna.assembly.AssembledNode;
 import com.galacticodyssey.fauna.assembly.CreatureAssembler;
+import com.galacticodyssey.fauna.ecosystem.SpeciesDef;
 import com.galacticodyssey.fauna.stats.MassStatModel;
 import com.galacticodyssey.galaxy.SeedDeriver;
 
@@ -21,6 +22,13 @@ public final class CreatureGenerator {
     public CreatureGenerator(FaunaDataRegistry registry) {
         this.registry = registry;
         this.assembler = new CreatureAssembler(registry);
+    }
+
+    /** Generate for a specific species id; delegates to the species' archetype. */
+    public CreatureSpec generateForSpecies(String speciesId, long seed) {
+        SpeciesDef species = registry.getSpecies(speciesId);
+        if (species == null) throw new IllegalArgumentException("Unknown species: " + speciesId);
+        return generate(species.archetypeId, seed);
     }
 
     /** Generate using a specific archetype id. */

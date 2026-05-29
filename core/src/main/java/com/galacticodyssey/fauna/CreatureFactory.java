@@ -5,8 +5,12 @@ import com.badlogic.ashley.core.Entity;
 import com.badlogic.gdx.math.Vector3;
 import com.galacticodyssey.combat.components.HealthComponent;
 import com.galacticodyssey.core.components.TransformComponent;
+import com.galacticodyssey.fauna.animation.GaitControllerFactory;
+import com.galacticodyssey.fauna.components.CreatureAnimationComponent;
 import com.galacticodyssey.fauna.components.CreatureComponent;
 import com.galacticodyssey.fauna.components.CreatureRenderComponent;
+import com.galacticodyssey.fauna.rig.CreatureRig;
+import com.galacticodyssey.fauna.rig.CreatureRigBuilder;
 
 /** Builds the logical creature entity from a {@link CreatureSpec}. Model attached by GL layer. */
 public final class CreatureFactory {
@@ -32,6 +36,23 @@ public final class CreatureFactory {
         e.add(health);
 
         e.add(new CreatureRenderComponent());
+        CreatureRenderComponent renderComp = e.getComponent(CreatureRenderComponent.class);
+        renderComp.skinSpec = spec.skinSpec;
+
+        CreatureRig rig = new CreatureRigBuilder().build(spec);
+        CreatureAnimationComponent anim = new CreatureAnimationComponent();
+        anim.rig = rig;
+        anim.gaitController = GaitControllerFactory.create(spec.gaitClass);
+        anim.params.sizeMultiplier = spec.sizeMultiplier;
+        e.add(anim);
+
+        com.galacticodyssey.fauna.behavior.CreatureBehaviorComponent beh =
+            new com.galacticodyssey.fauna.behavior.CreatureBehaviorComponent();
+        beh.stateMachine = new com.badlogic.gdx.ai.fsm.DefaultStateMachine<>(e,
+            com.galacticodyssey.fauna.behavior.CreatureState.IDLE);
+        e.add(beh);
+
+        e.add(new com.galacticodyssey.fauna.behavior.CreatureDrivesComponent());
 
         engine.addEntity(e);
         return e;

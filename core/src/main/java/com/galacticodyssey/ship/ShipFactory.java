@@ -15,6 +15,7 @@ import com.galacticodyssey.ship.components.*;
 import com.galacticodyssey.ship.modules.*;
 import com.galacticodyssey.ship.modules.components.ShipCargoComponent;
 import com.galacticodyssey.ship.modules.components.ShipLoadoutComponent;
+import com.galacticodyssey.ship.boarding.BoardingDefenseComponent;
 import com.galacticodyssey.ship.boarding.ShipSubsystemsComponent;
 import com.galacticodyssey.ship.power.PowerStateComponent;
 import com.galacticodyssey.ship.power.ReactorSpec;
@@ -82,6 +83,7 @@ public class ShipFactory implements Disposable {
     private final ShipInteriorGenerator interiorGenerator = new ShipInteriorGenerator();
     private ReactorSpecRegistry reactorSpecRegistry;
     private ShipModuleRegistry moduleRegistry;
+    private HullStyleRegistry hullStyleRegistry;
 
     /** All Bullet objects that must be disposed when this factory is disposed. */
     private final Array<Disposable> disposables = new Array<>();
@@ -101,6 +103,16 @@ public class ShipFactory implements Disposable {
         this.moduleRegistry = registry;
     }
 
+    private com.galacticodyssey.ship.ai.PilotArchetypeRegistry pilotArchetypes;
+
+    public void setPilotArchetypes(com.galacticodyssey.ship.ai.PilotArchetypeRegistry registry) {
+        this.pilotArchetypes = registry;
+    }
+  
+    public void setHullStyleRegistry(HullStyleRegistry registry) {
+        this.hullStyleRegistry = registry;
+    }
+
     // -------------------------------------------------------------------------
     // Public API
     // -------------------------------------------------------------------------
@@ -116,14 +128,24 @@ public class ShipFactory implements Disposable {
      * @return the assembled entity, already added to the engine
      */
     public Entity createShip(long seed, ShipSizeClass sizeClass, float x, float y, float z) {
+        return createShip(ShipGenerationConfig.defaults(seed, sizeClass), x, y, z);
+    }
 
-        int si = sizeClass.ordinal(); // index into the per-size-class arrays
+    /**
+     * Creates and returns a fully assembled ship entity from a {@link ShipGenerationConfig}.
+     */
+    public Entity createShip(ShipGenerationConfig config, float x, float y, float z) {
+        long seed = config.seed;
+        ShipSizeClass sizeClass = config.sizeClass;
+        HullStyle style = resolveStyle(hullStyleRegistry, config);
+
+        int si = sizeClass.ordinal();
 
         // ----- 1. Blueprint -----
         ShipBlueprint blueprint = new ShipBlueprint(seed, sizeClass);
 
         // ----- 2. Hull + interior geometry -----
-        HullGeometry    hull    = hullGenerator.generate(blueprint);
+        HullGeometry    hull    = hullGenerator.generate(blueprint, style);
         InteriorLayout  layout  = interiorGenerator.generate(blueprint, hull);
 
         // Adjust Y so the hull bottom sits at the requested y (hull extends below center)
@@ -154,6 +176,7 @@ public class ShipFactory implements Disposable {
         ShipSubsystemsComponent subsystems = new ShipSubsystemsComponent();
         subsystems.initDefaults(shipData.hullHp * 0.25f);
         entity.add(subsystems);
+        entity.add(BoardingDefenseComponent.forSizeClass(sizeClass));
 
         // Mesh component — hullMesh intentionally null until GL context available
         ShipMeshComponent meshComp = new ShipMeshComponent();
@@ -257,6 +280,7 @@ public class ShipFactory implements Disposable {
         ShipSubsystemsComponent subsystems2 = new ShipSubsystemsComponent();
         subsystems2.initDefaults(data.hullHp * 0.25f);
         entity.add(subsystems2);
+        entity.add(BoardingDefenseComponent.forSizeClass(design.sizeClass));
 
         ShipMeshComponent meshComp = new ShipMeshComponent();
         meshComp.vertexStride = hull.vertexStride;
@@ -306,6 +330,67 @@ public class ShipFactory implements Disposable {
 
         engine.addEntity(entity);
         return entity;
+    }
+
+    /**
+     * Builds a flyable, AI-piloted combat ship: the standard flight/physics stack from
+     * {@link #createShip} plus its own flight input, health, a gun hardpoint, and pilot AI.
+     */
+    public com.badlogic.ashley.core.Entity createNpcCombatShip(
+            long seed, ShipSizeClass sizeClass, String archetypeId,
+            float x, float y, float z) {
+
+        com.badlogic.ashley.core.Entity ship = createShip(seed, sizeClass, x, y, z);
+
+        ship.add(new com.galacticodyssey.ship.components.ShipFlightInputComponent());
+
+        com.galacticodyssey.combat.components.HealthComponent health =
+            new com.galacticodyssey.combat.components.HealthComponent();
+        health.maxHP = 100f * (sizeClass.ordinal() + 1);
+        health.currentHP = health.maxHP;
+        health.alive = true;
+        ship.add(health);
+
+        com.galacticodyssey.ship.weapons.components.ShipHardpointComponent hpc =
+            ship.getComponent(com.galacticodyssey.ship.weapons.components.ShipHardpointComponent.class);
+        if (hpc == null) {
+            hpc = new com.galacticodyssey.ship.weapons.components.ShipHardpointComponent();
+            ship.add(hpc);
+        }
+        com.galacticodyssey.ship.weapons.data.Hardpoint gunHp =
+            new com.galacticodyssey.ship.weapons.data.Hardpoint(
+                "npc_gun_0",
+                com.galacticodyssey.ship.weapons.ShipWeaponEnums.HardpointType.FIXED,
+                com.galacticodyssey.ship.weapons.ShipWeaponEnums.HardpointSize.SMALL, 0, 30);
+        com.galacticodyssey.ship.weapons.data.ShipWeaponData gun =
+            new com.galacticodyssey.ship.weapons.data.ShipWeaponData();
+        gun.id = "npc_cannon";
+        gun.name = "NPC Cannon";
+        gun.category = com.galacticodyssey.ship.weapons.ShipWeaponEnums.ShipWeaponCategory.BALLISTIC_CANNON;
+        gun.damage = 12f;
+        gun.damageType = com.galacticodyssey.combat.CombatEnums.DamageType.BALLISTIC;
+        gun.fireRate = 4f;
+        gun.projectileSpeed = 600f;
+        gun.range = 1000f;
+        gun.energyCost = 0f;
+        gun.heatPerShot = 0.05f;
+        gunHp.mountedWeapon = gun;
+        hpc.hardpoints.add(gunHp);
+
+        com.galacticodyssey.ship.ai.ShipPilotAIComponent ai =
+            new com.galacticodyssey.ship.ai.ShipPilotAIComponent();
+        ai.archetypeId = archetypeId;
+        if (pilotArchetypes != null) {
+            ai.archetype = pilotArchetypes.get(archetypeId);
+        }
+        if (ai.archetype == null) {
+            ai.archetype = new com.galacticodyssey.ship.ai.PilotArchetype();
+        }
+        ai.decisionInterval = ai.archetype.reactionTimeSec;
+        ai.behaviorTree = com.galacticodyssey.ship.ai.DogfightTreeFactory.build(ship, gun.range);
+        ship.add(ai);
+
+        return ship;
     }
 
     // -------------------------------------------------------------------------
@@ -580,6 +665,46 @@ public class ShipFactory implements Disposable {
     // Disposal
     // -------------------------------------------------------------------------
 
+    /**
+     * Releases the Bullet resources owned by a single ship entity (exterior body + shape,
+     * plus any interior physics world): removes the body from the exterior physics world and
+     * the managed-body list, disposes body and shape, drops them from this factory's tracked
+     * disposables so a later {@link #dispose()} does not double-free them, and disposes the
+     * ship's {@link ShipInteriorComponent} (interior Bullet world, dispatcher, broadphase,
+     * solver, config, and any static trimesh body/shape) if present. Safe to call on entities
+     * not created by this factory (no-op if there is no {@link PhysicsBodyComponent} or it is
+     * untracked).
+     *
+     * <p>Used by the fleet collapse path so despawned member ships do not leak Bullet bodies
+     * or native interior physics worlds.
+     */
+    public void disposeShip(Entity ship) {
+        if (ship == null) return;
+        PhysicsBodyComponent pbc = ship.getComponent(PhysicsBodyComponent.class);
+        if (pbc != null) {
+            btDiscreteDynamicsWorld world = physics.getDynamicsWorld();
+            if (pbc.body != null) {
+                physics.removeManagedBody(pbc.body);
+                if (world != null) {
+                    world.removeRigidBody(pbc.body);
+                }
+                disposables.removeValue(pbc.body, true);
+                pbc.body.dispose();
+            }
+            if (pbc.shape != null) {
+                disposables.removeValue(pbc.shape, true);
+                pbc.shape.dispose();
+            }
+            pbc.body = null;
+            pbc.shape = null;
+        }
+
+        ShipInteriorComponent interior = ship.getComponent(ShipInteriorComponent.class);
+        if (interior != null) {
+            interior.dispose();
+        }
+    }
+
     @Override
     public void dispose() {
         // Remove managed bodies from the exterior world before destroying them
@@ -606,5 +731,14 @@ public class ShipFactory implements Disposable {
 
     private static float lerp(float a, float b, float t) {
         return a + (b - a) * t;
+    }
+
+    /**
+     * Resolves the hull style for a config: uses the registry if present,
+     * else {@link HullStyle#defaultStyle()}. Package-visible for testing.
+     */
+    static HullStyle resolveStyle(HullStyleRegistry registry, ShipGenerationConfig config) {
+        if (registry == null) return HullStyle.defaultStyle();
+        return registry.resolve(config.faction);
     }
 }

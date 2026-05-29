@@ -54,4 +54,19 @@ class CreatureGeneratorTest {
         CreatureGenerator g = new CreatureGenerator(reg);
         assertEquals(g.generate(900L).archetypeId, g.generate(900L).archetypeId);
     }
+
+    @Test
+    void gaitClassPropagatedToSpec() {
+        CreatureSpec spec = new CreatureGenerator(reg).generate("quad", 42L);
+        assertNotNull(spec.gaitClass);
+        assertFalse(spec.gaitClass.isEmpty());
+    }
+
+    @Test
+    void skinSpecIsPropagatedFromAssembly() {
+        CreatureSpec spec = new CreatureGenerator(reg).generate("quad", 42L);
+        assertNotNull(spec.skinSpec, "skinSpec should be populated during assembly");
+        assertNotNull(spec.skinSpec.patternType);
+        assertTrue(spec.skinSpec.primaryR >= 0f && spec.skinSpec.primaryR <= 1f);
+    }
 }

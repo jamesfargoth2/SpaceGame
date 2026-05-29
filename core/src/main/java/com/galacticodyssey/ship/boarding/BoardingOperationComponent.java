@@ -2,6 +2,7 @@ package com.galacticodyssey.ship.boarding;
 
 import com.badlogic.ashley.core.Component;
 import com.badlogic.ashley.core.Entity;
+import com.badlogic.gdx.math.Vector3;
 import com.galacticodyssey.persistence.Snapshotable;
 import com.galacticodyssey.persistence.snapshots.BoardingOperationSnapshot;
 
@@ -32,7 +33,16 @@ public class BoardingOperationComponent implements Component, Snapshotable<Board
     public Entity targetShip;
     public AttachMethod attachMethod;
     public Entity entryPoint;
+    /** Boarder spawn point in TARGET-ship-local coordinates (set at BREACHED). */
+    public final Vector3 entryLocalPosition = new Vector3();
     public boolean playerIsAggressor;
+
+    /** Transient: true once defenders have been spawned for this operation. Not persisted. */
+    public transient boolean spawned;
+    /** Transient: live defender count; reaches 0 when the interior is cleared. Not persisted. */
+    public transient int defendersRemaining;
+    /** Transient: live attacker count when an NPC boards the player. Not persisted. */
+    public transient int attackersRemaining;
 
     // Persisted entity references (resolved by ReferenceResolver on load).
     public UUID aggressorShipId;
@@ -48,6 +58,9 @@ public class BoardingOperationComponent implements Component, Snapshotable<Board
         s.aggressorShipId = aggressorShipId;
         s.targetShipId = targetShipId;
         s.entryPointId = entryPointId;
+        s.entryLocalX = entryLocalPosition.x;
+        s.entryLocalY = entryLocalPosition.y;
+        s.entryLocalZ = entryLocalPosition.z;
         return s;
     }
 
@@ -59,6 +72,7 @@ public class BoardingOperationComponent implements Component, Snapshotable<Board
         aggressorShipId = s.aggressorShipId;
         targetShipId = s.targetShipId;
         entryPointId = s.entryPointId;
+        entryLocalPosition.set(s.entryLocalX, s.entryLocalY, s.entryLocalZ);
         // Entity references resolved later by ReferenceResolver.
     }
 }
