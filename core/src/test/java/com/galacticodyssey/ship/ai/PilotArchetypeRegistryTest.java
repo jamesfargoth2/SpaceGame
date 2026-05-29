@@ -11,7 +11,7 @@ class PilotArchetypeRegistryTest {
         + "\"throttleDiscipline\":0.4,\"usesMissiles\":false},"
         + "{\"id\":\"ace\",\"reactionTimeSec\":0.12,\"aimErrorDeg\":1.5,\"aggression\":0.9,"
         + "\"evadeHealthThreshold\":0.25,\"preferredEngageRange\":300.0,\"overshootExtendDist\":120.0,"
-        + "\"throttleDiscipline\":0.9,\"usesMissiles\":true}"
+        + "\"throttleDiscipline\":0.9,\"usesMissiles\":true,\"aggroRange\":2500.0}"
         + "]";
 
     @Test
@@ -28,6 +28,7 @@ class PilotArchetypeRegistryTest {
         assertEquals(0.12f, ace.reactionTimeSec, 1e-4);
         assertTrue(ace.usesMissiles);
         assertTrue(ace.aimErrorDeg < rookie.aimErrorDeg);
+        assertEquals(2500.0f, ace.aggroRange, 1e-4);
     }
 
     @Test
