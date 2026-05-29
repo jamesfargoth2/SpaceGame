@@ -35,7 +35,6 @@ public class ShipHullGenerator {
 
     private static final int RING_VERTEX_COUNT = 24;
     private static final int INTERPOLATION_RINGS = 4;
-    private static final float PANEL_INSET = 0.015f;
     public static final int VERTEX_STRIDE = 11;
 
     // Nacelle sub-hull resolution
@@ -45,11 +44,15 @@ public class ShipHullGenerator {
     // -------------------------------------------------------------------------
 
     public HullGeometry generate(ShipBlueprint blueprint) {
-        Random rng = new Random(blueprint.seed + 1);
-        ShipColorPalette palette = new ShipColorPalette(blueprint.seed);
+        return generate(blueprint, HullStyle.defaultStyle());
+    }
 
-        SpineCurve spine = generateSpine(blueprint, rng);
-        List<CrossSection> sections = generateCrossSections(blueprint, rng);
+    public HullGeometry generate(ShipBlueprint blueprint, HullStyle style) {
+        Random rng = new Random(blueprint.seed + 1);
+        ShipColorPalette palette = new ShipColorPalette(blueprint.seed, style);
+
+        SpineCurve spine = generateSpine(blueprint, style, rng);
+        List<CrossSection> sections = generateCrossSections(blueprint, style, rng);
         List<Float> tValues = generateTValues(sections.size());
 
         // Build interpolated hull rings
@@ -84,7 +87,7 @@ public class ShipHullGenerator {
         bbox.inf();
 
         float[] hullVerts = buildHullVerts(allRings, ringCenters, ringTangents,
-                                           ringCount, vertsPerRing, palette, bbox);
+                                           ringCount, vertsPerRing, palette, bbox, style);
         short[] hullIdx   = buildHullIndices(ringCount, vertsPerRing);
 
         List<float[]> vertChunks = new ArrayList<>();
@@ -130,7 +133,7 @@ public class ShipHullGenerator {
 
     private float[] buildHullVerts(List<float[]> allRings, List<Vector3> ringCenters,
                                    List<Vector3> ringTangents, int ringCount, int vertsPerRing,
-                                   ShipColorPalette palette, BoundingBox bbox) {
+                                   ShipColorPalette palette, BoundingBox bbox, HullStyle style) {
         int totalVerts = ringCount * vertsPerRing + 2;
         float[] vertices = new float[totalVerts * VERTEX_STRIDE];
 
@@ -150,7 +153,7 @@ public class ShipHullGenerator {
                 float localX = ring[v * 2];
                 float localY = ring[v * 2 + 1];
 
-                float insetScale = (panelInset && (v % 3 != 0)) ? (1f - PANEL_INSET) : 1f;
+                float insetScale = (panelInset && (v % 3 != 0)) ? (1f - style.panelInsetScale) : 1f;
                 localX *= insetScale;
                 localY *= insetScale;
 
@@ -540,11 +543,11 @@ public class ShipHullGenerator {
         return result;
     }
 
-    private SpineCurve generateSpine(ShipBlueprint blueprint, Random rng) {
+    private SpineCurve generateSpine(ShipBlueprint blueprint, HullStyle style, Random rng) {
         float len        = blueprint.spineLength;
         float ctrlOffset = len * 0.3f;
-        float yVar       = len * 0.06f;
-        float xVar       = len * 0.04f;
+        float yVar       = len * 0.06f * style.spineCurvature;
+        float xVar       = len * 0.04f * style.spineCurvature;
         Vector3 p0 = new Vector3(0, 0, 0);
         Vector3 p1 = new Vector3(
             (rng.nextFloat() - 0.5f) * 2f * xVar,
@@ -558,12 +561,15 @@ public class ShipHullGenerator {
         return new SpineCurve(p0, p1, p2, p3);
     }
 
-    private List<CrossSection> generateCrossSections(ShipBlueprint blueprint, Random rng) {
+    private List<CrossSection> generateCrossSections(ShipBlueprint blueprint, HullStyle style, Random rng) {
         List<CrossSection> sections = new ArrayList<>();
         int count = blueprint.crossSectionCount;
 
-        // Vary aspect ratio: fighters wide & flat, freighters more tubular
-        float aspectBias = 0.7f + rng.nextFloat() * 0.6f; // height / width ratio
+        // Aspect ratio (height/width) biased by style
+        float aspectBias = style.aspectBiasMin
+                + rng.nextFloat() * (style.aspectBiasMax - style.aspectBiasMin);
+
+        float expRange = style.sectionExponentMax - style.sectionExponentMin;
 
         for (int i = 0; i < count; i++) {
             float frac     = (float) i / (count - 1);
@@ -571,7 +577,7 @@ public class ShipHullGenerator {
 
             float w   = blueprint.maxWidth  * envelope * (0.85f + rng.nextFloat() * 0.15f);
             float h   = blueprint.maxHeight * envelope * aspectBias * (0.85f + rng.nextFloat() * 0.15f);
-            float exp = 2.2f + rng.nextFloat() * 1.8f; // 2.2 (rounded) to 4.0 (boxy)
+            float exp = style.sectionExponentMin + rng.nextFloat() * expRange;
             sections.add(new CrossSection(Math.max(0.1f, w), Math.max(0.1f, h), exp));
         }
         return sections;

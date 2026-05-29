@@ -4,11 +4,8 @@ import com.badlogic.ashley.core.Engine;
 import com.badlogic.ashley.core.Entity;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.bullet.Bullet;
-import com.badlogic.gdx.physics.bullet.collision.btCollisionDispatcher;
-import com.badlogic.gdx.physics.bullet.collision.btDbvtBroadphase;
-import com.badlogic.gdx.physics.bullet.collision.btDefaultCollisionConfiguration;
-import com.badlogic.gdx.physics.bullet.dynamics.btDiscreteDynamicsWorld;
-import com.badlogic.gdx.physics.bullet.dynamics.btSequentialImpulseConstraintSolver;
+import com.badlogic.gdx.physics.bullet.collision.*;
+import com.badlogic.gdx.physics.bullet.dynamics.*;
 import com.galacticodyssey.combat.components.CombatInputComponent;
 import com.galacticodyssey.combat.components.HealthComponent;
 import com.galacticodyssey.combat.components.HitboxComponent;
@@ -16,19 +13,37 @@ import com.galacticodyssey.combat.components.RangedWeaponComponent;
 import com.galacticodyssey.core.components.PhysicsBodyComponent;
 import com.galacticodyssey.core.components.TransformComponent;
 import com.galacticodyssey.data.VehicleDefinition;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class VehicleFactoryTest {
     @BeforeAll static void initBullet() { Bullet.init(); }
 
-    private btDiscreteDynamicsWorld newWorld() {
-        btDefaultCollisionConfiguration config = new btDefaultCollisionConfiguration();
-        btCollisionDispatcher dispatcher = new btCollisionDispatcher(config);
-        btDbvtBroadphase broadphase = new btDbvtBroadphase();
-        btSequentialImpulseConstraintSolver solver = new btSequentialImpulseConstraintSolver();
-        return new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, config);
+    private btCollisionConfiguration collisionConfig;
+    private btCollisionDispatcher dispatcher;
+    private btBroadphaseInterface broadphase;
+    private btConstraintSolver solver;
+    private btDiscreteDynamicsWorld world;
+
+    @BeforeEach
+    void setUpWorld() {
+        collisionConfig = new btDefaultCollisionConfiguration();
+        dispatcher = new btCollisionDispatcher(collisionConfig);
+        broadphase = new btDbvtBroadphase();
+        solver = new btSequentialImpulseConstraintSolver();
+        world = new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, collisionConfig);
+    }
+
+    @AfterEach
+    void tearDownWorld() {
+        world.dispose();
+        solver.dispose();
+        broadphase.dispose();
+        dispatcher.dispose();
+        collisionConfig.dispose();
     }
 
     private VehicleDefinition def() {
@@ -44,7 +59,6 @@ class VehicleFactoryTest {
     @Test
     void buildsEntityWithAllComponents() {
         Engine engine = new Engine();
-        btDiscreteDynamicsWorld world = newWorld();
         VehicleFactory factory = new VehicleFactory();
 
         Entity v = factory.create(engine, world, def(), new Vector3(10, 0, 5));

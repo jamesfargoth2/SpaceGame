@@ -59,6 +59,10 @@ import com.galacticodyssey.ship.components.ShipFlightComponent;
 import com.galacticodyssey.ship.components.VehicleBayComponent;
 import com.galacticodyssey.persistence.snapshots.VehicleBaySnapshot;
 import com.galacticodyssey.ship.boarding.BoardingOperationComponent;
+import com.galacticodyssey.ship.boarding.OwnedShipComponent;
+import com.galacticodyssey.ship.boarding.PlayerGarageComponent;
+import com.galacticodyssey.persistence.snapshots.OwnedShipSnapshot;
+import com.galacticodyssey.persistence.snapshots.PlayerGarageSnapshot;
 import com.galacticodyssey.ship.boarding.ShipSubsystemsComponent;
 import com.galacticodyssey.ship.docking.DockingStateComponent;
 import com.galacticodyssey.ship.modules.components.ShipCargoComponent;
@@ -131,6 +135,8 @@ public final class SnapshotComponentRegistry {
         register("PowerState",             PowerStateSnapshot.class,             PowerStateComponent::new);
         register("ShipSubsystems",         ShipSubsystemsSnapshot.class,         ShipSubsystemsComponent::new);
         register("BoardingOperation",      BoardingOperationSnapshot.class,      BoardingOperationComponent::new);
+        register("OwnedShip",    OwnedShipSnapshot.class,    OwnedShipComponent::new);
+        register("PlayerGarage", PlayerGarageSnapshot.class, PlayerGarageComponent::new);
         register("VehicleBay",             VehicleBaySnapshot.class,             VehicleBayComponent::new);
 
         // ----- Tags -----

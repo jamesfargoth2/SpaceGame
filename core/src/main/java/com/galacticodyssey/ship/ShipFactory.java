@@ -15,6 +15,7 @@ import com.galacticodyssey.ship.components.*;
 import com.galacticodyssey.ship.modules.*;
 import com.galacticodyssey.ship.modules.components.ShipCargoComponent;
 import com.galacticodyssey.ship.modules.components.ShipLoadoutComponent;
+import com.galacticodyssey.ship.boarding.BoardingDefenseComponent;
 import com.galacticodyssey.ship.boarding.ShipSubsystemsComponent;
 import com.galacticodyssey.ship.power.PowerStateComponent;
 import com.galacticodyssey.ship.power.ReactorSpec;
@@ -82,6 +83,7 @@ public class ShipFactory implements Disposable {
     private final ShipInteriorGenerator interiorGenerator = new ShipInteriorGenerator();
     private ReactorSpecRegistry reactorSpecRegistry;
     private ShipModuleRegistry moduleRegistry;
+    private HullStyleRegistry hullStyleRegistry;
 
     /** All Bullet objects that must be disposed when this factory is disposed. */
     private final Array<Disposable> disposables = new Array<>();
@@ -106,6 +108,10 @@ public class ShipFactory implements Disposable {
     public void setPilotArchetypes(com.galacticodyssey.ship.ai.PilotArchetypeRegistry registry) {
         this.pilotArchetypes = registry;
     }
+  
+    public void setHullStyleRegistry(HullStyleRegistry registry) {
+        this.hullStyleRegistry = registry;
+    }
 
     // -------------------------------------------------------------------------
     // Public API
@@ -122,14 +128,24 @@ public class ShipFactory implements Disposable {
      * @return the assembled entity, already added to the engine
      */
     public Entity createShip(long seed, ShipSizeClass sizeClass, float x, float y, float z) {
+        return createShip(ShipGenerationConfig.defaults(seed, sizeClass), x, y, z);
+    }
 
-        int si = sizeClass.ordinal(); // index into the per-size-class arrays
+    /**
+     * Creates and returns a fully assembled ship entity from a {@link ShipGenerationConfig}.
+     */
+    public Entity createShip(ShipGenerationConfig config, float x, float y, float z) {
+        long seed = config.seed;
+        ShipSizeClass sizeClass = config.sizeClass;
+        HullStyle style = resolveStyle(hullStyleRegistry, config);
+
+        int si = sizeClass.ordinal();
 
         // ----- 1. Blueprint -----
         ShipBlueprint blueprint = new ShipBlueprint(seed, sizeClass);
 
         // ----- 2. Hull + interior geometry -----
-        HullGeometry    hull    = hullGenerator.generate(blueprint);
+        HullGeometry    hull    = hullGenerator.generate(blueprint, style);
         InteriorLayout  layout  = interiorGenerator.generate(blueprint, hull);
 
         // Adjust Y so the hull bottom sits at the requested y (hull extends below center)
@@ -160,6 +176,7 @@ public class ShipFactory implements Disposable {
         ShipSubsystemsComponent subsystems = new ShipSubsystemsComponent();
         subsystems.initDefaults(shipData.hullHp * 0.25f);
         entity.add(subsystems);
+        entity.add(BoardingDefenseComponent.forSizeClass(sizeClass));
 
         // Mesh component — hullMesh intentionally null until GL context available
         ShipMeshComponent meshComp = new ShipMeshComponent();
@@ -263,6 +280,7 @@ public class ShipFactory implements Disposable {
         ShipSubsystemsComponent subsystems2 = new ShipSubsystemsComponent();
         subsystems2.initDefaults(data.hullHp * 0.25f);
         entity.add(subsystems2);
+        entity.add(BoardingDefenseComponent.forSizeClass(design.sizeClass));
 
         ShipMeshComponent meshComp = new ShipMeshComponent();
         meshComp.vertexStride = hull.vertexStride;
@@ -713,5 +731,14 @@ public class ShipFactory implements Disposable {
 
     private static float lerp(float a, float b, float t) {
         return a + (b - a) * t;
+    }
+
+    /**
+     * Resolves the hull style for a config: uses the registry if present,
+     * else {@link HullStyle#defaultStyle()}. Package-visible for testing.
+     */
+    static HullStyle resolveStyle(HullStyleRegistry registry, ShipGenerationConfig config) {
+        if (registry == null) return HullStyle.defaultStyle();
+        return registry.resolve(config.faction);
     }
 }

@@ -1,0 +1,21 @@
+{
+  "plateCountMin": 7,
+  "plateCountMax": 15,
+  "plateCountPerRadius": 2.0,
+  "lloydIterations": 2,
+  "hotspotMin": 1,
+  "hotspotMax": 4,
+  "continentalBase": 0.35,
+  "oceanicDepth": -0.35,
+  "mountainUplift": 0.55,
+  "trenchDepth": 0.45,
+  "riftDepth": 0.18,
+  "ridgeUplift": 0.12,
+  "hotspotUplift": 0.30,
+  "boundaryInfluence": 0.18,
+  "hotspotInfluence": 0.08,
+  "continentalFractionOcean": 0.15,
+  "continentalFractionTerran": 0.45,
+  "continentalFractionArid": 0.70,
+  "continentalFractionDefault": 0.50
+}

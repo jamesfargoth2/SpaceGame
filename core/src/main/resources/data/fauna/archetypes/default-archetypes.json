@@ -1,0 +1,33 @@
+{ "archetypes": [
+  { "id": "grazer_quad", "bodyPlan": "QUADRUPED", "minSize": 0.4, "maxSize": 3.5, "density": 950,
+    "gaitClass": "walk", "kHp": 12, "kSpeed": 9, "kDamage": 3,
+    "root": { "partType": "TORSO", "children": [
+      { "socketId": "leg_front", "partType": "LIMB_LEG", "mirror": true },
+      { "socketId": "leg_rear",  "partType": "LIMB_LEG", "mirror": true },
+      { "socketId": "neck",      "partType": "HEAD" },
+      { "socketId": "tail",      "partType": "TAIL" }
+    ] } },
+
+  { "id": "skitterer_hex", "bodyPlan": "HEXAPOD", "minSize": 0.1, "maxSize": 1.2, "density": 700,
+    "gaitClass": "skitter", "kHp": 8, "kSpeed": 12, "kDamage": 4,
+    "root": { "partType": "TORSO", "children": [
+      { "socketId": "leg_a", "partType": "LIMB_LEG", "mirror": true },
+      { "socketId": "leg_b", "partType": "LIMB_LEG", "mirror": true },
+      { "socketId": "leg_c", "partType": "LIMB_LEG", "mirror": true },
+      { "socketId": "neck",  "partType": "HEAD" }
+    ] } },
+
+  { "id": "strider_biped", "bodyPlan": "BIPEDAL", "minSize": 0.8, "maxSize": 4.0, "density": 1000,
+    "gaitClass": "walk", "kHp": 14, "kSpeed": 8, "kDamage": 5,
+    "root": { "partType": "TORSO", "children": [
+      { "socketId": "leg",  "partType": "LIMB_LEG", "mirror": true },
+      { "socketId": "arm",  "partType": "LIMB_ARM", "mirror": true },
+      { "socketId": "neck", "partType": "HEAD" }
+    ] } },
+
+  { "id": "crawler_serpent", "bodyPlan": "SERPENTINE", "minSize": 0.5, "maxSize": 6.0, "density": 1050,
+    "gaitClass": "slither", "kHp": 10, "kSpeed": 7, "kDamage": 4,
+    "root": { "partType": "TORSO", "repeat": 6, "continuationSocketId": "next", "children": [
+      { "socketId": "head", "partType": "HEAD" }
+    ] } }
+] }

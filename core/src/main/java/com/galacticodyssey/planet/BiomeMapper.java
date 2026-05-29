@@ -3,6 +3,7 @@ package com.galacticodyssey.planet;
 import com.galacticodyssey.galaxy.SeedDeriver;
 import com.galacticodyssey.planet.climate.ClimateData;
 import com.galacticodyssey.planet.climate.ClimateSimulator;
+import com.galacticodyssey.planet.tectonic.TectonicModel;
 import java.util.EnumSet;
 import java.util.Random;
 
@@ -13,11 +14,23 @@ public final class BiomeMapper {
     }
 
     public BiomeMap generate(Planet planet, Atmosphere atmosphere, HeightSampler heightSampler) {
+        return generateInternal(planet, atmosphere, heightSampler, null);
+    }
+
+    public BiomeMap generate(Planet planet, Atmosphere atmosphere, HeightSampler heightSampler,
+                             TectonicModel tectonic) {
+        return generateInternal(planet, atmosphere, heightSampler, tectonic);
+    }
+
+    private BiomeMap generateInternal(Planet planet, Atmosphere atmosphere, HeightSampler heightSampler,
+                                      TectonicModel tectonic) {
         long biomeSeed = SeedDeriver.forId(
             SeedDeriver.domain(planet.seed, SeedDeriver.BIOME_DOMAIN), 0);
         Random rng = new Random(biomeSeed);
 
-        float seaLevel = rng.nextFloat() * 0.3f;
+        float seaLevel = (tectonic != null)
+            ? Math.max(0f, Math.min(0.3f, 0.3f * (1f - tectonic.continentalFraction())))
+            : rng.nextFloat() * 0.3f;
         float snowLine = 0.6f + rng.nextFloat() * 0.3f;
         float baseMoisture = moistureFromType(planet.type, rng);
         float surfaceTemp = atmosphere != null ? atmosphere.surfaceTemp : 200f;

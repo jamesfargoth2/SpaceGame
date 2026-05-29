@@ -1,0 +1,66 @@
+{
+  "species": [
+    { "id": "tropical_canopy", "displayName": "Canopy Tree", "shape": "ELLIPSOID",
+      "height": [9, 15], "radius": [3, 5],
+      "growth": { "attractionPoints": 240, "influenceRadius": 4.5, "killDistance": 0.8, "segmentLength": 0.5, "maxNodes": 650 },
+      "trunk": { "sides": 6, "baseRadius": 0.38, "taper": 0.8, "color": "5a3b22" },
+      "foliage": { "style": "CLUMP", "clumpsPerTip": 2, "clumpRadius": [1.2, 2.0], "colorA": "1f6b1a", "colorB": "2f8a24" },
+      "prototypeVariants": 8 },
+
+    { "id": "tropical_understory", "displayName": "Understory Palm", "shape": "ELLIPSOID",
+      "height": [3, 6], "radius": [1.5, 2.5],
+      "growth": { "attractionPoints": 90, "influenceRadius": 3.0, "killDistance": 0.6, "segmentLength": 0.4, "maxNodes": 250 },
+      "trunk": { "sides": 5, "baseRadius": 0.2, "taper": 0.85, "color": "4a3a20" },
+      "foliage": { "style": "CLUMP", "clumpsPerTip": 1, "clumpRadius": [0.8, 1.3], "colorA": "2a7a2a", "colorB": "3f9a3a" },
+      "prototypeVariants": 6 },
+
+    { "id": "temperate_broadleaf", "displayName": "Broadleaf", "shape": "ELLIPSOID",
+      "height": [7, 12], "radius": [2.5, 4],
+      "growth": { "attractionPoints": 200, "influenceRadius": 4.0, "killDistance": 0.75, "segmentLength": 0.45, "maxNodes": 550 },
+      "trunk": { "sides": 6, "baseRadius": 0.32, "taper": 0.78, "color": "5b4126" },
+      "foliage": { "style": "CLUMP", "clumpsPerTip": 1, "clumpRadius": [1.1, 1.8], "colorA": "2a6b1f", "colorB": "4a8a2a" },
+      "prototypeVariants": 8 },
+
+    { "id": "boreal_conifer", "displayName": "Conifer", "shape": "CONE",
+      "height": [8, 14], "radius": [2, 3],
+      "growth": { "attractionPoints": 180, "influenceRadius": 3.5, "killDistance": 0.7, "segmentLength": 0.45, "maxNodes": 500 },
+      "trunk": { "sides": 5, "baseRadius": 0.28, "taper": 0.7, "color": "4a3422" },
+      "foliage": { "style": "CLUMP", "clumpsPerTip": 1, "clumpRadius": [0.9, 1.4], "colorA": "1a4a22", "colorB": "245a2a" },
+      "prototypeVariants": 7 },
+
+    { "id": "savanna_acacia", "displayName": "Acacia", "shape": "DOME",
+      "height": [5, 8], "radius": [3, 5],
+      "growth": { "attractionPoints": 160, "influenceRadius": 4.0, "killDistance": 0.7, "segmentLength": 0.5, "maxNodes": 420 },
+      "trunk": { "sides": 6, "baseRadius": 0.3, "taper": 0.82, "color": "6a4a28" },
+      "foliage": { "style": "CLUMP", "clumpsPerTip": 2, "clumpRadius": [1.4, 2.2], "colorA": "5a6b22", "colorB": "6f7a2a" },
+      "prototypeVariants": 6 },
+
+    { "id": "desert_cactus", "displayName": "Column Cactus", "shape": "COLUMN",
+      "height": [2, 4.5], "radius": [0.4, 0.7],
+      "growth": { "attractionPoints": 50, "influenceRadius": 2.5, "killDistance": 0.5, "segmentLength": 0.35, "maxNodes": 120 },
+      "trunk": { "sides": 8, "baseRadius": 0.25, "taper": 0.95, "color": "3a6a32" },
+      "foliage": { "style": "NONE" },
+      "prototypeVariants": 5 },
+
+    { "id": "arid_succulent", "displayName": "Succulent", "shape": "DOME",
+      "height": [0.6, 1.4], "radius": [0.6, 1.0],
+      "growth": { "attractionPoints": 40, "influenceRadius": 2.0, "killDistance": 0.4, "segmentLength": 0.3, "maxNodes": 90 },
+      "trunk": { "sides": 6, "baseRadius": 0.18, "taper": 0.9, "color": "4a5a30" },
+      "foliage": { "style": "CLUMP", "clumpsPerTip": 1, "clumpRadius": [0.4, 0.7], "colorA": "5a7a3a", "colorB": "6a8a45" },
+      "prototypeVariants": 5 },
+
+    { "id": "tundra_shrub", "displayName": "Dwarf Shrub", "shape": "DOME",
+      "height": [0.5, 1.2], "radius": [0.8, 1.4],
+      "growth": { "attractionPoints": 60, "influenceRadius": 2.0, "killDistance": 0.4, "segmentLength": 0.3, "maxNodes": 140 },
+      "trunk": { "sides": 5, "baseRadius": 0.12, "taper": 0.85, "color": "4a3a2a" },
+      "foliage": { "style": "CLUMP", "clumpsPerTip": 1, "clumpRadius": [0.4, 0.8], "colorA": "4a5a32", "colorB": "5a6540" },
+      "prototypeVariants": 5 },
+
+    { "id": "lichen_mound", "displayName": "Lichen Mound", "shape": "DOME",
+      "height": [0.2, 0.5], "radius": [0.6, 1.1],
+      "growth": { "attractionPoints": 30, "influenceRadius": 1.5, "killDistance": 0.35, "segmentLength": 0.25, "maxNodes": 60 },
+      "trunk": { "sides": 5, "baseRadius": 0.08, "taper": 0.9, "color": "5a5a40" },
+      "foliage": { "style": "CLUMP", "clumpsPerTip": 1, "clumpRadius": [0.3, 0.6], "colorA": "7a7a55", "colorB": "8a8a60" },
+      "prototypeVariants": 4 }
+  ]
+}
