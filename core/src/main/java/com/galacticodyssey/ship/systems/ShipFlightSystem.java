@@ -112,6 +112,18 @@ public class ShipFlightSystem extends EntitySystem {
             return;
         }
 
+        // --- Boost activation ---
+        if (input.boostPressed) {
+            input.boostPressed = false;
+            if (flight.boostCooldownTimer <= 0f
+                    && flight.boostEnergy >= flight.boostEnergyCost
+                    && flight.boostTimer <= 0f) {
+                flight.boostEnergy -= flight.boostEnergyCost;
+                flight.boostTimer = flight.boostDuration;
+                flight.boostCooldownTimer = flight.boostCooldown;
+            }
+        }
+
         // Throttle management via EngineSpec
         EngineSpecComponent engineSpec = engineMapper.get(ship);
         float effectiveThrottle = input.throttle;
@@ -158,6 +170,7 @@ public class ShipFlightSystem extends EntitySystem {
             float fwdForce = MathUtils.clamp(flight.faLinearGain * physics.mass * fwdError,
                 -flight.linearThrust, flight.linearThrust);
             force.mulAdd(localForward, fwdForce);
+            if (flight.boostTimer > 0f) force.mulAdd(localForward, flight.boostForce);
 
             // Lateral velocity = velocity minus forward component.
             forwardVelComp.set(localForward).scl(forwardSpeed);
@@ -183,6 +196,7 @@ public class ShipFlightSystem extends EntitySystem {
         } else {
             // Newtonian: direct thrust, no cap, no bleed.
             force.mulAdd(localForward, effectiveThrottle * flight.linearThrust);
+            if (flight.boostTimer > 0f) force.mulAdd(localForward, flight.boostForce);
             force.mulAdd(localRight, input.strafe * flight.linearThrust * flight.strafeThrustFraction);
             force.mulAdd(localUp, input.verticalThrust * flight.linearThrust * flight.verticalThrustFraction);
         }
@@ -257,6 +271,18 @@ public class ShipFlightSystem extends EntitySystem {
         physics.body.setDamping(0f, 0f);
 
         flight.currentThrottle = effectiveThrottle;
+
+        // --- Boost timers + gauge ---
+        if (flight.boostTimer > 0f) {
+            flight.boostTimer = Math.max(0f, flight.boostTimer - deltaTime);
+        } else if (flight.boostEnergy < flight.boostMaxEnergy) {
+            flight.boostEnergy = Math.min(flight.boostMaxEnergy,
+                flight.boostEnergy + flight.boostRechargeRate * deltaTime);
+        }
+        if (flight.boostCooldownTimer > 0f) {
+            flight.boostCooldownTimer = Math.max(0f, flight.boostCooldownTimer - deltaTime);
+        }
+
         physics.body.activate();
     }
 }

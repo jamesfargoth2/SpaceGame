@@ -239,4 +239,84 @@ class ShipFlightAssistTest {
         assertTrue(blueYaw > fullYaw + 0.02f,
             "blue-zone yaw (" + blueYaw + ") should exceed full-throttle yaw (" + fullYaw + ")");
     }
+
+    @Test
+    void boostActivatesConsumesEnergyAndRespectsCooldown() {
+        Engine engine = new Engine();
+        ShipFlightSystem system = buildShip(engine, 100f, true, null);
+        ShipFlightComponent flight = ship.getComponent(ShipFlightComponent.class);
+        flight.boostEnergy = 100f;
+        flight.boostEnergyCost = 50f;
+        flight.boostCooldown = 3f;
+        flight.boostDuration = 2f;
+        ShipFlightInputComponent in = ship.getComponent(ShipFlightInputComponent.class);
+
+        in.boostPressed = true;
+        system.update(1f / 60f);
+        assertEquals(50f, flight.boostEnergy, 1e-3, "boost consumes energy");
+        assertTrue(flight.boostTimer > 0f, "boost timer started");
+        assertFalse(in.boostPressed, "boost flag consumed");
+
+        // Second press during cooldown is ignored (energy unchanged).
+        in.boostPressed = true;
+        system.update(1f / 60f);
+        assertEquals(50f, flight.boostEnergy, 1e-3, "no second boost during cooldown");
+    }
+
+    @Test
+    void boostNotEnoughEnergyDoesNothing() {
+        Engine engine = new Engine();
+        ShipFlightSystem system = buildShip(engine, 100f, true, null);
+        ShipFlightComponent flight = ship.getComponent(ShipFlightComponent.class);
+        flight.boostEnergy = 10f;
+        flight.boostEnergyCost = 50f;
+        flight.boostRechargeRate = 0f; // isolate the "no energy" path from idle recharge
+        ship.getComponent(ShipFlightInputComponent.class).boostPressed = true;
+
+        system.update(1f / 60f);
+        assertEquals(0f, flight.boostTimer, 1e-3, "no boost without energy");
+        assertEquals(10f, flight.boostEnergy, 1e-3);
+    }
+
+    @Test
+    void boostGaugeRechargesWhenIdle() {
+        Engine engine = new Engine();
+        ShipFlightSystem system = buildShip(engine, 100f, true, null);
+        ShipFlightComponent flight = ship.getComponent(ShipFlightComponent.class);
+        flight.boostEnergy = 0f;
+        flight.boostMaxEnergy = 100f;
+        flight.boostRechargeRate = 50f;
+
+        step(system, 1f); // ~50 energy back
+
+        assertTrue(flight.boostEnergy > 40f && flight.boostEnergy <= 100f,
+            "gauge recharges, energy=" + flight.boostEnergy);
+    }
+
+    @Test
+    void boostRaisesAchievableSpeed() {
+        // Apples-to-apples: both runs accelerate for the same 4s window; only the
+        // boost run gets the surge + raised speed cap, so it must end up faster.
+        Engine baseEngine = new Engine();
+        ShipFlightSystem baseSys = buildShip(baseEngine, 100f, true, null);
+        ship.getComponent(ShipFlightInputComponent.class).throttle = 1f;
+        step(baseSys, 4f);
+        float baseSpeed = ship.getComponent(PhysicsBodyComponent.class).body.getLinearVelocity().len();
+        tearDown();
+
+        Engine boostEngine = new Engine();
+        ShipFlightSystem boostSys = buildShip(boostEngine, 100f, true, null);
+        ShipFlightComponent flight = ship.getComponent(ShipFlightComponent.class);
+        flight.boostDuration = 6f;
+        flight.boostForce = 40000f;
+        flight.boostEnergy = 100f;
+        ShipFlightInputComponent in = ship.getComponent(ShipFlightInputComponent.class);
+        in.throttle = 1f;
+        in.boostPressed = true;
+        step(boostSys, 4f);
+        float boostSpeed = ship.getComponent(PhysicsBodyComponent.class).body.getLinearVelocity().len();
+
+        assertTrue(boostSpeed > baseSpeed + 10f,
+            "boost should exceed normal max, boost=" + boostSpeed + " base=" + baseSpeed);
+    }
 }
