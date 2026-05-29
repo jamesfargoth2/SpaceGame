@@ -31,6 +31,11 @@ public final class WallBuilder {
         for (int i = 0; i < hullPts.size - 2; i += 2) {
             hull.add(new Vector2(hullPts.get(i), hullPts.get(i + 1)));
         }
+        if (hull.size() < 3) {
+            throw new IllegalArgumentException(
+                "WallBuilder: convex hull degenerate (" + hull.size()
+                + " vertices) - blocks must span at least two dimensions");
+        }
         CityWall wall = new CityWall(hull);
 
         float far = farthest(hull) * 2f + 10f;

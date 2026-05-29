@@ -39,6 +39,7 @@ class WallBuilderTest {
     void producesAtLeastOneGate() {
         CityWall wall = WallBuilder.build(diskOfBlocks(200f, 40f));
         assertFalse(wall.gates.isEmpty());
+        assertEquals(4, wall.gates.size(), "each cardinal axis should cut one gate");
     }
 
     @Test
