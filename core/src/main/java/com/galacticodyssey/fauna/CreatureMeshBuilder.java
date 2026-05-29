@@ -11,7 +11,6 @@ import com.badlogic.gdx.graphics.g3d.model.Node;
 import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.Matrix4;
-import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Disposable;
 import com.galacticodyssey.fauna.assembly.AssembledNode;
@@ -21,6 +20,7 @@ import com.galacticodyssey.fauna.geometry.ProceduralMeshData;
 import com.galacticodyssey.fauna.geometry.ProceduralPartMesher;
 import com.galacticodyssey.fauna.rig.Bone;
 import com.galacticodyssey.fauna.rig.CreatureRig;
+import com.galacticodyssey.fauna.skin.PatternStamper;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -69,20 +69,35 @@ public final class CreatureMeshBuilder implements Disposable {
             Node node = mb.node();
             node.id = rig.getBone(i).name;
 
-            Material mat = new Material(ColorAttribute.createDiffuse(Color.GRAY));
+            Material mat = new Material(ColorAttribute.createDiffuse(Color.WHITE));
             MeshPartBuilder mpb = mb.part("mesh_" + i, GL20.GL_TRIANGLES,
-                Usage.Position | Usage.Normal, mat);
+                Usage.Position | Usage.Normal | Usage.ColorPacked, mat);
 
             ProceduralMeshData data = mesher.build(an.part.geometry);
+            float[] vertColors = PatternStamper.stamp(
+                data, an.part.geometry, spec.colorSeed + i);
             float[] p = data.positions;
+            float[] n = data.normals;
+
             for (int t = 0; t < data.indices.length; t += 3) {
-                int a = data.indices[t] & 0xFFFF;
-                int b = data.indices[t + 1] & 0xFFFF;
-                int c = data.indices[t + 2] & 0xFFFF;
-                mpb.triangle(
-                    new Vector3(p[a*3], p[a*3+1], p[a*3+2]),
-                    new Vector3(p[b*3], p[b*3+1], p[b*3+2]),
-                    new Vector3(p[c*3], p[c*3+1], p[c*3+2]));
+                int ai = data.indices[t] & 0xFFFF;
+                int bi = data.indices[t + 1] & 0xFFFF;
+                int ci = data.indices[t + 2] & 0xFFFF;
+
+                MeshPartBuilder.VertexInfo va = new MeshPartBuilder.VertexInfo()
+                    .setPos(p[ai*3], p[ai*3+1], p[ai*3+2])
+                    .setNor(n[ai*3], n[ai*3+1], n[ai*3+2])
+                    .setCol(vertColors[ai*4], vertColors[ai*4+1], vertColors[ai*4+2], vertColors[ai*4+3]);
+                MeshPartBuilder.VertexInfo vb = new MeshPartBuilder.VertexInfo()
+                    .setPos(p[bi*3], p[bi*3+1], p[bi*3+2])
+                    .setNor(n[bi*3], n[bi*3+1], n[bi*3+2])
+                    .setCol(vertColors[bi*4], vertColors[bi*4+1], vertColors[bi*4+2], vertColors[bi*4+3]);
+                MeshPartBuilder.VertexInfo vc = new MeshPartBuilder.VertexInfo()
+                    .setPos(p[ci*3], p[ci*3+1], p[ci*3+2])
+                    .setNor(n[ci*3], n[ci*3+1], n[ci*3+2])
+                    .setCol(vertColors[ci*4], vertColors[ci*4+1], vertColors[ci*4+2], vertColors[ci*4+3]);
+
+                mpb.triangle(va, vb, vc);
             }
 
             nodeMap.put(i, node);
@@ -106,7 +121,9 @@ public final class CreatureMeshBuilder implements Disposable {
         }
 
         model.calculateTransforms();
-        return new ModelInstance(model);
+        ModelInstance instance = new ModelInstance(model);
+        instance.userData = spec.skinSpec;
+        return instance;
     }
 
     private PartGeometryProvider providerFor(PartGeometrySpec spec) {
