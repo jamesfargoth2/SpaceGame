@@ -34,6 +34,11 @@ public class ShipFlightSystem extends EntitySystem {
         ComponentMapper.getFor(EngineSpecComponent.class);
     private final ComponentMapper<FuelTankComponent> fuelMapper =
         ComponentMapper.getFor(FuelTankComponent.class);
+    private final ComponentMapper<com.galacticodyssey.ship.components.ShipDataComponent> shipDataMapper =
+        ComponentMapper.getFor(com.galacticodyssey.ship.components.ShipDataComponent.class);
+
+    private static final float DEFAULT_MAX_SPEED = 100f;
+    private static final float DEFAULT_MAX_TURN_RATE_DEG = 45f;
 
     private ImmutableArray<Entity> playerEntities;
     private ImmutableArray<Entity> npcShips;
@@ -45,6 +50,8 @@ public class ShipFlightSystem extends EntitySystem {
     private final Vector3 localUp = new Vector3();
     private final Matrix4 shipTransform = new Matrix4();
     private final Vector3 currentVelocity = new Vector3();
+    private final Vector3 lateralVel = new Vector3();
+    private final Vector3 forwardVelComp = new Vector3();
 
     /** False when the ship has subsystems and its engines are non-operational. */
     public static boolean canThrust(Entity ship) {
@@ -94,10 +101,32 @@ public class ShipFlightSystem extends EntitySystem {
         ShipFlightComponent flight = flightMapper.get(ship);
         if (physics == null || physics.body == null || flight == null) return;
 
+        // Flight-Assist toggle is processed even when engines are down (it's a computer mode).
+        if (input.flightAssistTogglePressed) {
+            flight.flightAssistEnabled = !flight.flightAssistEnabled;
+            input.flightAssistTogglePressed = false;
+        }
+
         // Engines disabled (destroyed or EMP) → ship coasts, ignore pilot thrust/turn input.
         if (!canThrust(ship)) {
             return;
         }
+
+        // --- Boost activation ---
+        if (input.boostPressed) {
+            input.boostPressed = false;
+            if (flight.boostCooldownTimer <= 0f
+                    && flight.boostEnergy >= flight.boostEnergyCost
+                    && flight.boostTimer <= 0f) {
+                flight.boostEnergy -= flight.boostEnergyCost;
+                flight.boostTimer = flight.boostDuration;
+                flight.boostCooldownTimer = flight.boostCooldown;
+            }
+        }
+
+        // Enforce the ship's per-class reverse cap on the persistent set-point
+        // (authoritative for both player and AI input). Forward is unbounded at +1.
+        input.throttle = MathUtils.clamp(input.throttle, -flight.reverseFraction, 1f);
 
         // Throttle management via EngineSpec
         EngineSpecComponent engineSpec = engineMapper.get(ship);
@@ -128,16 +157,59 @@ public class ShipFlightSystem extends EntitySystem {
         localRight.set(1, 0, 0).rot(shipTransform).nor();
         localUp.set(0, 1, 0).rot(shipTransform).nor();
 
-        force.setZero();
-        force.mulAdd(localForward, effectiveThrottle * flight.linearThrust);
-        force.mulAdd(localRight, input.strafe * flight.linearThrust * flight.strafeThrustFraction);
-        force.mulAdd(localUp, input.verticalThrust * flight.linearThrust * flight.verticalThrustFraction);
+        // --- Effective max speed (live from ShipData; raised during active boost) ---
+        com.galacticodyssey.ship.components.ShipDataComponent shipData = shipDataMapper.get(ship);
+        float maxSpeed = (shipData != null && shipData.maxSpeed > 0f)
+            ? shipData.maxSpeed : DEFAULT_MAX_SPEED;
+        if (flight.boostTimer > 0f) maxSpeed *= flight.boostSpeedMultiplier;
 
         currentVelocity.set(physics.body.getLinearVelocity());
+        force.setZero();
+
+        if (flight.flightAssistEnabled) {
+            // Forward axis tracking toward target speed (P-controller, mass-relative, thrust-capped).
+            float targetSpeed = effectiveThrottle * maxSpeed;
+            float forwardSpeed = currentVelocity.dot(localForward);
+            float fwdError = targetSpeed - forwardSpeed;
+            float fwdForce = MathUtils.clamp(flight.faLinearGain * physics.mass * fwdError,
+                -flight.linearThrust, flight.linearThrust);
+            force.mulAdd(localForward, fwdForce);
+            if (flight.boostTimer > 0f) force.mulAdd(localForward, flight.boostForce);
+
+            // Lateral velocity = velocity minus forward component.
+            forwardVelComp.set(localForward).scl(forwardSpeed);
+            lateralVel.set(currentVelocity).sub(forwardVelComp);
+
+            // Strafe / vertical: intentional input adds thrust; otherwise bleed drift.
+            float strafeThrust = flight.linearThrust * flight.strafeThrustFraction;
+            float vertThrust   = flight.linearThrust * flight.verticalThrustFraction;
+            float rightVel = lateralVel.dot(localRight);
+            float upVel    = lateralVel.dot(localUp);
+
+            float rightForce = (Math.abs(input.strafe) > 0.05f)
+                ? input.strafe * strafeThrust
+                : MathUtils.clamp(-flight.faLateralBleed * physics.mass * rightVel,
+                    -strafeThrust, strafeThrust);
+            float upForce = (Math.abs(input.verticalThrust) > 0.05f)
+                ? input.verticalThrust * vertThrust
+                : MathUtils.clamp(-flight.faLateralBleed * physics.mass * upVel,
+                    -vertThrust, vertThrust);
+
+            force.mulAdd(localRight, rightForce);
+            force.mulAdd(localUp, upForce);
+        } else {
+            // Newtonian: direct thrust, no cap, no bleed.
+            force.mulAdd(localForward, effectiveThrottle * flight.linearThrust);
+            if (flight.boostTimer > 0f) force.mulAdd(localForward, flight.boostForce);
+            force.mulAdd(localRight, input.strafe * flight.linearThrust * flight.strafeThrustFraction);
+            force.mulAdd(localUp, input.verticalThrust * flight.linearThrust * flight.verticalThrustFraction);
+        }
+
+        // Relativistic correction near light speed (unchanged behavior).
         final float speed = currentVelocity.len();
         if (speed > RelativisticConstants.THRESHOLD) {
             final float restMass = physics.mass;
-            final Vector3 velDir = currentVelocity.nor();
+            final Vector3 velDir = currentVelocity.cpy().nor();
             final float longComponent = force.dot(velDir);
             final Vector3 longForce = new Vector3(velDir).scl(longComponent);
             final Vector3 transForce = new Vector3(force).sub(longForce);
@@ -155,15 +227,67 @@ public class ShipFlightSystem extends EntitySystem {
             physics.body.applyCentralForce(force);
         }
 
+        // --- Rotation ---
+        float maxTurnDeg = (shipData != null && shipData.maxTurnRate > 0f)
+            ? shipData.maxTurnRate : DEFAULT_MAX_TURN_RATE_DEG;
+        float maxTurnRad = maxTurnDeg * MathUtils.degreesToRadians;
+        float blue = FlightControlMath.blueZoneFactor(effectiveThrottle,
+            flight.blueZoneLow, flight.blueZoneHigh, flight.offBandTurnScale);
+        float maxRate = maxTurnRad * blue;
+
+        // Clamp raw inputs (player mouse delta may exceed 1).
+        float pitchCmd = MathUtils.clamp(input.pitchInput, -1f, 1f);
+        float yawCmd   = MathUtils.clamp(input.yawInput, -1f, 1f);
+        float rollCmd  = MathUtils.clamp(input.rollInput, -1f, 1f);
+
+        // Current angular velocity projected onto local axes.
+        Vector3 angVel = physics.body.getAngularVelocity();
+        float ratePitch = angVel.dot(localRight);
+        float rateYaw   = angVel.dot(localUp);
+        float rateRoll  = angVel.dot(localForward);
+
         torque.setZero();
-        torque.mulAdd(localRight, input.pitchInput * flight.pitchYawTorque);
-        torque.mulAdd(localUp, -input.yawInput * flight.pitchYawTorque);
-        torque.mulAdd(localForward, input.rollInput * flight.rollTorque);
+        if (flight.flightAssistEnabled) {
+            // Desired local rates. Sign matches the legacy torque mapping
+            // (pitch +pitchInput about right; yaw -yawInput about up; roll +rollInput about fwd).
+            float desiredPitch =  pitchCmd * maxRate;
+            float desiredYaw   = -yawCmd   * maxRate;
+            float desiredRoll  =  rollCmd  * maxRate;
+
+            float tp = MathUtils.clamp((desiredPitch - ratePitch) / maxTurnRad * flight.rotStiffness, -1f, 1f);
+            float ty = MathUtils.clamp((desiredYaw   - rateYaw)   / maxTurnRad * flight.rotStiffness, -1f, 1f);
+            float tr = MathUtils.clamp((desiredRoll  - rateRoll)  / maxTurnRad * flight.rotStiffness, -1f, 1f);
+
+            torque.mulAdd(localRight, tp * flight.pitchYawTorque);
+            torque.mulAdd(localUp,    ty * flight.pitchYawTorque);
+            torque.mulAdd(localForward, tr * flight.rollTorque);
+        } else {
+            // Newtonian: raw torque from input, no auto-stop.
+            torque.mulAdd(localRight, pitchCmd * flight.pitchYawTorque);
+            torque.mulAdd(localUp, -yawCmd * flight.pitchYawTorque);
+            torque.mulAdd(localForward, rollCmd * flight.rollTorque);
+        }
 
         physics.body.applyTorque(torque);
-        physics.body.setDamping(flight.linearDrag, flight.angularDrag);
+        // Controllers govern convergence: the linear FA block tracks the target
+        // velocity and the rotation block zeroes angular velocity on stick release.
+        // Bullet damping stays 0 on both axes so we never double-damp.
+        physics.body.setDamping(0f, 0f);
 
-        flight.currentThrottle = effectiveThrottle;
+        // HUD/readout reflects the commanded set-point, not the lerped engine ramp.
+        flight.currentThrottle = input.throttle;
+
+        // --- Boost timers + gauge ---
+        if (flight.boostTimer > 0f) {
+            flight.boostTimer = Math.max(0f, flight.boostTimer - deltaTime);
+        } else if (flight.boostEnergy < flight.boostMaxEnergy) {
+            flight.boostEnergy = Math.min(flight.boostMaxEnergy,
+                flight.boostEnergy + flight.boostRechargeRate * deltaTime);
+        }
+        if (flight.boostCooldownTimer > 0f) {
+            flight.boostCooldownTimer = Math.max(0f, flight.boostCooldownTimer - deltaTime);
+        }
+
         physics.body.activate();
     }
 }

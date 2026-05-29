@@ -57,6 +57,21 @@ public class ShipClassRegistry {
             data.controlSurfaceAuthority = entry.getFloat("controlSurfaceAuthority");
             data.vtolThrustFraction = entry.getFloat("vtolThrustFraction");
 
+            data.reverseFraction = entry.getFloat("reverseFraction", 0.4f);
+            data.faLinearGain = entry.getFloat("faLinearGain", 1.5f);
+            data.faLateralBleed = entry.getFloat("faLateralBleed", 1.2f);
+            data.blueZoneLow = entry.getFloat("blueZoneLow", 0.4f);
+            data.blueZoneHigh = entry.getFloat("blueZoneHigh", 0.8f);
+            data.offBandTurnScale = entry.getFloat("offBandTurnScale", 0.5f);
+            data.rotStiffness = entry.getFloat("rotStiffness", 4f);
+            data.boostSpeedMultiplier = entry.getFloat("boostSpeedMultiplier", 1.5f);
+            data.boostForce = entry.getFloat("boostForce", 0f); // 0 → factory size default
+            data.boostDuration = entry.getFloat("boostDuration", 5f);
+            data.boostEnergyCost = entry.getFloat("boostEnergyCost", 50f);
+            data.boostMaxEnergy = entry.getFloat("boostMaxEnergy", 100f);
+            data.boostRechargeRate = entry.getFloat("boostRechargeRate", 10f);
+            data.boostCooldown = entry.getFloat("boostCooldown", 4f);
+
             JsonValue lc = entry.get("liftCurve");
             if (lc != null) {
                 data.liftCurve = new float[lc.size];

@@ -60,6 +60,8 @@ public class CockpitHUDSystem extends EntitySystem implements Disposable {
     private Label heatLabel;
     private Label powerLabel;
     private Label capacitorLabel;
+    private Label faLabel;
+    private Label boostLabel;
     private Label alertLabel;
     private Label[] weaponGroupLabels;
 
@@ -173,6 +175,8 @@ public class CockpitHUDSystem extends EntitySystem implements Disposable {
         heatLabel       = new Label("HEAT: 0%", styleWhite);
         powerLabel      = new Label("PWR: ---", styleWhite);
         capacitorLabel  = new Label("CAP: ---", styleWhite);
+        faLabel         = new Label("FA: ON", styleCyan);
+        boostLabel      = new Label("BOOST: 100%", styleWhite);
         alertLabel      = new Label("", styleRed);
 
         weaponGroupLabels = new Label[4];
@@ -228,7 +232,9 @@ public class CockpitHUDSystem extends EntitySystem implements Disposable {
         btmLeft.add(fuelLabel).left().row();
         btmLeft.add(heatLabel).left().row();
         btmLeft.add(powerLabel).left().row();
-        btmLeft.add(capacitorLabel).left();
+        btmLeft.add(capacitorLabel).left().row();
+        btmLeft.add(faLabel).left().row();
+        btmLeft.add(boostLabel).left();
         root.add(btmLeft).bottom().left().expand();
 
         // bottom-center: empty
@@ -265,8 +271,18 @@ public class CockpitHUDSystem extends EntitySystem implements Disposable {
         ShipFlightComponent flight = shipEntity.getComponent(ShipFlightComponent.class);
         if (flight != null) {
             throttleLabel.setText(String.format("THR: %.0f%%", flight.currentThrottle * 100f));
+            faLabel.setText(flight.flightAssistEnabled ? "FA: ON" : "FA: OFF");
+            faLabel.setStyle(flight.flightAssistEnabled ? styleCyan : styleOrange);
+            float boostPct = (flight.boostMaxEnergy > 0f)
+                ? (flight.boostEnergy / flight.boostMaxEnergy * 100f) : 0f;
+            String boostState = flight.boostTimer > 0f ? " (BOOSTING)"
+                : (flight.boostCooldownTimer > 0f ? " (CD)" : "");
+            boostLabel.setText(String.format("BOOST: %.0f%%%s", boostPct, boostState));
+            boostLabel.setStyle(flight.boostTimer > 0f ? styleCyan : styleWhite);
         } else {
             throttleLabel.setText("THR: ---");
+            faLabel.setText("FA: ---");
+            boostLabel.setText("BOOST: ---");
         }
 
         // --- Fuel ---

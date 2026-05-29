@@ -30,7 +30,14 @@ public class PlayerInputSystem extends IteratingSystem {
     private boolean interactPressed;
     private boolean boardPressed;
     private boolean cameraTogglePressed;
+    private boolean flightAssistTogglePressed;
+    private boolean boostPressed;
     private boolean enabled = true;
+
+    private static final float THROTTLE_RAMP_RATE = 1.5f;     // full-range in ~0.9s held
+    // Keyboard ramp allows full reverse; ShipFlightSystem enforces the ship's
+    // per-class reverseFraction cap authoritatively, so the ramp must not under-limit it.
+    private static final float REVERSE_FRACTION_INPUT = 1f;
 
     private boolean fireGroup0Held;
     private boolean fireGroup1Held;
@@ -156,6 +163,8 @@ public class PlayerInputSystem extends IteratingSystem {
                 nextTargetPressed = true;
                 return true;
             }
+            if (keycode == Input.Keys.Z) { flightAssistTogglePressed = true; return true; }
+            if (keycode == Input.Keys.TAB) { boostPressed = true; return true; }
             return false;
         }
     };
@@ -186,6 +195,8 @@ public class PlayerInputSystem extends IteratingSystem {
             interactPressed = false;
             boardPressed = false;
             cameraTogglePressed = false;
+            flightAssistTogglePressed = false;
+            boostPressed = false;
             fireGroup0Held = false;
             fireGroup1Held = false;
             targetLockPressed = false;
@@ -251,18 +262,24 @@ public class PlayerInputSystem extends IteratingSystem {
         nextTargetPressed = false;
     }
 
+    // Piloting keys: W/S throttle±, X throttle-zero, A/D strafe, Space/Ctrl vertical,
+    // Q/E roll, mouse pitch/yaw, Z flight-assist toggle, Tab boost.
     private void processFlightInput(Entity entity) {
         ShipFlightInputComponent flight = flightInputMapper.get(entity);
         if (flight == null) return;
 
-        flight.throttle = 0;
         flight.strafe = 0;
         flight.verticalThrust = 0;
         flight.rollInput = 0;
 
         if (Gdx.input != null) {
-            if (Gdx.input.isKeyPressed(Input.Keys.W)) flight.throttle += 1f;
-            if (Gdx.input.isKeyPressed(Input.Keys.S)) flight.throttle -= 1f;
+            boolean throttleUp = Gdx.input.isKeyPressed(Input.Keys.W);
+            boolean throttleDown = Gdx.input.isKeyPressed(Input.Keys.S);
+            boolean throttleZero = Gdx.input.isKeyPressed(Input.Keys.X);
+            flight.throttle = com.galacticodyssey.ship.systems.FlightControlMath.stepThrottle(
+                flight.throttle, throttleUp, throttleDown, throttleZero,
+                THROTTLE_RAMP_RATE, REVERSE_FRACTION_INPUT, Gdx.graphics.getDeltaTime());
+
             if (Gdx.input.isKeyPressed(Input.Keys.A)) flight.strafe -= 1f;
             if (Gdx.input.isKeyPressed(Input.Keys.D)) flight.strafe += 1f;
             if (Gdx.input.isKeyPressed(Input.Keys.SPACE)) flight.verticalThrust += 1f;
@@ -287,6 +304,8 @@ public class PlayerInputSystem extends IteratingSystem {
         if (nextTargetPressed) { flight.nextTargetPressed = true; nextTargetPressed = false; }
 
         if (cameraTogglePressed) { flight.cameraTogglePressed = true; cameraTogglePressed = false; }
+        if (flightAssistTogglePressed) { flight.flightAssistTogglePressed = true; flightAssistTogglePressed = false; }
+        if (boostPressed) { flight.boostPressed = true; boostPressed = false; }
         if (interactPressed) {
             PlayerInputComponent input = inputMapper.get(entity);
             if (input != null) input.interactPressed = true;

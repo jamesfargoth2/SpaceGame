@@ -119,6 +119,27 @@ class ShipClassRegistryTest {
         assertEquals("LARGE", registry.getShipClass("ship_b").sizeClass);
     }
 
+    @Test
+    void parsesEdFlightFieldsWithDefaults() {
+        String json = "[{"
+            + "\"id\":\"x\",\"name\":\"X\",\"sizeClass\":\"SMALL\",\"mass\":5000,"
+            + "\"linearThrust\":50000,\"strafeThrustFraction\":0.6,\"verticalThrustFraction\":0.6,"
+            + "\"pitchYawTorque\":20000,\"rollTorque\":15000,\"linearDrag\":0.6,\"angularDrag\":0.5,"
+            + "\"maxIsp\":300,\"maxThrust\":50000,\"throttleResponseRate\":3,\"fuelCapacity\":100,"
+            + "\"wingArea\":10,\"dragCoefficient\":0.3,\"crossSectionArea\":5,\"stallAngle\":15,"
+            + "\"maxLiftCoefficient\":1.2,\"controlSurfaceAuthority\":1,\"vtolThrustFraction\":0.5,"
+            + "\"boostSpeedMultiplier\":1.7}]";
+        com.badlogic.gdx.utils.JsonValue root = new com.badlogic.gdx.utils.JsonReader().parse(json);
+        ShipClassRegistry reg = new ShipClassRegistry();
+        reg.loadShipClasses(root);
+        ShipClassData d = reg.getShipClass("x");
+
+        assertEquals(1.7f, d.boostSpeedMultiplier, 1e-4); // explicit value parsed
+        assertEquals(0.4f, d.reverseFraction, 1e-4);       // default applied (absent in JSON)
+        assertEquals(0.4f, d.blueZoneLow, 1e-4);
+        assertEquals(0.8f, d.blueZoneHigh, 1e-4);
+    }
+
     // -------------------------------------------------------------------------
     // Atmosphere profile loading
     // -------------------------------------------------------------------------

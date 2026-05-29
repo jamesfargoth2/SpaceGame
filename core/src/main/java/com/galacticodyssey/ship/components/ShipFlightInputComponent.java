@@ -16,4 +16,6 @@ public class ShipFlightInputComponent implements Component {
     public boolean prevTargetPressed;
     public boolean cameraTogglePressed;
     public float scrollDelta;
+    public boolean flightAssistTogglePressed;
+    public boolean boostPressed;
 }
