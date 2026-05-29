@@ -456,6 +456,8 @@ public class GameScreen implements Screen {
         inputMultiplexer.addProcessor(keyHandler);
         if (paused) {
             inputMultiplexer.addProcessor(pauseStage);
+        } else if (inDialog) {
+            inputMultiplexer.addProcessor(dialogInputAdapter);
         } else if (isAnyScreenOpen()) {
             inputMultiplexer.addProcessor(screenTabManager.getTabBarStage());
             ManagedScreen active = screenTabManager.getActiveScreen();

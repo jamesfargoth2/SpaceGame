@@ -49,6 +49,8 @@ public final class SeedDeriver {
 
     public static long floraDomain(long parentSeed) {
         return domain(parentSeed, FLORA_DOMAIN);
+    }
+
     public static long faunaDomain(long parentSeed) {
         return domain(parentSeed, FAUNA_DOMAIN);
     }

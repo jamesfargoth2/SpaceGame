@@ -10,6 +10,7 @@ import com.galacticodyssey.core.components.PhysicsBodyComponent;
 import com.galacticodyssey.core.components.PlayerTagComponent;
 import com.galacticodyssey.core.components.TransformComponent;
 import com.galacticodyssey.core.events.*;
+import com.galacticodyssey.npc.systems.DialogSystem;
 import com.galacticodyssey.npc.components.NpcDialogComponent;
 import com.galacticodyssey.npc.components.NpcIdentityComponent;
 import com.galacticodyssey.player.components.PlayerInputComponent;
@@ -45,8 +46,10 @@ public class InteractionSystem extends EntitySystem {
     private ImmutableArray<Entity> vehicleEntities;
     private com.badlogic.ashley.utils.ImmutableArray<Entity> bayShipEntities;
     private VehicleBayService bayService; // optional; set during GameWorld wiring
+    private DialogSystem dialogSystem; // optional; suppresses NPC prompt while dialog is active
 
     public void setVehicleBayService(VehicleBayService bayService) { this.bayService = bayService; }
+    public void setDialogSystem(DialogSystem dialogSystem) { this.dialogSystem = dialogSystem; }
     private final Vector3 tempVec = new Vector3();
     private final Vector3 worldPos = new Vector3();
     private final Matrix4 shipWorldMat = new Matrix4();
@@ -103,6 +106,8 @@ public class InteractionSystem extends EntitySystem {
 
     private boolean checkNpcDialog(Entity player, TransformComponent playerTransform,
                                    PlayerInputComponent input) {
+        if (dialogSystem != null && dialogSystem.isActive()) return true;
+
         Entity nearestNpc = null;
         float nearestDist = Float.MAX_VALUE;
 
