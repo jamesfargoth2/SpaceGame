@@ -80,10 +80,13 @@ core/src/main/resources/data/flora/
 
 ## 4. Instance attribute layout
 
-Per-instance `float[]` (one record per tuft), produced by `GrassCell`:
-`offsetX, offsetY, offsetZ, scaleXZ, scaleY, rotationY, colorR, colorG, colorB, windPhase`
-(10 floats). The base tuft mesh carries `a_position` + `a_normal`; the instance attributes
-are added via libGDX instanced `VertexAttribute`s with divisor 1.
+Per-instance `float[]` (one record per tuft, stride 10), produced by `GrassCell`, in this
+exact order (matches the implementation and the shader's `i_params` unpacking):
+`offsetX, offsetY, offsetZ, scaleXZ, scaleY, rotationY, windPhase, colorR, colorG, colorB`
+— grouped into instance attributes `i_offset` (vec3), `i_params` (vec4 = scaleXZ, scaleY,
+rotationY, windPhase), `i_color` (vec3). The base tuft mesh carries `a_position` +
+`a_normal`; the instance attributes are added via libGDX instanced `VertexAttribute`s
+(units 0/1/2, divisor 1).
 
 ## 5. Generation pipeline
 
