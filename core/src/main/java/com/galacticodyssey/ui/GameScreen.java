@@ -57,6 +57,10 @@ import com.galacticodyssey.core.components.TransformComponent;
 import com.galacticodyssey.data.GameSession;
 import com.galacticodyssey.data.TerrainGenerator;
 import com.galacticodyssey.data.WorldPopulator;
+import com.galacticodyssey.flora.grass.GrassField;
+import com.galacticodyssey.flora.grass.GrassRenderer;
+import com.galacticodyssey.flora.grass.GrassRegistry;
+import com.galacticodyssey.flora.grass.HeightmapTerrainSampler;
 import com.galacticodyssey.planet.BiomeType;
 import com.galacticodyssey.ship.HullGeometry;
 import com.galacticodyssey.ship.ShipFactory;
@@ -140,6 +144,10 @@ public class GameScreen implements Screen {
     private DeferredRenderer deferredRenderer;
     private DayNightCycle dayNightCycle;
     private float gameTime;
+
+    private GrassField grassField;
+    private GrassRenderer grassRenderer;
+    private static final int GRASS_MAX_INSTANCES = 200_000;
 
     private boolean paused;
     private Stage pauseStage;
@@ -232,6 +240,13 @@ public class GameScreen implements Screen {
 
         populatedWorld = WorldPopulator.populate(
             heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, terrainSeed);
+
+        GrassRegistry grassRegistry = new GrassRegistry();
+        grassRegistry.load("data/flora/grass.json");
+        HeightmapTerrainSampler grassSampler = new HeightmapTerrainSampler(
+            heightmap, populatedWorld.biomeGrid, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH);
+        grassField = new GrassField(grassRegistry.config(), grassSampler, terrainSeed);
+        grassRenderer = new GrassRenderer(deferredRenderer.getShaderCache(), grassRegistry.config(), GRASS_MAX_INSTANCES);
 
         gameWorld.getOceanSpawner().spawnSeawater(populatedWorld.seaLevel, terrainSeed);
 
@@ -1175,10 +1190,15 @@ public class GameScreen implements Screen {
         float sunIntensity = dayNightCycle.getSunIntensity();
         float ambientIntensity = dayNightCycle.getAmbientIntensity();
 
+        if (grassField != null && grassField.update(camera.position.x, camera.position.z)) {
+            grassRenderer.setInstances(grassField.instanceBuffer(), grassField.instanceCount());
+        }
+
         deferredRenderer.render(
             camera,
             () -> {
                 renderTerrain();
+                if (grassRenderer != null) grassRenderer.render(camera, gameTime);
                 renderBoxes();
                 renderWorldObjects();
                 renderShips();
@@ -1282,9 +1302,6 @@ public class GameScreen implements Screen {
         for (int i = 0; i < populatedWorld.rockInstances.size; i++) {
             gbufferBatch.render(populatedWorld.rockInstances.get(i));
         }
-        for (int i = 0; i < populatedWorld.grassInstances.size; i++) {
-            gbufferBatch.render(populatedWorld.grassInstances.get(i));
-        }
         for (int i = 0; i < populatedWorld.animalInstances.size; i++) {
             gbufferBatch.render(populatedWorld.animalInstances.get(i));
         }
@@ -1318,6 +1335,7 @@ public class GameScreen implements Screen {
     @Override
     public void dispose() {
         if (deferredRenderer != null) { deferredRenderer.dispose(); deferredRenderer = null; }
+        if (grassRenderer != null) { grassRenderer.dispose(); grassRenderer = null; }
         // ShipFactory must dispose before gameWorld, because it removes rigid bodies
         // from the dynamics world that gameWorld owns.
         if (shipFactory != null) { shipFactory.dispose(); shipFactory = null; }
