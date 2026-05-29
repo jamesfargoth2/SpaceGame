@@ -41,6 +41,8 @@ public class BoardingOperationComponent implements Component, Snapshotable<Board
     public transient boolean spawned;
     /** Transient: live defender count; reaches 0 when the interior is cleared. Not persisted. */
     public transient int defendersRemaining;
+    /** Transient: live attacker count when an NPC boards the player. Not persisted. */
+    public transient int attackersRemaining;
 
     // Persisted entity references (resolved by ReferenceResolver on load).
     public UUID aggressorShipId;

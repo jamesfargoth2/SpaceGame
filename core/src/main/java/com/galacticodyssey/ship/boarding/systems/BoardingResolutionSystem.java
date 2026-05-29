@@ -108,7 +108,8 @@ public class BoardingResolutionSystem extends EntitySystem {
             case SCRAP:  scrap(target, op, player); break;
             case RANSOM: ransom(target, op, player); break;
             case TOW:    tow(target, op, player); break;
-            case ENEMY_CAPTURE: /* handled by EnemyBoardingAISystem path */ break;
+            case ENEMY_CAPTURE: enemyCapture(target); break;
+            case REPELLED:      /* player kept the ship; nothing to apply */ break;
         }
 
         op.phase = BoardingPhase.RESOLVED;
@@ -171,6 +172,13 @@ public class BoardingResolutionSystem extends EntitySystem {
         flagOwned(target);
         addGarageEntry(player, target, "TOW");
         // Towed ships stay engine-disabled (cannot fly themselves).
+    }
+
+    /** The NPC captured the player's ship: flag NPC ownership. (Escape-pod/respawn flow is future work.) */
+    private void enemyCapture(Entity target) {
+        OwnedShipComponent owned = target.getComponent(OwnedShipComponent.class);
+        if (owned == null) { owned = new OwnedShipComponent(); target.add(owned); }
+        owned.owner = OwnedShipComponent.Owner.NPC;
     }
 
     private void flagOwned(Entity target) {
