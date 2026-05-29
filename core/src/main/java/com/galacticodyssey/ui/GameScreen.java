@@ -179,6 +179,8 @@ public class GameScreen implements Screen {
     private com.galacticodyssey.ui.systems.RecruitmentScreenSystem recruitmentScreen;
     private VehicleBayPanel vehicleBayPanel;
     private com.badlogic.gdx.scenes.scene2d.Stage vehicleBayStage;
+    private BoardingResolutionPanel boardingResolutionPanel;
+    private com.badlogic.gdx.scenes.scene2d.Stage boardingResolutionStage;
 
     // Preserve existing constructor for load-game flow
     public GameScreen(GalacticOdyssey game) {
@@ -410,6 +412,7 @@ public class GameScreen implements Screen {
         };
 
         inputMultiplexer.clear();
+        if (boardingResolutionStage != null) inputMultiplexer.addProcessor(boardingResolutionStage);
         if (vehicleBayStage != null) inputMultiplexer.addProcessor(vehicleBayStage);
         inputMultiplexer.addProcessor(keyHandler);
         if (paused) {
@@ -432,6 +435,7 @@ public class GameScreen implements Screen {
             Gdx.input.setCursorCatched(false);
             gameWorld.getPlayerInputSystem().setEnabled(false);
             inputMultiplexer.clear();
+            if (boardingResolutionStage != null) inputMultiplexer.addProcessor(boardingResolutionStage);
             if (vehicleBayStage != null) inputMultiplexer.addProcessor(vehicleBayStage);
             inputMultiplexer.addProcessor(new InputAdapter() {
                 @Override
@@ -770,6 +774,13 @@ public class GameScreen implements Screen {
             gameWorld.getEventBus());
         vehicleBayPanel.setFillParent(true);
         vehicleBayStage.addActor(vehicleBayPanel);
+
+        // Boarding resolution overlay (standalone panel — shown via BoardingResolutionRequestedEvent)
+        boardingResolutionStage = new com.badlogic.gdx.scenes.scene2d.Stage(
+            new com.badlogic.gdx.utils.viewport.ScreenViewport());
+        boardingResolutionPanel = new BoardingResolutionPanel(game.getSkin(), gameWorld.getEventBus());
+        boardingResolutionPanel.setFillParent(true);
+        boardingResolutionStage.addActor(boardingResolutionPanel);
     }
     private void buildDialogSystem() {
         EventBus eventBus = gameWorld.getEventBus();
@@ -1215,6 +1226,10 @@ public class GameScreen implements Screen {
             vehicleBayStage.act(delta);
             vehicleBayStage.draw();
         }
+        if (boardingResolutionPanel != null && boardingResolutionPanel.isVisible()) {
+            boardingResolutionStage.act(delta);
+            boardingResolutionStage.draw();
+        }
         if (paused) { pauseStage.act(delta); pauseStage.draw(); }
     }
 
@@ -1304,6 +1319,7 @@ public class GameScreen implements Screen {
         if (levelUpToast != null) levelUpToast.resize(width, height);
         if (screenTabManager != null) screenTabManager.resize(width, height);
         if (vehicleBayStage != null) vehicleBayStage.getViewport().update(width, height, true);
+        if (boardingResolutionStage != null) boardingResolutionStage.getViewport().update(width, height, true);
     }
 
     @Override
@@ -1395,6 +1411,8 @@ public class GameScreen implements Screen {
             vehicleBayStage.dispose();
             vehicleBayStage = null;
         }
+        if (boardingResolutionPanel != null) { boardingResolutionPanel.dispose(); boardingResolutionPanel = null; }
+        if (boardingResolutionStage != null) { boardingResolutionStage.dispose(); boardingResolutionStage = null; }
         if (screenTabManager != null) {
             screenTabManager.dispose();
             screenTabManager = null;
