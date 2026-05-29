@@ -23,11 +23,14 @@ import com.galacticodyssey.ship.boarding.BoardingDefenderComponent;
 import com.galacticodyssey.ship.boarding.BoardingDefenseComponent;
 import com.galacticodyssey.ship.boarding.BoardingOperationComponent;
 import com.galacticodyssey.ship.boarding.BoardingOperationComponent.BoardingPhase;
+import com.galacticodyssey.ship.boarding.BoardingOutcome;
 import com.galacticodyssey.ship.boarding.BridgeComponent;
 import com.galacticodyssey.ship.boarding.events.BoardingClearedEvent;
+import com.galacticodyssey.ship.boarding.events.BoardingResolutionChosenEvent;
 import com.galacticodyssey.ship.boarding.events.BoardingResolutionRequestedEvent;
 import com.galacticodyssey.ship.boarding.events.BoardingResolvedEvent;
 import com.galacticodyssey.ship.boarding.events.PlayerEnteredHostileInteriorEvent;
+import com.galacticodyssey.ship.boarding.events.ShipBreachedEvent;
 import com.galacticodyssey.ship.components.ShipInteriorComponent;
 
 import java.util.ArrayDeque;
@@ -66,6 +69,9 @@ public class BoardingCombatSystem extends EntitySystem {
     private final Queue<PlayerEnteredHostileInteriorEvent> entries = new ArrayDeque<>();
     private final Queue<EntityKilledEvent> kills = new ArrayDeque<>();
     private final Queue<BoardingResolvedEvent> resolutions = new ArrayDeque<>();
+    private final Queue<ShipBreachedEvent> breaches = new ArrayDeque<>();
+    /** Set while draining the kill queue when the player entity died this frame. */
+    private boolean playerDied;
     /** Scratch list for deferred entity removal (avoids mutating a family mid-iteration). */
     private final List<Entity> toRemove = new ArrayList<>();
     private final Matrix4 shipMat = new Matrix4();
@@ -87,6 +93,7 @@ public class BoardingCombatSystem extends EntitySystem {
         eventBus.subscribe(PlayerEnteredHostileInteriorEvent.class, entries::add);
         eventBus.subscribe(EntityKilledEvent.class, kills::add);
         eventBus.subscribe(BoardingResolvedEvent.class, resolutions::add);
+        eventBus.subscribe(ShipBreachedEvent.class, breaches::add);
     }
 
     @Override
@@ -107,13 +114,21 @@ public class BoardingCombatSystem extends EntitySystem {
     @Override
     public void update(float deltaTime) {
         spawnedThisFrame.clear();
+        ShipBreachedEvent breach;
+        while ((breach = breaches.poll()) != null) {
+            onNpcBreach(breach);
+        }
         PlayerEnteredHostileInteriorEvent entry;
         while ((entry = entries.poll()) != null) {
             spawnForEntry(entry.targetShip);
         }
+        playerDied = false;
         EntityKilledEvent kill;
         while ((kill = kills.poll()) != null) {
             countDefenderKill(kill.target);
+            if (kill.target != null && kill.target.getComponent(PlayerTagComponent.class) != null) {
+                playerDied = true;
+            }
         }
         checkWinConditions();
         BoardingResolvedEvent resolved;
@@ -143,15 +158,19 @@ public class BoardingCombatSystem extends EntitySystem {
         toRemove.clear();
     }
 
-    /** Decrements the defender tally on the relevant operation when a tagged defender dies. */
+    /** Decrements the defender or attacker tally on the relevant operation when a combatant dies. */
     private void countDefenderKill(Entity dead) {
         if (dead == null) return;
         BoardingDefenderComponent tag = DEFENDER_M.get(dead);
-        if (tag == null || tag.attacker || tag.awayTeam || tag.counted || tag.operationShip == null) return;
+        if (tag == null || tag.awayTeam || tag.counted || tag.operationShip == null) return;
         BoardingOperationComponent op = OP_M.get(tag.operationShip);
         if (op == null) return;
         tag.counted = true;
-        op.defendersRemaining = Math.max(0, op.defendersRemaining - 1);
+        if (tag.attacker) {
+            op.attackersRemaining = Math.max(0, op.attackersRemaining - 1);
+        } else {
+            op.defendersRemaining = Math.max(0, op.defendersRemaining - 1);
+        }
     }
 
     private void spawnForEntry(Entity target) {
@@ -184,6 +203,27 @@ public class BoardingCombatSystem extends EntitySystem {
                 // so they are never tallied as defenders.
                 DEFENDER_M.get(mate).awayTeam = true;
             }
+        }
+    }
+
+    /** When an NPC breaches the player's ship, spawn attackers and begin inverted combat. */
+    private void onNpcBreach(ShipBreachedEvent event) {
+        Entity target = event.target; // the player's ship
+        BoardingOperationComponent op = OP_M.get(target);
+        if (op == null || op.playerIsAggressor || op.spawned) return;
+        op.spawned = true;
+        op.phase = BoardingPhase.INTERIOR_COMBAT;
+        spawnedThisFrame.add(target);
+
+        TransformComponent t = TRANSFORM_M.get(target);
+        Vector3 base = (t != null) ? t.position : Vector3.Zero;
+        BoardingDefenseComponent def = DEF_M.get(target);
+        int count = (def != null) ? def.defenderCount : 2;
+        float hp = (def != null) ? def.defenderHealth : 100f;
+        float dmg = (def != null) ? def.defenderDamage : 12f;
+        op.attackersRemaining = count;
+        for (int i = 0; i < count; i++) {
+            spawnCombatant(target, base, i, hp, dmg, /*attacker*/ true);
         }
     }
 
@@ -241,11 +281,26 @@ public class BoardingCombatSystem extends EntitySystem {
             Entity target = operations.get(i);
             BoardingOperationComponent op = OP_M.get(target);
             if (op == null || op.phase != BoardingPhase.INTERIOR_COMBAT || !op.spawned) continue;
-            if (spawnedThisFrame.contains(target)) continue; // defender family not yet populated
-            if (op.playerIsAggressor && (op.defendersRemaining <= 0 || bridgeCaptured(target))) {
-                fireCleared(op, target);
+            if (spawnedThisFrame.contains(target)) continue; // combatant family not yet populated
+            if (op.playerIsAggressor) {
+                if (op.defendersRemaining <= 0 || bridgeCaptured(target)) {
+                    fireCleared(op, target);
+                }
+            } else {
+                // NPC boarded the player: player wins by clearing attackers, loses on death.
+                if (playerDied) {
+                    autoResolve(op, target, BoardingOutcome.ENEMY_CAPTURE);
+                } else if (op.attackersRemaining <= 0) {
+                    autoResolve(op, target, BoardingOutcome.REPELLED);
+                }
             }
         }
+    }
+
+    /** NPC-aggressor outcomes resolve without a player menu. */
+    private void autoResolve(BoardingOperationComponent op, Entity target, BoardingOutcome outcome) {
+        op.phase = BoardingPhase.RESOLVING;
+        eventBus.publish(new BoardingResolutionChosenEvent(target, outcome));
     }
 
     private boolean bridgeCaptured(Entity target) {

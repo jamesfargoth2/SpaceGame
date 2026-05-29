@@ -36,7 +36,7 @@ class BoardingResolutionSystemTest {
     void setUp() {
         eventBus = new EventBus();
         engine = new Engine();
-        engine.addSystem(new BoardingResolutionSystem(eventBus));
+        engine.addSystem(new BoardingResolutionSystem(eventBus, null));
 
         player = new Entity();
         player.add(new PlayerTagComponent());

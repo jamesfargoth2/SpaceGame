@@ -46,7 +46,7 @@ class FullBoardingPipelineTest {
         engine.addSystem(new BoardingEntrySystem(eventBus, null));
         // Plan C
         engine.addSystem(new BoardingCombatSystem(eventBus));
-        engine.addSystem(new BoardingResolutionSystem(eventBus));
+        engine.addSystem(new BoardingResolutionSystem(eventBus, null));
     }
 
     private void step(int frames) {
