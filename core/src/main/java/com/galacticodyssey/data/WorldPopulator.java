@@ -31,6 +31,7 @@ public final class WorldPopulator {
         public final BiomeType[] biomeGrid;
         public final int[] noisePerm;
         public final Array<ModelInstance> treeInstances = new Array<>();
+        public final Array<ModelInstance> alienInstances = new Array<>();
         public final Array<ModelInstance> rockInstances = new Array<>();
         public final Array<ModelInstance> animalInstances = new Array<>();
         public final Array<AnimalState> animalStates = new Array<>();

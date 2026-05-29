@@ -1,12 +1,18 @@
 package com.galacticodyssey.flora.alien;
 
+import com.badlogic.gdx.graphics.g3d.Model;
+import com.badlogic.gdx.graphics.g3d.ModelInstance;
+import com.badlogic.gdx.math.Vector3;
 import com.galacticodyssey.data.TerrainGenerator;
+import com.galacticodyssey.data.WorldPopulator.PopulatedWorld;
 import com.galacticodyssey.flora.data.BiomePalette;
 import com.galacticodyssey.galaxy.SeedDeriver;
 import com.galacticodyssey.planet.BiomeType;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 /** Alien-plant placement (pure) + prototype/instance building (GL, added in Task 6). */
@@ -46,5 +52,38 @@ public final class AlienPlantGenerator {
 
     private static int clamp(int v, int lo, int hi) { return Math.max(lo, Math.min(hi, v)); }
 
-    // buildPrototypes() + populate() added in Task 6
+    /** Builds N prototype Models per species (GL). */
+    public static Map<String, Model[]> buildPrototypes(AlienPlantRegistry registry, long planetSeed) {
+        long seed = SeedDeriver.forId(SeedDeriver.floraDomain(planetSeed), ALIEN_SALT);
+        Map<String, Model[]> pool = new HashMap<>();
+        for (AlienPlantSpecies sp : registry.allSpecies()) {
+            int variants = Math.max(1, sp.prototypeVariants);
+            Model[] models = new Model[variants];
+            for (int vi = 0; vi < variants; vi++) {
+                long vseed = SeedDeriver.forId(seed, ((long) sp.id.hashCode() << 20) ^ vi);
+                models[vi] = AlienPlantModelFactory.toModel(AlienPlantMeshBuilder.build(sp, new Random(vseed)));
+            }
+            pool.put(sp.id, models);
+        }
+        return pool;
+    }
+
+    /** Builds alien-plant ModelInstances into world.alienInstances; registers prototypes for disposal. */
+    public static void populate(PopulatedWorld world, AlienPlantRegistry registry, float[] heightmap,
+                                int vertsX, int vertsZ, float worldWidth, float worldDepth,
+                                float seaLevel, long planetSeed) {
+        Map<String, Model[]> prototypes = buildPrototypes(registry, planetSeed);
+        for (Model[] arr : prototypes.values()) for (Model m : arr) world.addModel(m);
+        List<AlienPlantPlacement> placements = planPlacements(
+            registry, world.biomeGrid, heightmap, vertsX, vertsZ, worldWidth, worldDepth, seaLevel, planetSeed, 300);
+        for (AlienPlantPlacement pl : placements) {
+            Model[] variants = prototypes.get(pl.speciesId);
+            if (variants == null || variants.length == 0) continue;
+            ModelInstance inst = new ModelInstance(variants[pl.variantIndex % variants.length]);
+            inst.transform.setToTranslation(pl.x, pl.y, pl.z);
+            inst.transform.rotate(Vector3.Y, pl.yawDeg);
+            inst.transform.scale(pl.scale, pl.scale, pl.scale);
+            world.alienInstances.add(inst);
+        }
+    }
 }
