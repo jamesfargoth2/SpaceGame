@@ -203,10 +203,46 @@ public class ShipFlightSystem extends EntitySystem {
             physics.body.applyCentralForce(force);
         }
 
+        // --- Rotation ---
+        float maxTurnDeg = (shipData != null && shipData.maxTurnRate > 0f)
+            ? shipData.maxTurnRate : DEFAULT_MAX_TURN_RATE_DEG;
+        float maxTurnRad = maxTurnDeg * MathUtils.degreesToRadians;
+        float blue = FlightControlMath.blueZoneFactor(effectiveThrottle,
+            flight.blueZoneLow, flight.blueZoneHigh, flight.offBandTurnScale);
+        float maxRate = maxTurnRad * blue;
+
+        // Clamp raw inputs (player mouse delta may exceed 1).
+        float pitchCmd = MathUtils.clamp(input.pitchInput, -1f, 1f);
+        float yawCmd   = MathUtils.clamp(input.yawInput, -1f, 1f);
+        float rollCmd  = MathUtils.clamp(input.rollInput, -1f, 1f);
+
+        // Current angular velocity projected onto local axes.
+        Vector3 angVel = physics.body.getAngularVelocity();
+        float ratePitch = angVel.dot(localRight);
+        float rateYaw   = angVel.dot(localUp);
+        float rateRoll  = angVel.dot(localForward);
+
         torque.setZero();
-        torque.mulAdd(localRight, input.pitchInput * flight.pitchYawTorque);
-        torque.mulAdd(localUp, -input.yawInput * flight.pitchYawTorque);
-        torque.mulAdd(localForward, input.rollInput * flight.rollTorque);
+        if (flight.flightAssistEnabled) {
+            // Desired local rates. Sign matches the legacy torque mapping
+            // (pitch +pitchInput about right; yaw -yawInput about up; roll +rollInput about fwd).
+            float desiredPitch =  pitchCmd * maxRate;
+            float desiredYaw   = -yawCmd   * maxRate;
+            float desiredRoll  =  rollCmd  * maxRate;
+
+            float tp = MathUtils.clamp((desiredPitch - ratePitch) / maxTurnRad * flight.rotStiffness, -1f, 1f);
+            float ty = MathUtils.clamp((desiredYaw   - rateYaw)   / maxTurnRad * flight.rotStiffness, -1f, 1f);
+            float tr = MathUtils.clamp((desiredRoll  - rateRoll)  / maxTurnRad * flight.rotStiffness, -1f, 1f);
+
+            torque.mulAdd(localRight, tp * flight.pitchYawTorque);
+            torque.mulAdd(localUp,    ty * flight.pitchYawTorque);
+            torque.mulAdd(localForward, tr * flight.rollTorque);
+        } else {
+            // Newtonian: raw torque from input, no auto-stop.
+            torque.mulAdd(localRight, pitchCmd * flight.pitchYawTorque);
+            torque.mulAdd(localUp, -yawCmd * flight.pitchYawTorque);
+            torque.mulAdd(localForward, rollCmd * flight.rollTorque);
+        }
 
         physics.body.applyTorque(torque);
         // FA controllers govern velocity convergence; never double-damp linear.

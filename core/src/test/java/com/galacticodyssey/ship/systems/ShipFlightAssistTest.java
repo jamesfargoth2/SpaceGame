@@ -43,6 +43,7 @@ class ShipFlightAssistTest {
         if (bp != null) bp.dispose();
         if (disp != null) disp.dispose();
         if (cc != null) cc.dispose();
+        world = null; solver = null; bp = null; disp = null; cc = null; ship = null;
     }
 
     /** Builds a flyable ship entity registered with engine+world, returns the system to step. */
@@ -167,5 +168,52 @@ class ShipFlightAssistTest {
         // Nose is -Z; reverse means +Z world velocity.
         float vz = ship.getComponent(PhysicsBodyComponent.class).body.getLinearVelocity().z;
         assertTrue(vz > 20f, "reverse should drive +Z, vz=" + vz);
+    }
+
+    @Test
+    void flightAssistAutoStopsRotationWhenStickReleased() {
+        Engine engine = new Engine();
+        ShipFlightSystem system = buildShip(engine, 100f, true, null);
+        PhysicsBodyComponent phys = ship.getComponent(PhysicsBodyComponent.class);
+        phys.body.setAngularVelocity(new Vector3(0f, 1.0f, 0f)); // spinning in yaw
+        // no rotational input
+        step(system, 5f);
+        float spin = phys.body.getAngularVelocity().len();
+        assertTrue(spin < 0.1f, "FA should auto-stop rotation, spin=" + spin);
+    }
+
+    @Test
+    void flightAssistOffKeepsSpinning() {
+        Engine engine = new Engine();
+        ShipFlightSystem system = buildShip(engine, 100f, false, null);
+        PhysicsBodyComponent phys = ship.getComponent(PhysicsBodyComponent.class);
+        phys.body.setAngularVelocity(new Vector3(0f, 1.0f, 0f));
+        step(system, 5f);
+        float spin = phys.body.getAngularVelocity().len();
+        assertTrue(spin > 0.8f, "FA-off must preserve spin, spin=" + spin);
+    }
+
+    @Test
+    void blueZoneThrottleTurnsFasterThanFullThrottle() {
+        // Blue-zone throttle (0.6) achieves higher yaw rate than full throttle (1.0).
+        Engine blueEngine = new Engine();
+        ShipFlightSystem blueSys = buildShip(blueEngine, 100f, true, null);
+        ship.getComponent(ShipFlightInputComponent.class).throttle = 0.6f;
+        ship.getComponent(ShipFlightInputComponent.class).yawInput = 1f;
+        step(blueSys, 2f);
+        float blueYaw = Math.abs(ship.getComponent(PhysicsBodyComponent.class)
+            .body.getAngularVelocity().y);
+        tearDown(); // dispose first ship/world before building the second
+
+        Engine fullEngine = new Engine();
+        ShipFlightSystem fullSys = buildShip(fullEngine, 100f, true, null);
+        ship.getComponent(ShipFlightInputComponent.class).throttle = 1.0f;
+        ship.getComponent(ShipFlightInputComponent.class).yawInput = 1f;
+        step(fullSys, 2f);
+        float fullYaw = Math.abs(ship.getComponent(PhysicsBodyComponent.class)
+            .body.getAngularVelocity().y);
+
+        assertTrue(blueYaw > fullYaw + 0.02f,
+            "blue-zone yaw (" + blueYaw + ") should exceed full-throttle yaw (" + fullYaw + ")");
     }
 }
