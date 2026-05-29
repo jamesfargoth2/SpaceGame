@@ -1,0 +1,29 @@
+{
+  "species": [
+    { "id": "glowcap", "archetype": "BIOLUMINESCENT",
+      "stalk": { "height": [1.5,3.0], "baseRadius": 0.12, "taper": 0.7, "sides": 6, "color": "2a2f4a" },
+      "canopy": { "clumps": [3,6], "radius": [0.4,0.8], "color": "2fd0c0", "emissive": 3.0 },
+      "details": { "count": [3,8], "emissive": 2.0 }, "prototypeVariants": 6 },
+    { "id": "violet_lantern", "archetype": "BIOLUMINESCENT",
+      "stalk": { "height": [2.0,3.5], "baseRadius": 0.1, "taper": 0.65, "sides": 6, "color": "241a30" },
+      "canopy": { "clumps": [2,4], "radius": [0.5,0.9], "color": "9a4dff", "emissive": 3.5 },
+      "details": { "count": [2,5], "emissive": 2.5 }, "prototypeVariants": 6 },
+    { "id": "maw_pitcher", "archetype": "CARNIVOROUS",
+      "stalk": { "height": [0.8,1.6], "baseRadius": 0.15, "taper": 0.85, "sides": 6, "color": "3a2a1f" },
+      "canopy": { "mouthRadius": [0.5,0.9], "depth": [0.6,1.1], "color": "5a1f28", "lureEmissive": 2.5 },
+      "details": { "teeth": [5,9] }, "prototypeVariants": 5 },
+    { "id": "shardspire", "archetype": "CRYSTAL",
+      "stalk": { "height": [0.4,1.0], "baseRadius": 0.2, "taper": 0.9, "sides": 5, "color": "404a6a" },
+      "canopy": { "shards": [4,8], "length": [0.6,1.6], "color": "8ad0ff", "emissive": 0.6 },
+      "details": { "subShards": [2,5] }, "prototypeVariants": 6 }
+  ],
+  "palette": [
+    { "biome": "SWAMP",           "density": 0.5,  "species": [ {"id":"glowcap","weight":0.6}, {"id":"maw_pitcher","weight":0.4} ] },
+    { "biome": "TROPICAL_FOREST", "density": 0.2,  "species": [ {"id":"glowcap","weight":0.5}, {"id":"violet_lantern","weight":0.3}, {"id":"maw_pitcher","weight":0.2} ] },
+    { "biome": "BOREAL_FOREST",   "density": 0.12, "species": [ {"id":"violet_lantern","weight":1.0} ] },
+    { "biome": "TUNDRA",          "density": 0.1,  "species": [ {"id":"violet_lantern","weight":1.0} ] },
+    { "biome": "VOLCANIC",        "density": 0.3,  "species": [ {"id":"shardspire","weight":1.0} ] },
+    { "biome": "BADLANDS",        "density": 0.15, "species": [ {"id":"shardspire","weight":1.0} ] },
+    { "biome": "ROCKY_WASTE",     "density": 0.12, "species": [ {"id":"shardspire","weight":1.0} ] }
+  ]
+}

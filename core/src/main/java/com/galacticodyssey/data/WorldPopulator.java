@@ -31,8 +31,8 @@ public final class WorldPopulator {
         public final BiomeType[] biomeGrid;
         public final int[] noisePerm;
         public final Array<ModelInstance> treeInstances = new Array<>();
+        public final Array<ModelInstance> alienInstances = new Array<>();
         public final Array<ModelInstance> rockInstances = new Array<>();
-        public final Array<ModelInstance> grassInstances = new Array<>();
         public final Array<ModelInstance> animalInstances = new Array<>();
         public final Array<AnimalState> animalStates = new Array<>();
         public Model waterModel;
@@ -117,7 +117,6 @@ public final class WorldPopulator {
         FloraGenerator.populate(world, floraRegistry(), heightmap, vertsX, vertsZ,
             worldWidth, worldDepth, seaLevel, seed);
         placeRocks(world, mb, attrs, heightmap, biomeGrid, vertsX, vertsZ, worldWidth, worldDepth, rng, seaLevel);
-        placeGrass(world, mb, attrs, heightmap, biomeGrid, vertsX, vertsZ, worldWidth, worldDepth, rng, seaLevel);
         placeAnimals(world, mb, attrs, heightmap, biomeGrid, vertsX, vertsZ, worldWidth, worldDepth, rng, seaLevel);
         createWater(world, mb, worldWidth, worldDepth, seaLevel);
 
@@ -327,66 +326,6 @@ public final class WorldPopulator {
             case DESERT:    return new Color(0.65f + v, 0.58f + v, 0.40f, 1f);
             case ICE_FIELD: return new Color(0.70f + v, 0.75f + v, 0.80f, 1f);
             default:        return new Color(0.40f + v, 0.38f + v, 0.35f, 1f);
-        }
-    }
-
-    private static void placeGrass(PopulatedWorld world, ModelBuilder mb, int attrs,
-                                    float[] heightmap, BiomeType[] biomeGrid,
-                                    int vertsX, int vertsZ, float worldWidth, float worldDepth,
-                                    Random rng, float seaLevel) {
-        float halfW = worldWidth / 2f;
-        float halfD = worldDepth / 2f;
-
-        for (int i = 0; i < 500; i++) {
-            float wx = (rng.nextFloat() - 0.5f) * worldWidth * 0.9f;
-            float wz = (rng.nextFloat() - 0.5f) * worldDepth * 0.9f;
-            float h = TerrainGenerator.getHeightAt(heightmap, vertsX, vertsZ, worldWidth, worldDepth, wx, wz);
-            if (h < seaLevel + 0.3f) continue;
-
-            int gx = Math.min(vertsX - 1, Math.max(0, (int) ((wx + halfW) / worldWidth * (vertsX - 1))));
-            int gz = Math.min(vertsZ - 1, Math.max(0, (int) ((wz + halfD) / worldDepth * (vertsZ - 1))));
-            BiomeType biome = biomeGrid[gz * vertsX + gx];
-
-            float density = grassDensity(biome);
-            if (rng.nextFloat() > density) continue;
-
-            Color grassColor = grassColorForBiome(biome, rng);
-
-            float bladeHeight = 0.2f + rng.nextFloat() * 0.4f;
-            float clumpSize = 0.3f + rng.nextFloat() * 0.5f;
-
-            Model grassModel = mb.createCylinder(clumpSize, bladeHeight, clumpSize, 5,
-                new Material(ColorAttribute.createDiffuse(grassColor)), attrs);
-            world.addModel(grassModel);
-
-            ModelInstance instance = new ModelInstance(grassModel);
-            instance.transform.setToTranslation(wx, h + bladeHeight * 0.3f, wz);
-            world.grassInstances.add(instance);
-        }
-    }
-
-    private static float grassDensity(BiomeType biome) {
-        switch (biome) {
-            case GRASSLAND:        return 0.9f;
-            case SAVANNA:          return 0.7f;
-            case TEMPERATE_FOREST: return 0.4f;
-            case STEPPE:           return 0.5f;
-            case TROPICAL_FOREST:  return 0.3f;
-            case SWAMP:            return 0.4f;
-            case TUNDRA:           return 0.15f;
-            case BOREAL_FOREST:    return 0.2f;
-            default:               return 0f;
-        }
-    }
-
-    private static Color grassColorForBiome(BiomeType biome, Random rng) {
-        float v = rng.nextFloat() * 0.06f;
-        switch (biome) {
-            case SAVANNA: return new Color(0.55f + v, 0.55f + v, 0.20f, 1f);
-            case STEPPE:  return new Color(0.45f + v, 0.48f + v, 0.22f, 1f);
-            case TUNDRA:  return new Color(0.35f + v, 0.40f + v, 0.28f, 1f);
-            case SWAMP:   return new Color(0.15f + v, 0.30f + v, 0.12f, 1f);
-            default:      return new Color(0.25f + v, 0.50f + v, 0.15f, 1f);
         }
     }
 

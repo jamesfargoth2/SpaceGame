@@ -1,0 +1,15 @@
+{
+  "cellSize": 32.0, "radius": 140.0, "fadeBand": 24.0,
+  "baseTuftsPerM2": 0.25, "bladesPerTuft": 3, "maxCachedCells": 256,
+  "wind": { "amplitude": 0.18, "frequency": 1.3 },
+  "biomes": [
+    { "biome": "GRASSLAND", "density": 1.0,  "height": [0.5, 1.1], "colorA": "3a6b22", "colorB": "5a8a2e" },
+    { "biome": "SAVANNA",   "density": 0.7,  "height": [0.6, 1.3], "colorA": "6a6b2a", "colorB": "8a7a30" },
+    { "biome": "TEMPERATE_FOREST", "density": 0.5, "height": [0.3, 0.7], "colorA": "2f6b22", "colorB": "47852c" },
+    { "biome": "STEPPE",    "density": 0.45, "height": [0.3, 0.7], "colorA": "6a6535", "colorB": "7a7240" },
+    { "biome": "SWAMP",     "density": 0.4,  "height": [0.4, 0.9], "colorA": "20401a", "colorB": "356025" },
+    { "biome": "TROPICAL_FOREST", "density": 0.35, "height": [0.4, 0.9], "colorA": "1f6b1a", "colorB": "2f8a24" },
+    { "biome": "BOREAL_FOREST", "density": 0.3, "height": [0.2, 0.5], "colorA": "3a5a32", "colorB": "4a6a3a" },
+    { "biome": "TUNDRA",    "density": 0.3,  "height": [0.15, 0.4], "colorA": "4a5a3a", "colorB": "5a6545" }
+  ]
+}
