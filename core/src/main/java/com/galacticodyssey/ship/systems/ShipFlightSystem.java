@@ -153,7 +153,7 @@ public class ShipFlightSystem extends EntitySystem {
         localRight.set(1, 0, 0).rot(shipTransform).nor();
         localUp.set(0, 1, 0).rot(shipTransform).nor();
 
-        // --- Effective max speed (live from ShipData; boost handled in a later task) ---
+        // --- Effective max speed (live from ShipData; raised during active boost) ---
         com.galacticodyssey.ship.components.ShipDataComponent shipData = shipDataMapper.get(ship);
         float maxSpeed = (shipData != null && shipData.maxSpeed > 0f)
             ? shipData.maxSpeed : DEFAULT_MAX_SPEED;
