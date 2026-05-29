@@ -346,6 +346,7 @@ public class GameWorld implements Disposable {
         physicsBodySystem = new PhysicsBodySystem();
         playerInputSystem = new PlayerInputSystem();
         playerMovementSystem = new PlayerMovementSystem(bulletPhysicsSystem.getDynamicsWorld());
+        playerMovementSystem.setEventBus(eventBus);
         cameraSystem = new CameraSystem(eventBus);
         debugHudSystem = new DebugHudSystem(coordinateManager, eventBus);
 
@@ -880,6 +881,7 @@ public class GameWorld implements Disposable {
 
         PhysicsBodyComponent physics = new PhysicsBodyComponent();
         physics.shape = new btCapsuleShape(0.3f, 1.2f);
+        physics.proneShape = new btCapsuleShape(0.3f, 0.0f);
         physics.mass = 80f;
         physics.friction = 1.0f;
         physics.restitution = 0f;
@@ -932,6 +934,7 @@ public class GameWorld implements Disposable {
             bulletPhysicsSystem.getDynamicsWorld().removeRigidBody(physics.body);
             physics.body.dispose();
             physics.shape.dispose();
+            physics.proneShape.dispose();
         });
 
         return player;
