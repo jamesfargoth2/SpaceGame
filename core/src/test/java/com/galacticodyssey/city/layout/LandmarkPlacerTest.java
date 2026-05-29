@@ -50,8 +50,14 @@ class LandmarkPlacerTest {
 
     @Test
     void deterministic() {
-        assertEquals(LandmarkPlacer.place(700f, true, new ArrayList<>(), 9L).size(),
-                     LandmarkPlacer.place(700f, true, new ArrayList<>(), 9L).size());
+        List<Landmark> a = LandmarkPlacer.place(700f, true, new ArrayList<>(), 9L);
+        List<Landmark> b = LandmarkPlacer.place(700f, true, new ArrayList<>(), 9L);
+        assertEquals(a.size(), b.size());
+        for (int i = 0; i < a.size(); i++) {
+            assertEquals(a.get(i).type, b.get(i).type);
+            assertEquals(a.get(i).position.x, b.get(i).position.x, 0.0f);
+            assertEquals(a.get(i).position.y, b.get(i).position.y, 0.0f);
+        }
     }
 
     private Landmark find(List<Landmark> lm, LandmarkType t) {
