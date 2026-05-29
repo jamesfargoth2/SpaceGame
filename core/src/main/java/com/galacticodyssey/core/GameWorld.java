@@ -331,6 +331,10 @@ public class GameWorld implements Disposable {
 
     private final Array<Disposable> disposables = new Array<>();
 
+    /** Planet centre in game-world units (metres). 50 km below spawn keeps radial gravity
+     *  effectively straight-down over the 500 m flat terrain patch (< 0.5° divergence). */
+    private final Vector3 defaultPlanetCenter = new Vector3(0, -50000f, 0);
+
     public GameWorld(EventBus eventBus, CoordinateManager coordinateManager) {
         this.engine = new Engine();
         this.eventBus = eventBus;
@@ -351,12 +355,11 @@ public class GameWorld implements Disposable {
         // Planet center placed 50 km below terrain so radial gravity is effectively
         // straight-down everywhere on the 500m×500m flat test map (<0.5° tilt at corners).
         // Both systems must share the same center or movement/gravity will diverge.
-        Vector3 planetCenter = new Vector3(0, -50000f, 0);
         radialGravitySystem = new RadialGravitySystem(
             bulletPhysicsSystem.getDynamicsWorld(),
-            planetCenter, 9.81f);
+            defaultPlanetCenter, 9.81f);
         engine.addSystem(radialGravitySystem);
-        playerMovementSystem.setPlanetCenter(planetCenter);
+        playerMovementSystem.setPlanetCenter(defaultPlanetCenter);
 
         // Surface vehicle physics — pass null for GravitySystem: RadialGravitySystem
         // already applies gravity forces directly; SurfaceVehicleSystem falls back to 9.81 m/s².
@@ -1134,6 +1137,22 @@ public class GameWorld implements Disposable {
     public SagaRegistry getSagaRegistry() { return sagaRegistry; }
     public CandidatePoolSystem getCandidatePoolSystem() { return candidatePoolSystem; }
     public SceneManager getSceneManager() { return sceneManager; }
+    public com.galacticodyssey.planet.terrain.PlanetTerrainSystem getPlanetTerrainSystem() { return planetTerrainSystem; }
+    public Vector3 getDefaultPlanetCenter() { return defaultPlanetCenter; }
+
+    /**
+     * Initialises the sphere terrain system from the session's starting planet.
+     * The sphere radius is set to match the game-world's planet-centre distance so that
+     * the sphere surface aligns with the flat spawn-area terrain at ground level.
+     * Must be called after {@link #initializeSystems}.
+     */
+    public void loadPlanetTerrain(com.galacticodyssey.planet.Planet planet,
+                                   com.galacticodyssey.planet.BiomeMap biomeMap) {
+        // Surface radius = distance from defaultPlanetCenter to the flat terrain origin
+        // (approx. 50 000 m). Add a small surface offset so the sphere just pokes above y=0.
+        float surfaceRadius = defaultPlanetCenter.len();
+        planetTerrainSystem.loadPlanet(planet, biomeMap, defaultPlanetCenter, surfaceRadius);
+    }
 
     /** Wire up the audio system. Call after GameWorld construction, before the first update(). */
     public void initAudio(AudioManager audioManager) {

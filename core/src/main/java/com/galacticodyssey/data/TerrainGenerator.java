@@ -18,7 +18,11 @@ public final class TerrainGenerator {
 
     public static float[] generateHeightmap(int vertsX, int vertsZ, float worldWidth, float worldDepth, long seed) {
         float[] heights = new float[vertsX * vertsZ];
-        GalaxyNoise gn = new GalaxyNoise(seed);
+        // Independent noise instances per layer prevent cross-frequency correlation
+        GalaxyNoise continentNoise = new GalaxyNoise(SeedDeriver.domain(seed, SeedDeriver.CONTINENT_NOISE_DOMAIN));
+        GalaxyNoise mountainNoise  = new GalaxyNoise(SeedDeriver.domain(seed, SeedDeriver.RIDGE_NOISE_DOMAIN));
+        GalaxyNoise hillNoise      = new GalaxyNoise(SeedDeriver.domain(seed, SeedDeriver.DETAIL_NOISE_DOMAIN));
+        GalaxyNoise detailNoise    = new GalaxyNoise(SeedDeriver.domain(seed, SeedDeriver.BIOME_DOMAIN));
 
         float cellWidth = worldWidth / (vertsX - 1);
         float cellDepth = worldDepth / (vertsZ - 1);
@@ -30,10 +34,10 @@ public final class TerrainGenerator {
                 float wx = x * cellWidth - halfWidth;
                 float wz = z * cellDepth - halfDepth;
 
-                float continent = gn.domainWarp2D(wx * 0.002f, wz * 0.002f, 0.7f, 3, 6) * 40f;
-                float mountains = gn.ridgedFbm(wx * 0.004f, wz * 0.004f, 8, 2.0f, 2.0f) * 60f;
-                float hills = gn.fbm(wx * 0.01f, wz * 0.01f, 6, 0.5f, 2.0f) * 15f;
-                float detail = gn.billowFbm(wx * 0.04f, wz * 0.04f, 4, 0.5f, 2.0f) * 3f;
+                float continent = continentNoise.domainWarp2D(wx * 0.002f, wz * 0.002f, 0.7f, 3, 6) * 40f;
+                float mountains = mountainNoise.ridgedFbm(wx * 0.004f, wz * 0.004f, 8, 2.0f, 2.0f) * 60f;
+                float hills     = hillNoise.fbm(wx * 0.01f, wz * 0.01f, 6, 0.5f, 2.0f) * 15f;
+                float detail    = detailNoise.billowFbm(wx * 0.04f, wz * 0.04f, 4, 0.5f, 2.0f) * 3f;
 
                 float h = continent + mountains + hills + detail;
                 heights[z * vertsX + x] = h;
@@ -154,7 +158,8 @@ public final class TerrainGenerator {
     public static void applyBiomeVariation(float[] heights, int vertsX, int vertsZ,
                                            float worldWidth, float worldDepth,
                                            BiomeType biome, long seed) {
-        GalaxyNoise gn = new GalaxyNoise(seed);
+        GalaxyNoise smoothNoise = new GalaxyNoise(SeedDeriver.domain(seed, SeedDeriver.DETAIL_NOISE_DOMAIN));
+        GalaxyNoise ridgedNoise = new GalaxyNoise(SeedDeriver.domain(seed, SeedDeriver.RIDGE_NOISE_DOMAIN));
 
         float cellWidth = worldWidth / (vertsX - 1);
         float cellDepth = worldDepth / (vertsZ - 1);
@@ -169,8 +174,8 @@ public final class TerrainGenerator {
                 float wx = x * cellWidth - halfWidth;
                 float wz = z * cellDepth - halfDepth;
 
-                float smooth = gn.fbm(wx * 0.01f, wz * 0.01f, 5, 0.5f, 2.0f);
-                float ridged = gn.ridgedFbm(wx * 0.015f + 500f, wz * 0.015f + 500f, 6, 2.0f, 2.0f);
+                float smooth = smoothNoise.fbm(wx * 0.01f, wz * 0.01f, 5, 0.5f, 2.0f);
+                float ridged = ridgedNoise.ridgedFbm(wx * 0.015f, wz * 0.015f, 6, 2.0f, 2.0f);
                 float blended = smooth * (1.0f - ridge) + ridged * ridge;
                 heights[z * vertsX + x] += blended * amp * 50f;
             }
