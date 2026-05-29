@@ -64,6 +64,10 @@ public final class SeedDeriver {
         return domain(parentSeed, SHIP_DOMAIN);
     }
 
+    public static long drainageDomain(long parentSeed) {
+        return domain(parentSeed, DRAINAGE_DOMAIN);
+    }
+
     public static long forId(long domainSeed, long id) {
         return mix(domainSeed ^ id);
     }
