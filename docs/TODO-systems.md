@@ -2,18 +2,55 @@
 
 Last updated: 2026-05-28. Cross-reference implemented system docs in [systems/](systems/).
 
-Systems marked ✅ are implemented on the `procgen` branch (landed in PR #23 or earlier,
-or in PR #24). Systems below are what is **still missing**.
+---
+
+## Plans written — implementation pending
+
+These have a spec + plan ready to execute; no code written yet.
+
+| System | Plan |
+|---|---|
+| **ED Flight Model SP1** | `docs/superpowers/plans/2026-05-28-ed-flight-model.md` (13 TDD tasks). Set-point throttle, FA on/off, blue-zone, boost. |
+| **Ship procgen Phase 1a** | `docs/superpowers/plans/2026-05-28-ship-procgen-1a-style-foundation.md`. Faction visual language foundation (enums, HullStyle registry, FactionData.styleId, ShipFactory dispatch). |
 
 ---
 
-## High Impact — Core Gameplay Loop Blockers
+## High Impact — Core Gameplay Loop
 
 | System | Gap |
 |---|---|
-| **Scene / Sector streaming** | No `SceneManager` that additively loads/unloads zones (deep space → orbit → planet surface → station interior). `StreamingSystem` distance-enqueues assets but no zone transition state machine exists. |
-| **Vehicle bay & deployment** | Mech locomotion works. No `VehicleBayComponent`, no bay slot UI, no ramp open/deploy/retrieve flow, no `VehicleRegistry`. |
-| **Boarding flow** | Docking exists. The full pipeline — disable engines → approach → breach/dock → FPS interior combat → capture resolution (hijack / scrap / ransom / tow) — is not implemented. |
+| **Scene streaming B — LOD bands** | Only `FleetLODSystem`/`DebrisLODSystem` exist. Need geometry/physics/AI LOD bands with hysteresis for all entity types. |
+| **Scene streaming C — Multiplayer zone alignment** | Map client `SceneType` transitions onto server `ZoneDefinition`/`ZoneHandoffManager`. |
+| **Ship procgen Phase 1b–1c** | Faction signature features (1b: Vaun spinal lance, Fed shield rings, etc.) + FACETED hull generator for Null-System/zeeLee (1c). Needs spec. |
+| **Ship procgen Phase 2–3** | Component visibility (external loadout geometry on hull sockets) + damage/wear vertex-colour modulation. Needs spec. |
+
+---
+
+## Planet Realism
+
+Sub-projects 2–6 of the planet realism roadmap (sub-project 1, tectonics, is implemented):
+
+| System | Gap |
+|---|---|
+| **Ocean simulation** | Reads tectonic continent shapes for coastlines, tidal flats, coral zones. |
+| **Volcanic terrain** | Reads tectonic volcanic-arc/hotspot zones for lava flows, calderas, basalt columns. |
+| **Clouds / weather** | Extends existing climate sim: cloud bands, storm cells, precipitation → biome moisture. |
+| **Ice / glacial** | Ice sheets, glacial valleys, permafrost, polar caps. |
+| **Realistic atmospherics** | Rayleigh/Mie sky colour derived from atmosphere composition + star spectral type. |
+
+---
+
+## Cities & Settlements
+
+City layout core (A) is implemented. Building generation through runtime streaming (B–E) are still missing:
+
+| System | Gap |
+|---|---|
+| **Building generation (City B)** | Lot → exterior shell per `BuildingFunction` tag: archetypes, floor stack, facade, roof. |
+| **Building interior generation (City B)** | Room graph, stairwells, furniture, NPC spawns, loot, lighting. |
+| **NPC population & schedules (City C)** | Citizens with role/home/workplace, daily schedule routes through the street grid. |
+| **City market integration (City D)** | Per-city `MarketComponent` + `CityEconomyGenerator` wired to sector economy. |
+| **City runtime & streaming (City E)** | Geometry/collision/physics realisation, district streaming, interior load-on-enter, sphere/galaxy projection via `GalaxyAnchor`. |
 
 ---
 
@@ -21,9 +58,8 @@ or in PR #24). Systems below are what is **still missing**.
 
 | System | Gap |
 |---|---|
-| **NPC pilot AI (ship-scale)** | No dogfighting AI. NPC ships don't manoeuvre, strafe, or engage in combat flight. |
-| **Capital ship subsystem targeting** | No per-subsystem health pools (engines, shields, bridge, weapons) for precision disabling. |
-| **Broadside batteries** | Fixed-arc weapon mounts for capital ships that fire coordinated salvoes are missing. |
+| **Capital ship subsystem targeting** | `ShipSubsystemsComponent` exists (boarding plan A) but no player-facing precision targeting UI or combat-damage routing to specific subsystem pools outside of boarding. |
+| **Broadside batteries** | `HardpointType.BROADSIDE` enum value exists; no `BroadsideSystem` or coordinated salvo logic implemented. |
 | **Fighter carrier operations** | No launch/recover mechanic for fighter wings from carrier bays. |
 | **Power armour locomotion** | Late-game personal armour type with its own movement and stamina modifiers. |
 | **Heavy weapons** | No distinct component/system for shoulder-fired heavy weapons (rocket launchers, miniguns). |
@@ -32,38 +68,31 @@ or in PR #24). Systems below are what is **still missing**.
 
 ## Economy & World Simulation
 
+Only the planetary economy tier is implemented (`PlanetaryEconomyManager`, `PlanetaryStockSystem`, `PricingSystem`):
+
 | System | Gap |
 |---|---|
-| **SectorEconomySystem** | Aggregates planetary production/consumption per sector; updates inter-planet trade route baselines. Only the planetary tier is implemented. |
+| **SectorEconomySystem** | Aggregates planetary production/consumption per sector; updates inter-planet trade route baselines. |
 | **GalacticEconomySystem** | Daily galaxy-wide tick that sets sector supply baselines from aggregate demand. |
 | **NPC freighter simulation** | NPC ships travel trade routes and shift local station stock as they deliver/pick up cargo. |
 | **Faction economic control** | Faction territory should affect tax rates, tariffs, and contraband classification at stations. |
 
 ---
 
-## Cities & Settlements
-
-| System | Gap |
-|---|---|
-| **City layout generator** | Landmark district placement (spaceport, commercial, slums) + procedural street and building fill. |
-| **Building interior generation** | Key buildings (shops, cantinas, faction HQs) with functional rooms and interactables. |
-| **NPC population seeding** | Spawn NPCs with appropriate roles and assign schedule routes through the city grid. |
-| **City market integration** | Physical market (`MarketComponent`) scoped to each city with its own stock and prices. |
-
----
-
 ## Rare Astronomical Phenomena
+
+The anomaly procgen layer (`AnomalyPlacer`, `AnomalyType`) places wormholes and pulsar beams as data objects. The hazard/gameplay mechanics behind each are missing:
 
 | Phenomenon | Status |
 |---|---|
-| Nebula volumetric rendering | Region hazards and procgen exist; no volumetric visual rendering |
-| Pulsars | Missing — periodic radiation burst events, navigation hazard zone |
-| Binary / trinary star systems | Missing — multi-star orbital dynamics at system generation |
-| Neutron stars | Missing — FTL supercharge interaction, unique material spawning |
-| Wormholes | Missing — unstable transit point, entry/exit pair, collapse timer |
-| Supernova remnants | Missing — radiation field, artifact spawning, ruins POI |
-| Dyson structures | Missing — mega-structure POI, associated quest chain |
-| Rogue planets | Missing — interstellar wandering body generation |
+| Nebula volumetric rendering | `NebulaVolumeGenerator` + `NebulaDensityField` exist (hazard + procgen). No volumetric visual rendering. |
+| Pulsars | `AnomalyType.PULSAR_BEAM` placed. No periodic radiation burst gameplay / nav hazard zone. |
+| Binary star systems | `BinaryStarData` + companion generation in `StarSystemGenerator` exist. Multi-star orbital dynamics (figure-8, horseshoe orbits) not modelled. |
+| Neutron stars | Not in `SpectralClass`; no FTL supercharge interaction or unique material spawning. |
+| Wormholes | `AnomalyType.WORMHOLE` placed. No transit mechanic, entry/exit pair linkage, or collapse timer. |
+| Supernova remnants | Not modelled — radiation field, artifact spawning, ruins POI. |
+| Dyson structures | Not modelled — mega-structure POI, associated quest chain. |
+| Rogue planets | Not in `StarSystemGenerator` — interstellar wandering body generation. |
 
 ---
 
@@ -71,10 +100,10 @@ or in PR #24). Systems below are what is **still missing**.
 
 | System | Gap |
 |---|---|
-| **Power priority sliders** | No player-adjustable power redistribution UI (weapons / shields / engines balance). `PowerSystem` exists but has no UI surface. |
+| **Power priority sliders** | No player-adjustable SYS/ENG/WEP power redistribution UI. `PowerSystem` exists but has no UI surface. |
 | **Ship exterior customisation UI** | `ShipColorPalette` exists; no player-driven paint scheme, decal, or hull mod flow. |
 | **Ship room customisation** | No interior room placement, resizing, or decoration UI. |
-| **Debug / editor imgui overlay** | imgui-java overlay for in-editor spawning, stat inspection, and economy tuning — planned but not started. |
+| **Debug / editor imgui overlay** | imgui-java overlay for in-editor spawning, stat inspection, and economy tuning — not started. |
 
 ---
 
@@ -82,7 +111,7 @@ or in PR #24). Systems below are what is **still missing**.
 
 | Area | Gap |
 |---|---|
-| **Main story arc JSON** | `SagaRunner` and the graph structure exist. No authored Act I–III saga data beyond stubs. |
+| **Main story arc JSON** | `act1_the_signal.json` exists with real content (Act I). Acts II and III are missing. |
 | **Faction quest chains** | No per-faction `SagaData` unlocking at reputation thresholds. |
 | **Companion quests** | `HookType` defined on crew members; no authored crew backstory sagas. |
 | **Encyclopedia entries** | `EncyclopediaScreen` exists; zero data entries for species, factions, locations, or equipment. |
@@ -90,8 +119,6 @@ or in PR #24). Systems below are what is **still missing**.
 ---
 
 ## Already Implemented (for reference)
-
-These were listed as missing in earlier drafts of this file but are now done:
 
 | System | PR / branch |
 |---|---|
@@ -110,9 +137,42 @@ These were listed as missing in earlier drafts of this file but are now done:
 | Ship power management (PowerSystem, PowerPenaltySystem, ReactorSpec) | PR #24 |
 | Swimming / water mechanics | procgen |
 | Ship builder (hull sculpt, room layout, module fit) | procgen |
-| Outfitter / loadout screen | procgen |
+| Outfitter / loadout screen (OutfitterSystem) | procgen |
 | Crew recruitment screen | procgen |
 | Quest journal / job board screen | procgen |
 | Inventory / equipment screen | procgen |
 | Orbital mechanics (Keplerian orbits, SOI tracking, trajectory HUD) | coresystemFinish |
 | Player levelling & perks (XP hooks, perk trees, effects, Character screen, persistence) | coresystemFinish |
+| Scene orchestration core (SceneManager FSM, SceneTransitionController, 28 tests) | coresystemFinish |
+| Vehicle bay & deployment (VehicleRegistry, VehicleBayPanel, deploy/retrieve loop, DRIVING mode) | coresystemFinish |
+| Ship boarding pipeline (disable → attach → breach → FPS combat → resolution, PR #33) | coresystemFinish |
+| NPC dogfight AI (ShipPilotAISystem, PD steering, PilotArchetype, 97 tests) | coresystemFinish |
+| Black hole physics (EventHorizonSystem, TidalForceSystem, TimeDilationSystem) | coresystemFinish |
+| Tether / cable physics (TetherSystem, VerletRopeSystem, WinchSystem) | coresystemFinish |
+| Structural integrity (StructuralIntegritySystem, AtmosphereVentSystem, DamageCascadeSystem, GForceSystem) | coresystemFinish |
+| Life support (LifeSupportSystem, CrewMetabolicSystem, FirePhysicsSystem, PressureCycleSystem) | coresystemFinish |
+| Ship thermal physics (ThermalSystem, ThermalDamageSystem, ThermalPenaltySystem) | coresystemFinish |
+| Ship flooding (ShipFloodingSystem) | coresystemFinish |
+| Atmospheric flight / entry heating (AeroForceSystem, EntryHeatSystem) | coresystemFinish |
+| Solar wind / radiation (CMESystem, RadiationPressureSystem, SolarWindSystem, PhotonSailSystem) | coresystemFinish |
+| Docking rendezvous (DockingApproachSystem, DockingCaptureSystem, HardDockConstraintSystem) | coresystemFinish |
+| Planetary rings (RingSystemGenerator, ShepherdMoonPlacer, ResonanceGapCalculator) | coresystemFinish |
+| Cave systems (CaveSystemGenerator, BezierTunnel, BioluminescentPatch) | coresystemFinish |
+| Galaxy generation pipeline (GalaxyGenerationPipeline, GalaxyChunkManager, density field) | coresystemFinish |
+| Faction territory (FactionTerritoryGenerator, TradeLane, PatrolRouteGenerator) | coresystemFinish |
+| Encounter table (EncounterRoller, EncounterTableBuilder) | coresystemFinish |
+| Station generation (StationGenerator, StationModule, StationType) | coresystemFinish |
+| Derelict generation (DerelictGenerator, DamageProfile, SalvageItem) | coresystemFinish |
+| Asteroid generation (AsteroidGenerator, VeinDeposit, MineralType) | coresystemFinish |
+| Space anomaly procgen (AnomalyPlacer, AnomalyType, IonisationZone) | coresystemFinish |
+| Nebula procgen / hazards (NebulaVolumeGenerator, NebulaDensityField, NebulaHazard) | coresystemFinish |
+| Mech locomotion (MechLocomotionSystem, JointLimitSystem, MechGroundContactSystem) | coresystemFinish |
+| Guided missiles + point defence (GuidedProjectileSystem, PointDefenseSystem) | coresystemFinish |
+| Turret tracking (TurretTrackingSystem) | coresystemFinish |
+| Name generation (SpaceNameGenerator, LanguageStyle, phoneme chains) | coresystemFinish |
+| Audio system (AmbientManager, MusicManager, AudioSystem, SoundBindings) | coresystemFinish |
+| Binary star systems (BinaryStarData, companion generation in StarSystemGenerator) | coresystemFinish |
+| Planet tectonics (TectonicModel, PlateGenerator, tectonic zones — sub-project 1 of 6) | coresystemFinish |
+| City layout core (CityLayoutGenerator, districts, streets, lots, landmarks — city sub-project A) | coresystemFinish |
+| Creature generation — all 4 cycles (socket-graph assembly, rig+animation, skin patterns, behavior+ecosystem) | coresystemFinish |
+| Flora generation — all 3 cycles (space-colonization trees, GPU-instanced grass, alien plants) | coresystemFinish |
