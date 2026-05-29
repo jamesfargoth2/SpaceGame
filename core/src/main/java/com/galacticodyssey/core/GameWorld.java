@@ -212,6 +212,12 @@ import com.galacticodyssey.rendering.lighting.LightingSystem;
 import com.galacticodyssey.ship.boarding.systems.ShipSubsystemSystem;
 import com.galacticodyssey.ship.boarding.systems.BoardingOrchestratorSystem;
 import com.galacticodyssey.ship.boarding.systems.ShipProjectileImpactSystem;
+import com.galacticodyssey.ship.boarding.systems.BoardingAttachSystem;
+import com.galacticodyssey.ship.boarding.systems.BoardingCombatSystem;
+import com.galacticodyssey.ship.boarding.systems.BoardingEntrySystem;
+import com.galacticodyssey.ship.boarding.systems.BoardingInitiationSystem;
+import com.galacticodyssey.ship.boarding.systems.BoardingResolutionSystem;
+import com.galacticodyssey.ship.boarding.systems.EnemyBoardingAISystem;
 import com.galacticodyssey.core.scene.DeepSpaceLoader;
 import com.galacticodyssey.core.scene.EmptySceneLoader;
 import com.galacticodyssey.core.scene.SceneAssetSource;
@@ -318,6 +324,10 @@ public class GameWorld implements Disposable {
     private VehicleBayService vehicleBayService;
     private VehicleCameraSystem vehicleCameraSystem;
     private InteractionSystem interactionSystem;
+    private com.galacticodyssey.ship.ShipFactory shipFactory;
+    private com.galacticodyssey.ship.ai.PilotArchetypeRegistry pilotArchetypeRegistry;
+    private com.galacticodyssey.combat.fleet.data.FormationRegistry formationRegistry;
+    private com.galacticodyssey.combat.fleet.systems.FleetExpansionSystem fleetExpansionSystem;
 
     private final Array<Disposable> disposables = new Array<>();
 
@@ -405,6 +415,9 @@ public class GameWorld implements Disposable {
         engine.addSystem(physicsBodySystem);
         engine.addSystem(cameraSystem);
         engine.addSystem(new PlayerAnimationSystem());
+        engine.addSystem(new com.galacticodyssey.fauna.behavior.CreatureDriveSystem(43));
+        engine.addSystem(new com.galacticodyssey.fauna.behavior.CreatureBehaviorSystem(44));
+        engine.addSystem(new com.galacticodyssey.fauna.animation.CreatureGaitSystem(45));
         engine.addSystem(debugHudSystem);
 
         interactionSystem = new InteractionSystem(eventBus);
@@ -466,6 +479,15 @@ public class GameWorld implements Disposable {
         engine.addSystem(new BoardingOrchestratorSystem(eventBus));
         engine.addSystem(new ShipProjectileImpactSystem(eventBus));
         engine.addSystem(new ShipSubsystemSystem(eventBus));
+        BoardingAttachSystem boardingAttachSystem = new BoardingAttachSystem(eventBus);
+        engine.addSystem(boardingAttachSystem);
+        engine.addSystem(new BoardingEntrySystem(eventBus, bulletPhysicsSystem.getDynamicsWorld()));
+        engine.addSystem(new BoardingInitiationSystem(eventBus, boardingAttachSystem));
+        engine.addSystem(new BoardingCombatSystem(eventBus));
+        engine.addSystem(new BoardingResolutionSystem(eventBus, bulletPhysicsSystem.getDynamicsWorld()));
+        // TODO: pass a real ReputationQuery once ReputationManager is wired into GameWorld;
+        // null preserves "any disabled-player ship may be boarded" behavior until then.
+        engine.addSystem(new EnemyBoardingAISystem(boardingAttachSystem, null));
         engine.addSystem(statusEffectSystem);
         engine.addSystem(combatAISystem);
         engine.addSystem(squadTacticsSystem);
@@ -553,6 +575,44 @@ public class GameWorld implements Disposable {
         powerSystem = new PowerSystem(eventBus);
         engine.addSystem(powerSystem);
         engine.addSystem(new PowerPenaltySystem());
+
+        // Ship factory + NPC fleet expansion.
+        // The factory builds flyable AI combat ships for fleet members; FleetExpansionSystem
+        // spawns/despawns them as the player nears/leaves a fleet anchor. The factory shares the
+        // engine + physics world and is disposed (releasing rigid bodies) before bulletPhysicsSystem.
+        shipFactory = new com.galacticodyssey.ship.ShipFactory(engine, bulletPhysicsSystem);
+        shipFactory.setReactorSpecRegistry(reactorSpecRegistry);
+        pilotArchetypeRegistry = new com.galacticodyssey.ship.ai.PilotArchetypeRegistry();
+        if (com.badlogic.gdx.Gdx.files != null) {
+            try {
+                pilotArchetypeRegistry.loadDefault();
+            } catch (Exception e) {
+                com.badlogic.gdx.Gdx.app.error("GameWorld", "Failed to load pilot archetypes", e);
+            }
+        }
+        shipFactory.setPilotArchetypes(pilotArchetypeRegistry);
+
+        formationRegistry = new com.galacticodyssey.combat.fleet.data.FormationRegistry();
+        formationRegistry.registerDefaults(50);
+        // Player position for expand/collapse range checks: the player entity's transform,
+        // looked up lazily each tick (origin (0,0,0) until the player entity exists).
+        final Vector3 fleetPlayerPos = new Vector3();
+        java.util.function.Supplier<Vector3> playerPosSupplier = () -> {
+            com.badlogic.ashley.utils.ImmutableArray<Entity> players = engine.getEntitiesFor(
+                com.badlogic.ashley.core.Family.all(PlayerTagComponent.class, TransformComponent.class).get());
+            if (players.size() > 0) {
+                fleetPlayerPos.set(players.first().getComponent(TransformComponent.class).position);
+            }
+            return fleetPlayerPos;
+        };
+        fleetExpansionSystem = new com.galacticodyssey.combat.fleet.systems.FleetExpansionSystem(
+            eventBus, playerPosSupplier, formationRegistry, shipFactory);
+        engine.addSystem(fleetExpansionSystem);
+
+        // NPC ship pilot AI — reuses the same ShipWeaponSystem already registered above
+        com.galacticodyssey.ship.ai.ShipPilotAISystem shipPilotAISystem =
+            new com.galacticodyssey.ship.ai.ShipPilotAISystem(eventBus, shipWeaponSystem);
+        engine.addSystem(shipPilotAISystem);
 
         // Water / Hydrodynamics
         waveSystem = new WaveSystem(10);
@@ -693,6 +753,7 @@ public class GameWorld implements Disposable {
         }
         dialogSystem = new DialogSystem(eventBus, dialogDataRegistry);
         engine.addSystem(dialogSystem);
+        interactionSystem.setDialogSystem(dialogSystem);
 
         // Recruitment systems
         NpcDataRegistry npcDataRegistry = new NpcDataRegistry();
@@ -1249,6 +1310,9 @@ public class GameWorld implements Disposable {
         if (cockpitHUDSystem != null) cockpitHUDSystem.dispose();
         if (cockpitModelSystem != null) cockpitModelSystem.dispose();
         if (assetManager != null) assetManager.dispose();
+        // ShipFactory must dispose before bulletPhysicsSystem: it removes its rigid bodies from
+        // the dynamics world, which must still be alive at that point.
+        if (shipFactory != null) shipFactory.dispose();
         bulletPhysicsSystem.dispose();
     }
 }

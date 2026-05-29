@@ -64,8 +64,12 @@ class SeedDeriverTest {
             SeedDeriver.STAR_DOMAIN, SeedDeriver.PLANET_DOMAIN, SeedDeriver.MOON_DOMAIN,
             SeedDeriver.TERRAIN_DOMAIN, SeedDeriver.ATMOSPHERE_DOMAIN, SeedDeriver.BIOME_DOMAIN,
             SeedDeriver.STATION_DOMAIN, SeedDeriver.INTERIOR_DOMAIN, SeedDeriver.FACTION_DOMAIN,
-            SeedDeriver.NAME_DOMAIN, SeedDeriver.NEBULA_DOMAIN,
-            SeedDeriver.FLORA_DOMAIN
+            SeedDeriver.NAME_DOMAIN, SeedDeriver.NEBULA_DOMAIN, SeedDeriver.DERELICT_DOMAIN,
+            SeedDeriver.CAVE_DOMAIN, SeedDeriver.DUNGEON_DOMAIN, SeedDeriver.ASTEROID_SHAPE_DOMAIN,
+            SeedDeriver.ENCOUNTER_DOMAIN, SeedDeriver.ECONOMY_DOMAIN, SeedDeriver.CRATER_DOMAIN,
+            SeedDeriver.NPC_DOMAIN, SeedDeriver.CLIMATE_DOMAIN, SeedDeriver.DRAINAGE_DOMAIN,
+            SeedDeriver.TECTONIC_DOMAIN, SeedDeriver.EROSION_DOMAIN, SeedDeriver.FLORA_DOMAIN,
+            SeedDeriver.FAUNA_DOMAIN, SeedDeriver.CITY_DOMAIN, SeedDeriver.SHIP_DOMAIN
         };
         Set<Long> derived = new HashSet<>();
         for (long domain : domains) {
@@ -83,6 +87,15 @@ class SeedDeriverTest {
     @Test
     void floraDomainReturnsDifferentOutputForDifferentSeeds() {
         assertNotEquals(SeedDeriver.floraDomain(12345L), SeedDeriver.floraDomain(12346L));
+    }
+
+    @Test
+    void shipDomainIsDeterministicAndDistinct() {
+        assertEquals(SeedDeriver.shipDomain(777L), SeedDeriver.shipDomain(777L));
+        assertNotEquals(SeedDeriver.shipDomain(777L), SeedDeriver.shipDomain(778L));
+        // Must not collide with the interior domain it superseded.
+        assertNotEquals(SeedDeriver.shipDomain(777L),
+                        SeedDeriver.domain(777L, SeedDeriver.INTERIOR_DOMAIN));
     }
 
     @Test

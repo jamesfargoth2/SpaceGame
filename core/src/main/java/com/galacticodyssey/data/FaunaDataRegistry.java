@@ -6,6 +6,11 @@ import com.badlogic.gdx.utils.JsonValue;
 import com.galacticodyssey.fauna.archetype.AttachmentNode;
 import com.galacticodyssey.fauna.archetype.BodyPlan;
 import com.galacticodyssey.fauna.archetype.BodyPlanArchetypeDef;
+import com.galacticodyssey.fauna.behavior.ActivityCycle;
+import com.galacticodyssey.fauna.behavior.Diet;
+import com.galacticodyssey.fauna.behavior.SocialStructure;
+import com.galacticodyssey.fauna.behavior.Temperament;
+import com.galacticodyssey.fauna.ecosystem.SpeciesDef;
 import com.galacticodyssey.fauna.geometry.PartGeometrySpec;
 import com.galacticodyssey.fauna.part.CreaturePartDef;
 import com.galacticodyssey.fauna.part.PartType;
@@ -22,9 +27,11 @@ import java.util.Set;
 public class FaunaDataRegistry {
     private final Map<String, CreaturePartDef> parts = new HashMap<>();
     private final Map<String, BodyPlanArchetypeDef> archetypes = new HashMap<>();
+    private final Map<String, SpeciesDef> speciesById = new java.util.LinkedHashMap<>();
 
     public void loadParts(String path)      { loadPartsFromJson(Gdx.files.internal(path).readString()); }
     public void loadArchetypes(String path) { loadArchetypesFromJson(Gdx.files.internal(path).readString()); }
+    public void loadSpecies(String path)    { loadSpeciesFromJson(Gdx.files.internal(path).readString()); }
 
     public void loadPartsFromJson(String json) {
         JsonValue arr = new JsonReader().parse(json).get("parts");
@@ -107,6 +114,52 @@ public class FaunaDataRegistry {
         return node;
     }
 
+    public void loadSpeciesFromJson(String json) {
+        JsonValue root = new JsonReader().parse(json);
+        for (JsonValue sv = root.get("species").child; sv != null; sv = sv.next) {
+            SpeciesDef s = new SpeciesDef();
+            s.id = sv.getString("id");
+            s.archetypeId = sv.getString("archetypeId");
+            s.diet = Diet.valueOf(sv.getString("diet", "HERBIVORE"));
+            s.temperament = Temperament.valueOf(sv.getString("temperament", "NEUTRAL"));
+            s.socialStructure = SocialStructure.valueOf(sv.getString("socialStructure", "SOLITARY"));
+            s.herdSizeMin = sv.getInt("herdSizeMin", 1);
+            s.herdSizeMax = sv.getInt("herdSizeMax", 1);
+            s.trophicLevel = sv.getInt("trophicLevel", 1);
+            s.activityCycle = ActivityCycle.valueOf(sv.getString("activityCycle", "DIURNAL"));
+            s.detectionRadius = sv.getFloat("detectionRadius", 25f);
+            s.fleeRadius = sv.getFloat("fleeRadius", 15f);
+            s.fleeSpeedMultiplier = sv.getFloat("fleeSpeedMultiplier", 1.5f);
+            s.safeDistance = sv.getFloat("safeDistance", 40f);
+            s.birthRate = sv.getFloat("birthRate", 0.02f);
+            s.carryingCapacityBase = sv.getInt("carryingCapacityBase", 30);
+
+            JsonValue biomes = sv.get("biomes");
+            if (biomes != null) {
+                for (JsonValue b = biomes.child; b != null; b = b.next) {
+                    s.biomeAffinities.put(com.galacticodyssey.planet.BiomeType.valueOf(b.name), b.asFloat());
+                }
+            }
+
+            JsonValue prey = sv.get("preySpecies");
+            if (prey != null) {
+                for (JsonValue p = prey.child; p != null; p = p.next) {
+                    s.preySpecies.add(p.asString());
+                }
+            }
+
+            speciesById.put(s.id, s);
+        }
+    }
+
+    public SpeciesDef getSpecies(String id) { return speciesById.get(id); }
+
+    public java.util.Collection<SpeciesDef> allSpecies() {
+        java.util.List<SpeciesDef> list = new java.util.ArrayList<>(speciesById.values());
+        list.sort((a, b) -> a.id.compareTo(b.id));
+        return list;
+    }
+
     /**
      * Fail-fast validation. Throws IllegalStateException if any archetype references a part type
      * with no eligible part, references a socket that doesn't resolve on its parent parts, mismatches
@@ -119,6 +172,17 @@ public class FaunaDataRegistry {
         // the root's partType as the parent type to resolve their sockets against.
         for (BodyPlanArchetypeDef a : archetypes.values())
             checkNode(a, a.root, a.root.partType, available);
+
+        for (SpeciesDef s : speciesById.values()) {
+            if (getArchetype(s.archetypeId) == null) {
+                throw new IllegalStateException("Species '" + s.id + "' references unknown archetype '" + s.archetypeId + "'");
+            }
+            for (String preyId : s.preySpecies) {
+                if (!speciesById.containsKey(preyId)) {
+                    throw new IllegalStateException("Species '" + s.id + "' references unknown prey species '" + preyId + "'");
+                }
+            }
+        }
     }
 
     /**

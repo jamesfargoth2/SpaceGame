@@ -99,10 +99,19 @@ public final class KryoRegistrar {
         kryo.register(StructuralIntegritySnapshot.ZoneData.class, 72);
         kryo.register(CompartmentAtmosphereSnapshot.class, 73);
         kryo.register(DockingStateSnapshot.class, 74);
+        kryo.register(ShipSubsystemsSnapshot.class, 75);
+        kryo.register(ShipSubsystemsSnapshot.Entry.class, 76);
+        kryo.register(BoardingOperationSnapshot.class, 77);
+        kryo.register(OwnedShipSnapshot.class, 78);
+        kryo.register(PlayerGarageSnapshot.class, 79);
+        // ID jumps to 82: 75-79 are exhausted by the boarding snapshots above, and 80/81 are
+        // already taken by the NPC snapshots below.
+        kryo.register(PlayerGarageSnapshot.Entry.class, 82);
 
         // --- NPC snapshots ---
         kryo.register(CombatAISnapshot.class, 80);
         kryo.register(SquadSnapshot.class, 81);
+        kryo.register(ShipPilotAISnapshot.class, 82);
 
         // --- Enum types used as actual enum fields in snapshots ---
         registerEnums(kryo);

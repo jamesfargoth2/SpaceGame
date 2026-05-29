@@ -2,7 +2,6 @@ package com.galacticodyssey.npc.data;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
-import com.badlogic.gdx.utils.Json;
 import com.badlogic.gdx.utils.JsonReader;
 import com.badlogic.gdx.utils.JsonValue;
 
@@ -32,7 +31,8 @@ public class DialogDataRegistry {
         if (!dir.exists()) return;
 
         JsonReader reader = new JsonReader();
-        for (FileHandle file : dir.list(".json")) {
+        for (FileHandle file : dir.list()) {
+            if (!file.name().endsWith(".json")) continue;
             try {
                 JsonValue root = reader.parse(file);
                 DialogTree tree = parseTree(root);

@@ -87,7 +87,10 @@ class OrbitalMechanicsIntegrationTest {
         engine.update(0f);
         float initialX = planetTransform.position.x;
 
-        keplerSystem.setTimeScale(100000f);
+        // The 1 AU slot has an orbital period of 1.0 game-time units, so any whole-orbit
+        // multiple would land the planet back on its start point. Advance a quarter orbit
+        // instead so the motion is unambiguous.
+        keplerSystem.setTimeScale(0.25f);
         engine.update(1.0f);
 
         assertNotEquals(initialX, planetTransform.position.x, 1f,
@@ -112,10 +115,12 @@ class OrbitalMechanicsIntegrationTest {
         engine.update(0f);
 
         TransformComponent planetTransform = planetEntity.getComponent(TransformComponent.class);
+        float planetSOI = planetEntity.getComponent(OrbitalBodyComponent.class).soiRadius;
 
         Entity ship = new Entity();
         TransformComponent shipTransform = new TransformComponent();
-        shipTransform.position.set(planetTransform.position).add(10f, 0f, 0f);
+        // Place the ship well inside the planet's sphere of influence.
+        shipTransform.position.set(planetTransform.position).add(planetSOI * 0.5f, 0f, 0f);
         ship.add(shipTransform);
         ship.add(new SOITrackerComponent());
         engine.addEntity(ship);

@@ -10,6 +10,7 @@ import com.galacticodyssey.core.components.PhysicsBodyComponent;
 import com.galacticodyssey.core.components.PlayerTagComponent;
 import com.galacticodyssey.core.components.TransformComponent;
 import com.galacticodyssey.core.events.*;
+import com.galacticodyssey.npc.systems.DialogSystem;
 import com.galacticodyssey.npc.components.NpcDialogComponent;
 import com.galacticodyssey.npc.components.NpcIdentityComponent;
 import com.galacticodyssey.player.components.PlayerInputComponent;
@@ -19,6 +20,7 @@ import com.galacticodyssey.planet.terrain.GroundVehicleComponent;
 import com.galacticodyssey.planet.terrain.VehicleBayService;
 import com.galacticodyssey.planet.terrain.VehicleEntryPointComponent;
 import com.galacticodyssey.planet.terrain.VehicleTagComponent;
+import com.galacticodyssey.ship.boarding.BoardingOperationComponent;
 import com.galacticodyssey.ship.components.*;
 
 public class InteractionSystem extends EntitySystem {
@@ -44,8 +46,10 @@ public class InteractionSystem extends EntitySystem {
     private ImmutableArray<Entity> vehicleEntities;
     private com.badlogic.ashley.utils.ImmutableArray<Entity> bayShipEntities;
     private VehicleBayService bayService; // optional; set during GameWorld wiring
+    private DialogSystem dialogSystem; // optional; suppresses NPC prompt while dialog is active
 
     public void setVehicleBayService(VehicleBayService bayService) { this.bayService = bayService; }
+    public void setDialogSystem(DialogSystem dialogSystem) { this.dialogSystem = dialogSystem; }
     private final Vector3 tempVec = new Vector3();
     private final Vector3 worldPos = new Vector3();
     private final Matrix4 shipWorldMat = new Matrix4();
@@ -102,6 +106,8 @@ public class InteractionSystem extends EntitySystem {
 
     private boolean checkNpcDialog(Entity player, TransformComponent playerTransform,
                                    PlayerInputComponent input) {
+        if (dialogSystem != null && dialogSystem.isActive()) return true;
+
         Entity nearestNpc = null;
         float nearestDist = Float.MAX_VALUE;
 
@@ -228,6 +234,23 @@ public class InteractionSystem extends EntitySystem {
         float dist = tempVec.set(playerTransform.position).dst(worldPos);
 
         if (dist < entry.triggerRadius) {
+            Entity homeShip = boardingHomeShip(state.currentShip);
+            if (homeShip != null) {
+                eventBus.publish(new InteractionPromptEvent("[F] Return to Your Ship", true));
+                if (input.interactPressed) {
+                    ShipInteriorComponent interior = interiorMapper.get(state.currentShip);
+                    if (interior != null) interior.active = false;
+                    state.currentMode = PlayerMode.PILOTING;
+                    state.currentShip = homeShip;
+                    TransformComponent homeTransform = transformMapper.get(homeShip);
+                    if (homeTransform != null) {
+                        worldPos.set(homeTransform.position);
+                        teleportPlayer(player, worldPos);
+                    }
+                }
+                return;
+            }
+
             eventBus.publish(new InteractionPromptEvent("[F] Exit Ship", true));
             if (input.interactPressed) {
                 ShipInteriorComponent interior = interiorMapper.get(state.currentShip);
@@ -343,6 +366,24 @@ public class InteractionSystem extends EntitySystem {
             teleportPlayer(player, worldPos);
         }
         eventBus.publish(new PlayerExitVehicleEvent(player, vehicle));
+    }
+
+    /**
+     * If {@code currentShip} is a ship the player has boarded as an aggressor (active boarding
+     * op, not yet RESOLVED), returns the player's own (aggressor) ship to return to on exit;
+     * otherwise null (the ship is the player's own — use the normal exit path).
+     */
+    public static Entity boardingHomeShip(Entity currentShip) {
+        if (currentShip == null) return null;
+        BoardingOperationComponent op = currentShip.getComponent(BoardingOperationComponent.class);
+        if (op == null) return null;
+        if (op.phase == BoardingOperationComponent.BoardingPhase.RESOLVED
+                || op.phase == BoardingOperationComponent.BoardingPhase.NONE) return null;
+        // Only route to the aggressor ship when the PLAYER is the aggressor. For an
+        // NPC-boards-player op, aggressorShip is the NPC — returning it would wrongly route the
+        // player toward the NPC on exit. Fall through to the normal exit path instead.
+        if (!op.playerIsAggressor) return null;
+        return op.aggressorShip;
     }
 
     private void freezePlayerBody(Entity player) {

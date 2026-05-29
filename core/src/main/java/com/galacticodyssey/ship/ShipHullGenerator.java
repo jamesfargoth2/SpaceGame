@@ -3,6 +3,7 @@ package com.galacticodyssey.ship;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.BoundingBox;
+import com.galacticodyssey.galaxy.SeedDeriver;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -37,6 +38,13 @@ public class ShipHullGenerator {
     private static final int INTERPOLATION_RINGS = 4;
     public static final int VERTEX_STRIDE = 11;
 
+    // Sub-seed component IDs within a ship's SHIP_DOMAIN seed. Each must be
+    // distinct so sibling generators (palette, hull, interior) derive
+    // independent, domain-separated RNG streams from the same blueprint seed.
+    public static final long SUBSEED_PALETTE  = 0;
+    public static final long SUBSEED_HULL     = 1;
+    public static final long SUBSEED_INTERIOR = 2;
+
     // Nacelle sub-hull resolution
     private static final int NACELLE_RING_VERTS = 12;
     private static final int NACELLE_RINGS      = 7;
@@ -48,8 +56,10 @@ public class ShipHullGenerator {
     }
 
     public HullGeometry generate(ShipBlueprint blueprint, HullStyle style) {
-        Random rng = new Random(blueprint.seed + 1);
-        ShipColorPalette palette = new ShipColorPalette(blueprint.seed, style);
+        long shipDomain = SeedDeriver.shipDomain(blueprint.seed);
+        Random rng = new Random(SeedDeriver.forId(shipDomain, SUBSEED_HULL));
+        ShipColorPalette palette =
+            new ShipColorPalette(SeedDeriver.forId(shipDomain, SUBSEED_PALETTE), style);
 
         SpineCurve spine = generateSpine(blueprint, style, rng);
         List<CrossSection> sections = generateCrossSections(blueprint, style, rng);

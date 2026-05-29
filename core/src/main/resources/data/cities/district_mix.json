@@ -1,0 +1,12 @@
+{
+  "GOVERNMENT":  {"minLot":400,"maxLot":2000,"functions":[{"function":"FACTION_HQ","weight":1},{"function":"COURTHOUSE","weight":2},{"function":"TOWN_HALL","weight":2},{"function":"SHOP","weight":1}]},
+  "COMMERCIAL":  {"minLot":80,"maxLot":250,"functions":[{"function":"SHOP","weight":4},{"function":"CANTINA","weight":2},{"function":"MARKET_STALL","weight":2},{"function":"APARTMENT","weight":1}]},
+  "RESIDENTIAL": {"minLot":60,"maxLot":250,"functions":[{"function":"HOUSE","weight":5},{"function":"APARTMENT","weight":3},{"function":"SHOP","weight":1}]},
+  "INDUSTRIAL":  {"minLot":200,"maxLot":800,"functions":[{"function":"WAREHOUSE","weight":3},{"function":"WORKSHOP","weight":3},{"function":"FACTORY","weight":2}]},
+  "SLUMS":       {"minLot":20,"maxLot":60,"functions":[{"function":"TENEMENT","weight":5},{"function":"HOUSE","weight":2},{"function":"CANTINA","weight":1}]},
+  "SPACEPORT":   {"minLot":300,"maxLot":1500,"functions":[{"function":"HANGAR","weight":3},{"function":"TERMINAL","weight":2},{"function":"WAREHOUSE","weight":2}]},
+  "RELIGIOUS":   {"minLot":150,"maxLot":800,"functions":[{"function":"TEMPLE","weight":2},{"function":"SHRINE","weight":3},{"function":"HOUSE","weight":1}]},
+  "GARDEN":      {"minLot":200,"maxLot":600,"functions":[{"function":"PARK","weight":4},{"function":"SHRINE","weight":1}]},
+  "MILITARY":    {"minLot":200,"maxLot":800,"functions":[{"function":"BARRACKS","weight":4},{"function":"WAREHOUSE","weight":1},{"function":"CLINIC","weight":1}]},
+  "UNKNOWN":     {"minLot":60,"maxLot":250,"functions":[{"function":"EMPTY_LOT","weight":1}]}
+}

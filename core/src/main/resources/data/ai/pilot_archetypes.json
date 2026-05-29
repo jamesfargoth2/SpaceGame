@@ -1,0 +1,5 @@
+[
+  {"id":"rookie","reactionTimeSec":0.6,"aimErrorDeg":8.0,"aggression":0.4,"evadeHealthThreshold":0.5,"preferredEngageRange":400.0,"overshootExtendDist":150.0,"throttleDiscipline":0.4,"aggroRange":1800.0,"usesMissiles":false},
+  {"id":"veteran","reactionTimeSec":0.3,"aimErrorDeg":4.0,"aggression":0.65,"evadeHealthThreshold":0.35,"preferredEngageRange":350.0,"overshootExtendDist":130.0,"throttleDiscipline":0.7,"aggroRange":2200.0,"usesMissiles":true},
+  {"id":"ace","reactionTimeSec":0.12,"aimErrorDeg":1.5,"aggression":0.9,"evadeHealthThreshold":0.25,"preferredEngageRange":300.0,"overshootExtendDist":120.0,"throttleDiscipline":0.9,"aggroRange":2500.0,"usesMissiles":true}
+]

@@ -1,0 +1,41 @@
+FACTION SHIP DESIGNS & DESIGN LANGUAGE
+
+1. GALACTIC FEDERATION: THE MODULAR CO-OP
+----------------------------------------
+* Visual Aesthetic: Smooth, rounded white or light-gray composite hull plating broken up by glowing blue accents (shields and engines). The ships look optimized, clean, and optimistic.
+* Design Motifs: Asymmetrical modular pods. You can actively see where different species contributed—for example, a human-designed command bridge bolted onto an elegant, avian-designed engine block.
+* Signature Ship: Accord-Class Cruiser
+  - Look: A long, multi-segmented hull that resembles a floating scientific outpost as much as a warship. It features prominent, rotating sensor dishes and massive shield-projector rings encircling the midsection.
+  - Gameplay Impact: Incredibly high shield capacity. They don't have the highest damage output, but they deploy localized shield bubbles to protect allies or automatons, and utilize precise EMP weapons to disable threats rather than destroy them.
+
+2. THE VAUN EMPIRE: BRUTALIST WAR MACHINES
+-----------------------------------------
+* Visual Aesthetic: Jagged, sharp angles and thick, layered slabs of dark iron-gray or matte-black armor plating. They use harsh red or orange lighting for their engines and weapon arrays.
+* Design Motifs: Exposed structural ribbing, forward-facing jagged teeth or rams, and massive, visible cooling vents that exhaust burning gas when their heavy weapons fire.
+* Signature Ship: Tyrant-Class Dreadnought
+  - Look: A towering, wedge-shaped fortress moving through space. The front of the ship is dominated by a single, colossal spinal weapon barrel that runs the entire length of the vessel.
+  - Gameplay Impact: Little to no shields, but massive hull health bars that resist kinetic damage. They feature forward-facing heavy plasma lances and physical boarding pods filled with Vaun shock troops to take over player or enemy ships.
+
+3. THE BUG TRADERS: FRANKEN-SHIPS & CARGO HULKS
+-----------------------------------------------
+* Visual Aesthetic: Industrial rust-browns, toxic greens, and mismatched metal plates. These ships look like flying scrap heaps held together by prayers and black-market wire.
+* Design Motifs: Asymmetrical layouts with massive external cargo crates strapped to the hull. They often feature multiple small, rapid-firing thrusters arranged erratically like a fly's legs to give them strange, sudden maneuvering profiles.
+* Signature Ship: The Swarm-Hauler
+  - Look: A bulging, bulbous central hull that resembles an insect abdomen, ringed with completely exposed wiring, fuel pipes, and magnetic cargo clamps holding stolen or illegal goods.
+  - Gameplay Impact: Weak hull and poor weapons, but highly erratic evasion capabilities. When threatened, they deploy thick clouds of chaff, sensor-disrupting smoke, or launch cheap, automated defense drones to hold off attackers while they charge their FTL drives to escape.
+
+4. NEUTRAL ROBOTS: MONOLITHIC GEOMETRY
+--------------------------------------
+* Visual Aesthetic: Flawless, seamless dark obsidian metal or reflective chrome. No visible windows, bridges, doors, or landing gear. They feature a single, pulsing green or white data-light that runs along the seams of the ship.
+* Design Motifs: Pure mathematical shapes—perfect spheres, floating cubes, or sharp tetrahedrons. The sections of the ship often don't physically touch, instead hovering apart via localized quantum locking fields.
+* Signature Ship: Null-Vector Guardian
+  - Look: A perfect, floating black cube. When it shifts into combat mode, the faces of the cube slide open silently to reveal rows of glowing, perfectly synchronized kinetic railguns.
+  - Gameplay Impact: Absolutely immune to electronic warfare or hacking. They utilize gravity-warping beams that pull enemy ships out of formation or crush their hulls using the enemy's own mass against them.
+
+5. THE ZEELEE: SPACETIME ANOMALIES
+----------------------------------
+* Visual Aesthetic: Iridescent, translucent materials that shift colors like an oil slick or a prism catching light. They emit a faint, melodic resonance instead of engine noise.
+* Design Motifs: Non-Euclidean geometry. The ship changes shape depending on the angle you look at it. They leave a trail of distorted, warping starlight behind them as they drift through systems.
+* Signature Ship: The Chronos Monolith
+  - Look: A floating, vertical spire of crystalline structures that appear to be solid light. It doesn't seem to have engine thrusters; it simply moves by folding the space in front of it.
+  - Gameplay Impact: Untargetable by traditional lock-on systems. If fired upon, projectiles bend completely around the ship as if hitting a localized black hole. They do not initiate combat, but getting too close to their wake can cause a player's ship instruments to go completely haywire or experience temporary time-dilation.

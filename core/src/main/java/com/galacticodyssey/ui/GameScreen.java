@@ -140,6 +140,7 @@ public class GameScreen implements Screen {
     private ShaderProgram terrainShader;
     private ModelBatch modelBatch;
     private ModelBatch gbufferBatch;
+    private com.badlogic.gdx.graphics.g3d.ModelBatch creatureBatch;
     private Environment environment;
     private final Matrix4 tmpMat4 = new Matrix4();
     private final Matrix4 tmpViewModelMat4 = new Matrix4();
@@ -198,6 +199,8 @@ public class GameScreen implements Screen {
     private com.galacticodyssey.ui.systems.RecruitmentScreenSystem recruitmentScreen;
     private VehicleBayPanel vehicleBayPanel;
     private com.badlogic.gdx.scenes.scene2d.Stage vehicleBayStage;
+    private BoardingResolutionPanel boardingResolutionPanel;
+    private com.badlogic.gdx.scenes.scene2d.Stage boardingResolutionStage;
 
     // DEV-ONLY: F6 debug creature spawn (Task 14, Creature Generation Core)
     private FaunaDebugSpawner faunaDebugSpawner;
@@ -325,6 +328,8 @@ public class GameScreen implements Screen {
 
         modelBatch = new ModelBatch();
         gbufferBatch = new ModelBatch(new GBufferBatchShaderProvider(deferredRenderer.getShaderCache()));
+        creatureBatch = new com.badlogic.gdx.graphics.g3d.ModelBatch(
+            new com.galacticodyssey.fauna.skin.CreatureSkinShaderProvider());
         environment = new Environment();
         environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.3f, 0.3f, 0.35f, 1f));
         environment.add(new DirectionalLight().set(0.8f, 0.8f, 0.75f, -0.4f, -0.8f, -0.3f));
@@ -471,10 +476,13 @@ public class GameScreen implements Screen {
         };
 
         inputMultiplexer.clear();
+        if (boardingResolutionStage != null) inputMultiplexer.addProcessor(boardingResolutionStage);
         if (vehicleBayStage != null) inputMultiplexer.addProcessor(vehicleBayStage);
         inputMultiplexer.addProcessor(keyHandler);
         if (paused) {
             inputMultiplexer.addProcessor(pauseStage);
+        } else if (inDialog) {
+            inputMultiplexer.addProcessor(dialogInputAdapter);
         } else if (isAnyScreenOpen()) {
             inputMultiplexer.addProcessor(screenTabManager.getTabBarStage());
             ManagedScreen active = screenTabManager.getActiveScreen();
@@ -493,6 +501,7 @@ public class GameScreen implements Screen {
             Gdx.input.setCursorCatched(false);
             gameWorld.getPlayerInputSystem().setEnabled(false);
             inputMultiplexer.clear();
+            if (boardingResolutionStage != null) inputMultiplexer.addProcessor(boardingResolutionStage);
             if (vehicleBayStage != null) inputMultiplexer.addProcessor(vehicleBayStage);
             inputMultiplexer.addProcessor(new InputAdapter() {
                 @Override
@@ -831,6 +840,13 @@ public class GameScreen implements Screen {
             gameWorld.getEventBus());
         vehicleBayPanel.setFillParent(true);
         vehicleBayStage.addActor(vehicleBayPanel);
+
+        // Boarding resolution overlay (standalone panel — shown via BoardingResolutionRequestedEvent)
+        boardingResolutionStage = new com.badlogic.gdx.scenes.scene2d.Stage(
+            new com.badlogic.gdx.utils.viewport.ScreenViewport());
+        boardingResolutionPanel = new BoardingResolutionPanel(game.getSkin(), gameWorld.getEventBus());
+        boardingResolutionPanel.setFillParent(true);
+        boardingResolutionStage.addActor(boardingResolutionPanel);
     }
     private void buildDialogSystem() {
         EventBus eventBus = gameWorld.getEventBus();
@@ -1283,6 +1299,10 @@ public class GameScreen implements Screen {
             vehicleBayStage.act(delta);
             vehicleBayStage.draw();
         }
+        if (boardingResolutionPanel != null && boardingResolutionPanel.isVisible()) {
+            boardingResolutionStage.act(delta);
+            boardingResolutionStage.draw();
+        }
         if (paused) { pauseStage.act(delta); pauseStage.draw(); }
     }
 
@@ -1381,17 +1401,19 @@ public class GameScreen implements Screen {
         creatureRenderQueue.clear();
         for (int i = 0; i < creatures.size(); i++) {
             CreatureRenderComponent render = creatures.get(i).getComponent(CreatureRenderComponent.class);
-            if (render.modelInstance instanceof Array) {
+            if (render.skinnedInstance != null) {
+                creatureRenderQueue.add(render.skinnedInstance);
+            } else if (render.modelInstance instanceof Array) {
                 creatureRenderQueue.addAll((Array<ModelInstance>) render.modelInstance);
             }
         }
         if (creatureRenderQueue.size == 0) return;
 
-        gbufferBatch.begin(camera);
+        creatureBatch.begin(camera);
         for (int i = 0; i < creatureRenderQueue.size; i++) {
-            gbufferBatch.render(creatureRenderQueue.get(i));
+            creatureBatch.render(creatureRenderQueue.get(i));
         }
-        gbufferBatch.end();
+        creatureBatch.end();
     }
 
     @Override
@@ -1407,6 +1429,7 @@ public class GameScreen implements Screen {
         if (levelUpToast != null) levelUpToast.resize(width, height);
         if (screenTabManager != null) screenTabManager.resize(width, height);
         if (vehicleBayStage != null) vehicleBayStage.getViewport().update(width, height, true);
+        if (boardingResolutionStage != null) boardingResolutionStage.getViewport().update(width, height, true);
     }
 
     @Override
@@ -1463,6 +1486,10 @@ public class GameScreen implements Screen {
             gbufferBatch.dispose();
             gbufferBatch = null;
         }
+        if (creatureBatch != null) {
+            creatureBatch.dispose();
+            creatureBatch = null;
+        }
         if (dialogHudSystem != null) {
             dialogHudSystem.dispose();
             dialogHudSystem = null;
@@ -1500,6 +1527,8 @@ public class GameScreen implements Screen {
             vehicleBayStage.dispose();
             vehicleBayStage = null;
         }
+        if (boardingResolutionPanel != null) { boardingResolutionPanel.dispose(); boardingResolutionPanel = null; }
+        if (boardingResolutionStage != null) { boardingResolutionStage.dispose(); boardingResolutionStage = null; }
         if (screenTabManager != null) {
             screenTabManager.dispose();
             screenTabManager = null;

@@ -8,24 +8,42 @@ import com.galacticodyssey.combat.fleet.components.*;
 import com.galacticodyssey.combat.fleet.data.*;
 import com.galacticodyssey.combat.fleet.systems.FleetExpansionSystem;
 import com.galacticodyssey.core.EventBus;
+import com.galacticodyssey.core.systems.BulletPhysicsSystem;
+import com.galacticodyssey.ship.ShipFactory;
+import com.badlogic.gdx.physics.bullet.Bullet;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class FleetExpansionSystemTest {
 
+    @BeforeAll static void initBullet() { Bullet.init(); }
+
     private Engine engine;
     private EventBus eventBus;
     private Vector3 playerPos;
+    private BulletPhysicsSystem physics;
+    private ShipFactory shipFactory;
 
     @BeforeEach
     void setUp() {
         engine = new Engine();
         eventBus = new EventBus();
         playerPos = new Vector3(0f, 0f, 0f);
+        physics = new BulletPhysicsSystem(eventBus);
+        physics.initialize();
+        shipFactory = new ShipFactory(engine, physics);
         FormationRegistry formationRegistry = new FormationRegistry();
         formationRegistry.registerDefaults(50);
-        engine.addSystem(new FleetExpansionSystem(eventBus, () -> playerPos, formationRegistry));
+        engine.addSystem(new FleetExpansionSystem(eventBus, () -> playerPos, formationRegistry, shipFactory));
+    }
+
+    @AfterEach
+    void tearDown() {
+        shipFactory.dispose();
+        physics.dispose();
     }
 
     @Test

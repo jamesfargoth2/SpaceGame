@@ -10,6 +10,7 @@ import com.galacticodyssey.core.EventBus;
 import com.galacticodyssey.core.components.TransformComponent;
 import com.galacticodyssey.ship.weapons.ShipWeaponEnums.ShipWeaponCategory;
 import com.galacticodyssey.ship.weapons.components.GuidedProjectileComponent;
+import com.galacticodyssey.ship.weapons.components.ShipHardpointComponent;
 import com.galacticodyssey.ship.weapons.data.ShipWeaponData;
 import com.galacticodyssey.ship.weapons.events.ShipWeaponFiredEvent;
 
@@ -66,6 +67,10 @@ public class ShipProjectileSystem extends EntitySystem {
             gpc.armingDistance = 20f;
             pc.proximityFuseRadius = 15f;
             pc.areaOfEffect = 30f;
+            ShipHardpointComponent firingHpc = event.shipEntity.getComponent(ShipHardpointComponent.class);
+            if (firingHpc != null && firingHpc.currentTarget != null) {
+                gpc.targetEntity = firingHpc.currentTarget;
+            }
             projectile.add(gpc);
         }
 
