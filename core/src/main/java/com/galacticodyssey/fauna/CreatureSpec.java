@@ -12,6 +12,7 @@ public final class CreatureSpec {
     public long seed;
     public String archetypeId;
     public BodyPlan bodyPlan;
+    public String gaitClass = "walk";
     public AssembledNode root;
     public final List<AssembledNode> allNodes = new ArrayList<>(); // flattened, root first
 

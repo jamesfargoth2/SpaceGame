@@ -54,4 +54,11 @@ class CreatureGeneratorTest {
         CreatureGenerator g = new CreatureGenerator(reg);
         assertEquals(g.generate(900L).archetypeId, g.generate(900L).archetypeId);
     }
+
+    @Test
+    void gaitClassPropagatedToSpec() {
+        CreatureSpec spec = new CreatureGenerator(reg).generate("quad", 42L);
+        assertNotNull(spec.gaitClass);
+        assertFalse(spec.gaitClass.isEmpty());
+    }
 }

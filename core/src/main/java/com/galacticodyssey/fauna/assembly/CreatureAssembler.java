@@ -28,6 +28,7 @@ public final class CreatureAssembler {
         spec.seed = seed;
         spec.archetypeId = arch.id;
         spec.bodyPlan = arch.bodyPlan;
+        spec.gaitClass = arch.gaitClass;
         spec.sizeMultiplier = arch.minSize + rng.nextFloat() * (arch.maxSize - arch.minSize);
         spec.colorSeed = rng.nextLong();
 

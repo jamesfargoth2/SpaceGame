@@ -40,19 +40,11 @@ public final class CreatureFactory {
         CreatureRig rig = new CreatureRigBuilder().build(spec);
         CreatureAnimationComponent anim = new CreatureAnimationComponent();
         anim.rig = rig;
-        anim.gaitController = GaitControllerFactory.create(resolveGaitClass(spec));
+        anim.gaitController = GaitControllerFactory.create(spec.gaitClass);
         anim.params.sizeMultiplier = spec.sizeMultiplier;
         e.add(anim);
 
         engine.addEntity(e);
         return e;
-    }
-
-    private String resolveGaitClass(CreatureSpec spec) {
-        switch (spec.bodyPlan) {
-            case HEXAPOD:    return "skitter";
-            case SERPENTINE: return "slither";
-            default:         return "walk";
-        }
     }
 }
