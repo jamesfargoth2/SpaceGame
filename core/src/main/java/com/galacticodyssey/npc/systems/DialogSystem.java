@@ -1,6 +1,7 @@
 package com.galacticodyssey.npc.systems;
 
 import com.badlogic.ashley.core.EntitySystem;
+import com.badlogic.gdx.Gdx;
 import com.galacticodyssey.core.EventBus;
 import com.galacticodyssey.core.events.DialogueChoiceMadeEvent;
 import com.galacticodyssey.core.events.NpcDialogueEvent;
@@ -32,10 +33,14 @@ public class DialogSystem extends EntitySystem {
     }
 
     private void onDialogueRequested(NpcDialogueEvent event) {
+        Gdx.app.log("Dialog", "NpcDialogueEvent: npcId='" + event.npcId + "' topic='" + event.topic + "' active=" + active);
         if (active) return;
 
         DialogTree tree = registry.getTree(event.topic);
-        if (tree == null) return;
+        if (tree == null) {
+            Gdx.app.error("Dialog", "DialogSystem: tree not found for topic='" + event.topic + "' available=" + registry.getTreeIds());
+            return;
+        }
 
         activeTree = tree;
         activeNpcId = event.npcId;
@@ -43,6 +48,7 @@ public class DialogSystem extends EntitySystem {
         currentNode = tree.getStartNode();
         active = true;
 
+        Gdx.app.log("Dialog", "DialogSystem: publishing DialogOpenedEvent, startNode='" + (currentNode != null ? currentNode.id : "null") + "'");
         eventBus.publish(new DialogOpenedEvent(activeNpcId, activeNpcName, currentNode));
     }
 

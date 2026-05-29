@@ -54,6 +54,7 @@ public class InteractionSystem extends EntitySystem {
     private final Vector3 worldPos = new Vector3();
     private final Matrix4 shipWorldMat = new Matrix4();
     private int logTimer = 0;
+    private int npcLogTimer = 0;
 
     public InteractionSystem(EventBus eventBus) {
         super(0);
@@ -122,6 +123,12 @@ public class InteractionSystem extends EntitySystem {
             }
         }
 
+        npcLogTimer++;
+        if (npcLogTimer % 120 == 1 && Gdx.app != null) {
+            Gdx.app.log("Dialog", "NPC scan: npcEntities=" + npcEntities.size()
+                + (nearestNpc != null ? " nearestDist=" + nearestDist : " (none in radius)"));
+        }
+
         if (nearestNpc == null) return false;
 
         NpcIdentityComponent identity = npcIdentityMapper.get(nearestNpc);
@@ -131,6 +138,8 @@ public class InteractionSystem extends EntitySystem {
         eventBus.publish(new InteractionPromptEvent("[F] Talk to " + npcName, true));
 
         if (input.interactPressed) {
+            if (Gdx.app != null) Gdx.app.log("Dialog", "[F] pressed near '" + npcName + "' dist=" + nearestDist
+                + " publishing NpcDialogueEvent topic='" + dialog.dialogTreeId + "'");
             eventBus.publish(new NpcDialogueEvent(identity.npcId, dialog.dialogTreeId));
         }
 

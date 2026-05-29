@@ -22,9 +22,12 @@ import com.galacticodyssey.ship.weapons.data.Hardpoint;
 import com.galacticodyssey.ship.weapons.data.ShipWeaponData;
 import com.galacticodyssey.ship.weapons.systems.ShipWeaponSystem;
 import com.galacticodyssey.ship.weapons.events.ShipWeaponFiredEvent;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -32,6 +35,39 @@ class ShipPilotAISystemTest {
 
     @BeforeAll
     static void initBullet() { Bullet.init(); }
+
+    private btDefaultCollisionConfiguration config;
+    private btCollisionDispatcher dispatcher;
+    private btDbvtBroadphase broadphase;
+    private btSequentialImpulseConstraintSolver solver;
+    private btDiscreteDynamicsWorld world;
+    private final List<btRigidBody> bodies = new ArrayList<>();
+    private final List<btCollisionShape> shapes = new ArrayList<>();
+
+    @AfterEach
+    void tearDown() {
+        if (world != null) {
+            for (btRigidBody b : bodies) world.removeRigidBody(b);
+        }
+        for (btRigidBody b : bodies) b.dispose();
+        for (btCollisionShape s : shapes) s.dispose();
+        bodies.clear();
+        shapes.clear();
+        if (world != null) { world.dispose(); world = null; }
+        if (solver != null) { solver.dispose(); solver = null; }
+        if (broadphase != null) { broadphase.dispose(); broadphase = null; }
+        if (dispatcher != null) { dispatcher.dispose(); dispatcher = null; }
+        if (config != null) { config.dispose(); config = null; }
+    }
+
+    private void initWorld() {
+        config = new btDefaultCollisionConfiguration();
+        dispatcher = new btCollisionDispatcher(config);
+        broadphase = new btDbvtBroadphase();
+        solver = new btSequentialImpulseConstraintSolver();
+        world = new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, config);
+        world.setGravity(new Vector3(0, 0, 0));
+    }
 
     private btRigidBody box(float mass, btCollisionShape shape, Vector3 pos) {
         Vector3 inertia = new Vector3();
@@ -46,13 +82,7 @@ class ShipPilotAISystemTest {
 
     @Test
     void attackerClosesAlignsAndFires() {
-        btDefaultCollisionConfiguration config = new btDefaultCollisionConfiguration();
-        btCollisionDispatcher dispatcher = new btCollisionDispatcher(config);
-        btDbvtBroadphase broadphase = new btDbvtBroadphase();
-        btSequentialImpulseConstraintSolver solver = new btSequentialImpulseConstraintSolver();
-        btDiscreteDynamicsWorld world =
-            new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, config);
-        world.setGravity(new Vector3(0, 0, 0));
+        initWorld();
 
         EventBus bus = new EventBus();
         AtomicInteger shots = new AtomicInteger();
@@ -68,7 +98,9 @@ class ShipPilotAISystemTest {
 
         Entity target = new Entity();
         btBoxShape tShape = new btBoxShape(new Vector3(2, 2, 2));
+        shapes.add(tShape);
         btRigidBody tBody = box(20000f, tShape, new Vector3(0, 0, -800));
+        bodies.add(tBody);
         target.add(physicsOf(tBody, tShape, 20000f));
         TransformComponent tT = new TransformComponent();
         tT.position.set(0, 0, -800);
@@ -80,7 +112,9 @@ class ShipPilotAISystemTest {
 
         Entity attacker = new Entity();
         btBoxShape aShape = new btBoxShape(new Vector3(1, 1, 1));
+        shapes.add(aShape);
         btRigidBody aBody = box(10000f, aShape, new Vector3(0, 0, 0));
+        bodies.add(aBody);
         attacker.add(physicsOf(aBody, aShape, 10000f));
         TransformComponent aT = new TransformComponent();
         attacker.add(aT);
@@ -125,19 +159,11 @@ class ShipPilotAISystemTest {
         float endRange = aT.position.dst(tT.position);
         assertTrue(endRange < startRange, "attacker should close range (" + startRange + "->" + endRange + ")");
         assertTrue(shots.get() > 0, "attacker should have fired at least once");
-
-        world.dispose(); solver.dispose(); broadphase.dispose(); dispatcher.dispose(); config.dispose();
     }
 
     @Test
     void acquiresPlayerTargetWhenNoneAssigned() {
-        btDefaultCollisionConfiguration config = new btDefaultCollisionConfiguration();
-        btCollisionDispatcher dispatcher = new btCollisionDispatcher(config);
-        btDbvtBroadphase broadphase = new btDbvtBroadphase();
-        btSequentialImpulseConstraintSolver solver = new btSequentialImpulseConstraintSolver();
-        btDiscreteDynamicsWorld world =
-            new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, config);
-        world.setGravity(new Vector3(0, 0, 0));
+        initWorld();
 
         EventBus bus = new EventBus();
         Engine engine = new Engine();
@@ -156,7 +182,9 @@ class ShipPilotAISystemTest {
 
         Entity attacker = new Entity();
         btBoxShape aShape = new btBoxShape(new Vector3(1, 1, 1));
+        shapes.add(aShape);
         btRigidBody aBody = box(10000f, aShape, new Vector3(0, 0, 0));
+        bodies.add(aBody);
         attacker.add(physicsOf(aBody, aShape, 10000f));
         attacker.add(new TransformComponent());
         ShipFlightComponent f = new ShipFlightComponent();
@@ -175,8 +203,6 @@ class ShipPilotAISystemTest {
         engine.update(1f / 60f);
 
         assertSame(player, pilot.currentTarget, "AI should acquire the nearby player ship");
-
-        world.dispose(); solver.dispose(); broadphase.dispose(); dispatcher.dispose(); config.dispose();
     }
 
     private static PhysicsBodyComponent physicsOf(btRigidBody body, btCollisionShape shape, float mass) {

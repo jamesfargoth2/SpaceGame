@@ -15,6 +15,7 @@ import com.badlogic.gdx.physics.bullet.dynamics.btSequentialImpulseConstraintSol
 import com.galacticodyssey.core.components.PhysicsBodyComponent;
 import com.galacticodyssey.ship.components.ShipFlightComponent;
 import com.galacticodyssey.ship.components.ShipFlightInputComponent;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
@@ -24,14 +25,33 @@ class ShipFlightSystemNpcTest {
     @BeforeAll
     static void initBullet() { Bullet.init(); }
 
+    private btDefaultCollisionConfiguration config;
+    private btCollisionDispatcher dispatcher;
+    private btDbvtBroadphase broadphase;
+    private btSequentialImpulseConstraintSolver solver;
+    private btDiscreteDynamicsWorld world;
+    private btRigidBody body;
+    private btBoxShape shape;
+
+    @AfterEach
+    void tearDown() {
+        if (body != null && world != null) world.removeRigidBody(body);
+        if (body != null) { body.dispose(); body = null; }
+        if (shape != null) { shape.dispose(); shape = null; }
+        if (world != null) { world.dispose(); world = null; }
+        if (solver != null) { solver.dispose(); solver = null; }
+        if (broadphase != null) { broadphase.dispose(); broadphase = null; }
+        if (dispatcher != null) { dispatcher.dispose(); dispatcher = null; }
+        if (config != null) { config.dispose(); config = null; }
+    }
+
     @Test
     void npcShipWithOwnInputAccelerates() {
-        btDefaultCollisionConfiguration config = new btDefaultCollisionConfiguration();
-        btCollisionDispatcher dispatcher = new btCollisionDispatcher(config);
-        btDbvtBroadphase broadphase = new btDbvtBroadphase();
-        btSequentialImpulseConstraintSolver solver = new btSequentialImpulseConstraintSolver();
-        btDiscreteDynamicsWorld world =
-            new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, config);
+        config = new btDefaultCollisionConfiguration();
+        dispatcher = new btCollisionDispatcher(config);
+        broadphase = new btDbvtBroadphase();
+        solver = new btSequentialImpulseConstraintSolver();
+        world = new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, config);
         world.setGravity(new Vector3(0, 0, 0));
 
         Engine engine = new Engine();
@@ -40,13 +60,15 @@ class ShipFlightSystemNpcTest {
 
         Entity ship = new Entity();
         PhysicsBodyComponent physics = new PhysicsBodyComponent();
-        physics.shape = new btBoxShape(new Vector3(1, 1, 1));
+        shape = new btBoxShape(new Vector3(1, 1, 1));
+        physics.shape = shape;
         float mass = 10000f;
         Vector3 inertia = new Vector3();
         physics.shape.calculateLocalInertia(mass, inertia);
         btRigidBody.btRigidBodyConstructionInfo info =
             new btRigidBody.btRigidBodyConstructionInfo(mass, null, physics.shape, inertia);
-        physics.body = new btRigidBody(info);
+        body = new btRigidBody(info);
+        physics.body = body;
         physics.body.setWorldTransform(new Matrix4().idt());
         physics.mass = mass;
         info.dispose();
@@ -77,11 +99,5 @@ class ShipFlightSystemNpcTest {
 
         float speed = physics.body.getLinearVelocity().len();
         assertTrue(speed > 1f, "NPC ship should have accelerated, speed=" + speed);
-
-        world.removeRigidBody(physics.body);
-        physics.body.dispose();
-        physics.shape.dispose();
-        world.dispose(); solver.dispose(); broadphase.dispose();
-        dispatcher.dispose(); config.dispose();
     }
 }
