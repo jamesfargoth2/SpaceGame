@@ -22,6 +22,7 @@ public final class CreatureSpec {
     public float moveSpeed;   // m/s
     public float meleeDamage;
     public long colorSeed;    // drives flat biome tint now; full patterns in Cycle C
+    public com.galacticodyssey.fauna.skin.CreatureSkinSpec skinSpec;
 
     public final BoundingBox bounds = new BoundingBox();
 

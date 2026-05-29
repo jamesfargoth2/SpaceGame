@@ -31,6 +31,8 @@ public final class CreatureAssembler {
         spec.gaitClass = arch.gaitClass;
         spec.sizeMultiplier = arch.minSize + rng.nextFloat() * (arch.maxSize - arch.minSize);
         spec.colorSeed = rng.nextLong();
+        spec.skinSpec = com.galacticodyssey.fauna.skin.PaletteGenerator.generate(
+            spec.colorSeed, com.galacticodyssey.planet.BiomeType.GRASSLAND, arch.bodyPlan);
 
         // The root part may itself be a repeat chain (e.g. serpentine spine). Build the chain,
         // then attach the root template's children to the LAST segment. Chained segments must

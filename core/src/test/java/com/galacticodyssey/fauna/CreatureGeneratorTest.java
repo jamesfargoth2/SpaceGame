@@ -61,4 +61,12 @@ class CreatureGeneratorTest {
         assertNotNull(spec.gaitClass);
         assertFalse(spec.gaitClass.isEmpty());
     }
+
+    @Test
+    void skinSpecIsPropagatedFromAssembly() {
+        CreatureSpec spec = new CreatureGenerator(reg).generate("quad", 42L);
+        assertNotNull(spec.skinSpec, "skinSpec should be populated during assembly");
+        assertNotNull(spec.skinSpec.patternType);
+        assertTrue(spec.skinSpec.primaryR >= 0f && spec.skinSpec.primaryR <= 1f);
+    }
 }
