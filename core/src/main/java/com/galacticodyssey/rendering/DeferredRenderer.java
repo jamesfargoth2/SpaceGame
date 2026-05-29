@@ -46,7 +46,8 @@ public class DeferredRenderer implements Disposable {
     private void createForwardBuffer() {
         GLFrameBuffer.FrameBufferBuilder builder = new GLFrameBuffer.FrameBufferBuilder(width, height);
         builder.addColorTextureAttachment(GL30.GL_RGBA16F, GL20.GL_RGBA, GL20.GL_FLOAT);
-        builder.addDepthRenderBuffer(GL30.GL_DEPTH_COMPONENT24);
+        // GL_DEPTH24_STENCIL8 so we can blit GBuffer stencil here and use it to mask sky vs. geometry
+        builder.addDepthRenderBuffer(GL30.GL_DEPTH24_STENCIL8);
         forwardHDRBuffer = builder.build();
         forwardHDRBuffer.getColorBufferTexture().setFilter(
             Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
@@ -137,16 +138,50 @@ public class DeferredRenderer implements Disposable {
             sunDirection, sunColor, sunIntensity,
             ambientColor, ambientIntensity, lights);
 
-        // DEBUG: blit lighting HDR output directly to screen
-        Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, 0);
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+        // Blit GBuffer depth+stencil into forwardHDRBuffer so sky can be stencil-masked
+        // against geometry pixels (stencil=1 written by GBuffer for every opaque fragment).
+        Gdx.gl30.glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, gBuffer.getFbo().getFramebufferHandle());
+        Gdx.gl30.glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER, forwardHDRBuffer.getFramebufferHandle());
+        Gdx.gl30.glBlitFramebuffer(0, 0, width, height, 0, 0, width, height,
+            GL20.GL_DEPTH_BUFFER_BIT | GL20.GL_STENCIL_BUFFER_BIT, GL20.GL_NEAREST);
+
+        forwardHDRBuffer.begin();
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);  // keep depth+stencil from the blit above
         Gdx.gl.glDisable(GL20.GL_DEPTH_TEST);
-        ShaderProgram debugBlit = shaderCache.get("fullscreen.vert", "fxaa.frag");
-        debugBlit.bind();
+        Gdx.gl.glEnable(GL20.GL_STENCIL_TEST);
+        Gdx.gl.glStencilMask(0x00);
+
+        // Sky fills background pixels only (stencil == 0 means no opaque geometry there)
+        Gdx.gl.glStencilFunc(GL20.GL_EQUAL, 0, 0xFF);
+        if (skyRenderer != null) skyRenderer.render(camera);
+
+        // Deferred lighting fills geometry pixels (stencil == 1)
+        Gdx.gl.glStencilFunc(GL20.GL_EQUAL, 1, 0xFF);
+        ShaderProgram passthrough = shaderCache.get("fullscreen.vert", "passthrough.frag");
+        passthrough.bind();
         lightingPass.getHDRTexture().bind(0);
-        debugBlit.setUniformi("u_inputTex", 0);
-        debugBlit.setUniformf("u_texelSize", 1f / width, 1f / height);
-        quad.render(debugBlit);
+        passthrough.setUniformi("u_inputTex", 0);
+        quad.render(passthrough);
+
+        Gdx.gl.glDisable(GL20.GL_STENCIL_TEST);
+        Gdx.gl.glStencilMask(0xFF);
+
+        // Transparent geometry (water, particles) with depth test, no stencil restriction
+        if (waterRenderer != null) {
+            Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
+            Gdx.gl.glEnable(GL20.GL_BLEND);
+            Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+            Gdx.gl.glDepthMask(false);
+            waterRenderer.run();
+            Gdx.gl.glDepthMask(true);
+            Gdx.gl.glDisable(GL20.GL_BLEND);
+        }
+        if (particleRenderer != null) {
+            particleRenderer.run();
+        }
+
+        forwardHDRBuffer.end();
+        postFX.applyForward(forwardHDRBuffer);
     }
 
     public void setDeferredEnabled(boolean enabled) { this.deferredEnabled = enabled; }

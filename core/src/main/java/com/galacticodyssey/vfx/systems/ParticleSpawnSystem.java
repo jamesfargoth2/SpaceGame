@@ -40,7 +40,7 @@ public class ParticleSpawnSystem extends EntitySystem {
         eventBus.subscribe(ProjectileHitEvent.class, e ->
             queueSpawn("ProjectileHitEvent", e.damageType.name(), e.hitPoint));
         eventBus.subscribe(WeaponFiredEvent.class, e ->
-            queueSpawn("WeaponFiredEvent", null, e.aimDirection));
+            queueSpawn("WeaponFiredEvent", null, e.muzzlePosition));
         eventBus.subscribe(ShieldAbsorbEvent.class, e ->
             queueSpawn("ShieldAbsorbEvent", null, ZERO));
         eventBus.subscribe(EntityKilledEvent.class, e ->
