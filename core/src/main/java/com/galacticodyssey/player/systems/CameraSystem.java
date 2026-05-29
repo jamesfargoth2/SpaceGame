@@ -76,7 +76,10 @@ public class CameraSystem extends IteratingSystem {
         FPSCameraComponent cam = cameraMapper.get(entity);
         MovementStateComponent state = stateMapper.get(entity);
 
-        float targetEyeHeight = state.isCrouching ? cam.crouchEyeHeight : cam.eyeHeight;
+        float targetEyeHeight;
+        if (state.isProne) targetEyeHeight = cam.proneEyeHeight;
+        else if (state.isCrouching) targetEyeHeight = cam.crouchEyeHeight;
+        else targetEyeHeight = cam.eyeHeight;
         cam.currentEyeHeight = MathUtils.lerp(cam.currentEyeHeight, targetEyeHeight,
             EYE_HEIGHT_LERP_SPEED * deltaTime);
 
@@ -87,8 +90,9 @@ public class CameraSystem extends IteratingSystem {
         if (state.isGrounded && state.currentSpeed > HEAD_BOB_MIN_SPEED) {
             cam.headBobPhase += state.currentSpeed * cam.headBobFrequency * deltaTime;
             float speedRatio = state.currentSpeed / WALK_SPEED_REF;
-            float vOffset = MathUtils.sin(cam.headBobPhase) * cam.headBobAmplitude * speedRatio;
-            float hOffset = MathUtils.cos(cam.headBobPhase * 0.5f) * cam.headBobAmplitude * 0.5f;
+            float bobAmplitude = state.isProne ? cam.headBobAmplitude * 0.5f : cam.headBobAmplitude;
+            float vOffset = MathUtils.sin(cam.headBobPhase) * bobAmplitude * speedRatio;
+            float hOffset = MathUtils.cos(cam.headBobPhase * 0.5f) * bobAmplitude * 0.5f;
             camY += vOffset;
 
             float yawRad = cam.yawAngle * MathUtils.degreesToRadians;
