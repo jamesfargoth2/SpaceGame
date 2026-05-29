@@ -201,8 +201,9 @@ class ShipFlightAssistTest {
         ship.getComponent(ShipFlightInputComponent.class).throttle = 0.6f;
         ship.getComponent(ShipFlightInputComponent.class).yawInput = 1f;
         step(blueSys, 2f);
-        float blueYaw = Math.abs(ship.getComponent(PhysicsBodyComponent.class)
-            .body.getAngularVelocity().y);
+        // Use angular-velocity magnitude (robust to nose drift over the 2s window).
+        float blueYaw = ship.getComponent(PhysicsBodyComponent.class)
+            .body.getAngularVelocity().len();
         tearDown(); // dispose first ship/world before building the second
 
         Engine fullEngine = new Engine();
@@ -210,8 +211,8 @@ class ShipFlightAssistTest {
         ship.getComponent(ShipFlightInputComponent.class).throttle = 1.0f;
         ship.getComponent(ShipFlightInputComponent.class).yawInput = 1f;
         step(fullSys, 2f);
-        float fullYaw = Math.abs(ship.getComponent(PhysicsBodyComponent.class)
-            .body.getAngularVelocity().y);
+        float fullYaw = ship.getComponent(PhysicsBodyComponent.class)
+            .body.getAngularVelocity().len();
 
         assertTrue(blueYaw > fullYaw + 0.02f,
             "blue-zone yaw (" + blueYaw + ") should exceed full-throttle yaw (" + fullYaw + ")");

@@ -245,8 +245,9 @@ public class ShipFlightSystem extends EntitySystem {
         }
 
         physics.body.applyTorque(torque);
-        // FA controllers govern velocity convergence; never double-damp linear.
-        // Angular auto-stop is applied in the rotation block (later task). Keep both 0 here.
+        // Controllers govern convergence: the linear FA block tracks the target
+        // velocity and the rotation block zeroes angular velocity on stick release.
+        // Bullet damping stays 0 on both axes so we never double-damp.
         physics.body.setDamping(0f, 0f);
 
         flight.currentThrottle = effectiveThrottle;
