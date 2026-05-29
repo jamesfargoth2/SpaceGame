@@ -28,3 +28,17 @@ tasks.named<JavaExec>("run") {
         jvmArgs("-XstartOnFirstThread")
     }
 }
+
+tasks.register<JavaExec>("runCityDebug") {
+    group = "application"
+    description = "Launch the city layout top-down debug renderer"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("com.galacticodyssey.desktop.city.CityLayoutDebugLauncher")
+    isIgnoreExitValue = true
+
+    jvmArgs("--enable-native-access=ALL-UNNAMED")
+
+    if (org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
+        jvmArgs("-XstartOnFirstThread")
+    }
+}

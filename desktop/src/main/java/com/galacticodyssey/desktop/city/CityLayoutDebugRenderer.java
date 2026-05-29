@@ -39,7 +39,7 @@ public class CityLayoutDebugRenderer extends ApplicationAdapter {
         shapes = new ShapeRenderer();
         cam = new OrthographicCamera();
         CityDataRegistry reg = new CityDataRegistry();
-        reg.loadFromFiles();
+        reg.loadFromClasspath();
         gen = new CityLayoutGenerator(reg);
         regenerate();
     }
