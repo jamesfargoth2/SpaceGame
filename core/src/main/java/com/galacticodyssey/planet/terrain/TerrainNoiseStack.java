@@ -2,6 +2,7 @@ package com.galacticodyssey.planet.terrain;
 
 import com.badlogic.gdx.math.Vector3;
 import com.galacticodyssey.galaxy.GalaxyNoise;
+import com.galacticodyssey.galaxy.SeedDeriver;
 import com.galacticodyssey.planet.BiomeMap;
 import com.galacticodyssey.planet.BiomeType;
 import com.galacticodyssey.planet.tectonic.TectonicModel;
@@ -22,9 +23,9 @@ public final class TerrainNoiseStack {
     }
 
     public TerrainNoiseStack(long seed, TectonicModel tectonic) {
-        this.continentNoise = new GalaxyNoise(seed);
-        this.ridgeNoise = new GalaxyNoise(seed + 1);
-        this.detailNoise = new GalaxyNoise(seed + 2);
+        this.continentNoise = new GalaxyNoise(SeedDeriver.domain(seed, SeedDeriver.CONTINENT_NOISE_DOMAIN));
+        this.ridgeNoise     = new GalaxyNoise(SeedDeriver.domain(seed, SeedDeriver.RIDGE_NOISE_DOMAIN));
+        this.detailNoise    = new GalaxyNoise(SeedDeriver.domain(seed, SeedDeriver.DETAIL_NOISE_DOMAIN));
         this.tectonic = tectonic;
     }
 

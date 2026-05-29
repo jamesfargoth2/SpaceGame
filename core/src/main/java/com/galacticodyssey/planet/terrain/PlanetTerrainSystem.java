@@ -18,22 +18,40 @@ public final class PlanetTerrainSystem extends EntitySystem implements Disposabl
     private TerrainQuadtree quadtree;
     private final Vector3 cameraPos = new Vector3();
     private float planetRadius;
+    private final Vector3 planetCenter = new Vector3();
 
     public PlanetTerrainSystem(btDiscreteDynamicsWorld dynamicsWorld) {
         this.dynamicsWorld = dynamicsWorld;
     }
 
     public void loadPlanet(Planet planet, BiomeMap biomeMap) {
-        // Convenience path: build a tectonic model from the planet seed (deterministic).
-        loadPlanet(planet, biomeMap, new PlateGenerator().generate(planet));
+        loadPlanet(planet, biomeMap, new PlateGenerator().generate(planet), new Vector3(), -1f);
+    }
+
+    /**
+     * Loads a planet into the terrain system using game-world-scale coordinates.
+     *
+     * @param gameWorldCenter  the planet's centre position in game-world units (metres)
+     * @param gameWorldRadius  sphere radius in game-world units; ≤ 0 falls back to planet.radius * 6371
+     */
+    public void loadPlanet(Planet planet, BiomeMap biomeMap,
+                           Vector3 gameWorldCenter, float gameWorldRadius) {
+        loadPlanet(planet, biomeMap, new PlateGenerator().generate(planet),
+                   gameWorldCenter, gameWorldRadius);
     }
 
     public void loadPlanet(Planet planet, BiomeMap biomeMap, TectonicModel tectonic) {
+        loadPlanet(planet, biomeMap, tectonic, new Vector3(), -1f);
+    }
+
+    public void loadPlanet(Planet planet, BiomeMap biomeMap, TectonicModel tectonic,
+                           Vector3 gameWorldCenter, float gameWorldRadius) {
         if (quadtree != null) quadtree.dispose();
         long terrainSeed = SeedDeriver.forId(
             SeedDeriver.domain(planet.seed, SeedDeriver.TERRAIN_DOMAIN), 0);
         TerrainNoiseStack noise = new TerrainNoiseStack(terrainSeed, tectonic);
-        planetRadius = planet.radius * 6371f;
+        planetRadius = (gameWorldRadius > 0f) ? gameWorldRadius : planet.radius * 6371f;
+        planetCenter.set(gameWorldCenter);
         quadtree = new TerrainQuadtree(planetRadius, noise, biomeMap, dynamicsWorld);
     }
 
@@ -45,8 +63,17 @@ public final class PlanetTerrainSystem extends EntitySystem implements Disposabl
         cameraPos.set(pos);
     }
 
+    /** Convenience: translate a world-space camera position into planet-local space and store it. */
+    public void setCameraPositionWorld(Vector3 worldPos) {
+        cameraPos.set(worldPos).sub(planetCenter);
+    }
+
     public float getPlanetRadius() {
         return planetRadius;
+    }
+
+    public Vector3 getPlanetCenter() {
+        return planetCenter;
     }
 
     public List<TerrainChunk> getVisibleLeaves() {

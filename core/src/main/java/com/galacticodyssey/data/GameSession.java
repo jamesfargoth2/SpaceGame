@@ -7,6 +7,7 @@ import com.galacticodyssey.galaxy.GalaxyType;
 import com.galacticodyssey.galaxy.StarPosition;
 import com.galacticodyssey.galaxy.StarSystem;
 import com.galacticodyssey.galaxy.StartingRegion;
+import com.galacticodyssey.planet.BiomeMap;
 import com.galacticodyssey.planet.Planet;
 import com.galacticodyssey.shipbuilder.ShipDesign;
 import com.galacticodyssey.shipbuilder.planning.BuildOrder;
@@ -29,6 +30,7 @@ public class GameSession {
     public volatile StarSystem startingSystem;
     public volatile StarPosition startingStarPosition;
     public volatile Planet startingPlanet;
+    public volatile BiomeMap startingBiomeMap;
     public volatile long terrainSeed;
     public volatile Vector3 playerSpawnPos;
     public volatile Vector3 shipSpawnPos;

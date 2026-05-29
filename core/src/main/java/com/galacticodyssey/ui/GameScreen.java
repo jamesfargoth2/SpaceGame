@@ -249,6 +249,11 @@ public class GameScreen implements Screen {
 
         gameWorld.initializeSystems(camera);
 
+        // Load sphere terrain from session planet — aligns with game-world planet centre
+        if (session != null && session.startingPlanet != null && session.startingBiomeMap != null) {
+            gameWorld.loadPlanetTerrain(session.startingPlanet, session.startingBiomeMap);
+        }
+
         Pixmap pix = new Pixmap(4, 4, Pixmap.Format.RGBA8888);
         pix.setColor(Color.WHITE);
         pix.fill();
@@ -1327,6 +1332,28 @@ public class GameScreen implements Screen {
         Gdx.gl.glDepthFunc(GL20.GL_LEQUAL);
         Gdx.gl.glDepthMask(true);
 
+        com.galacticodyssey.planet.terrain.PlanetTerrainSystem pts =
+            (gameWorld != null) ? gameWorld.getPlanetTerrainSystem() : null;
+        float sphereRadius = (pts != null) ? pts.getPlanetRadius() : 0f;
+
+        // At orbital altitude (> 100 m above the flat spawn area) widen the far clip so
+        // the full planet sphere is visible, then update the combined projection matrix.
+        boolean useSphereTerrain = false;
+        if (sphereRadius > 0f) {
+            // Surface sits at y ≈ 0 in the flat terrain; spawn is ~2 m above it.
+            float altitudeAboveSurface = camera.position.y - 2f;
+            useSphereTerrain = altitudeAboveSurface > 100f;
+            if (useSphereTerrain) {
+                float requiredFar = sphereRadius * 3f;
+                if (camera.far < requiredFar) {
+                    camera.far = requiredFar;
+                    camera.update();
+                }
+                // Keep the LOD quadtree in sync with the camera in planet-local space.
+                pts.setCameraPositionWorld(camera.position);
+            }
+        }
+
         ShaderProgram shader = deferredRenderer.getShaderCache()
             .get("gbuffer.vert", "gbuffer.frag", "HAS_VERTEX_COLOR");
         shader.bind();
@@ -1345,7 +1372,37 @@ public class GameScreen implements Screen {
         shader.setUniformf("u_emissiveIntensity", 0f);
         shader.setUniformf("u_tiling", 1f, 1f);
 
-        terrainMesh.render(shader, GL20.GL_TRIANGLES);
+        if (useSphereTerrain) {
+            // Sphere-terrain chunks are in planet-local space; translate by planet centre.
+            com.badlogic.gdx.math.Vector3 pc = pts.getPlanetCenter();
+            tmpMat4.setToTranslation(pc);
+            shader.setUniformMatrix("u_worldTrans", tmpMat4);
+            // Normal matrix: rotation/scale only (no translation effect on normals).
+            tmpMat4.set(camera.view);
+            tmpNormalMat3.set(tmpMat4).inv().transpose();
+            shader.setUniformMatrix("u_normalMatrix", tmpNormalMat3);
+
+            for (com.galacticodyssey.planet.terrain.TerrainChunk chunk : pts.getVisibleLeaves()) {
+                if (chunk.mesh != null) {
+                    chunk.mesh.render(shader, GL20.GL_TRIANGLES);
+                }
+            }
+
+            // Restore identity world transform for subsequent passes.
+            tmpMat4.idt();
+            shader.setUniformMatrix("u_worldTrans", tmpMat4);
+            tmpMat4.set(camera.view);
+            tmpNormalMat3.set(tmpMat4).inv().transpose();
+            shader.setUniformMatrix("u_normalMatrix", tmpNormalMat3);
+        } else {
+            // Ground-level view: use the seeded flat terrain mesh.
+            terrainMesh.render(shader, GL20.GL_TRIANGLES);
+            // Restore camera.far to game-world default after any sphere pass.
+            if (camera.far > 5000f) {
+                camera.far = 5000f;
+                camera.update();
+            }
+        }
     }
 
     private void renderBoxes() {

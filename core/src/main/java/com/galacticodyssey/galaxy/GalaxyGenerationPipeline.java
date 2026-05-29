@@ -4,12 +4,15 @@ import com.badlogic.gdx.math.Vector3;
 import com.galacticodyssey.data.GameSession;
 import com.galacticodyssey.data.TerrainGenerator;
 import com.galacticodyssey.data.names.SpaceNameGenerator;
+import com.galacticodyssey.planet.BiomeMap;
+import com.galacticodyssey.planet.BiomeType;
 import com.galacticodyssey.planet.Planet;
 import com.galacticodyssey.planet.PlanetGenerator;
 import com.galacticodyssey.planet.PlanetType;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Random;
 
@@ -90,13 +93,12 @@ public final class GalaxyGenerationPipeline {
         String worldLabel = (planet.type == PlanetType.TERRAN) ? "Terran world" : planet.type.name() + " world";
         session.log.add(worldLabel + " " + planetName + " selected as origin point…");
 
-        // Phase 4 — terrain seed derived from planet properties
-        session.terrainSeed = session.seed
-            ^ Long.reverse(Float.floatToRawIntBits(planet.mass))
-            ^ Float.floatToRawIntBits(planet.dayLength);
+        // Phase 4 — terrain seed and biome map derived from planet via SeedDeriver
+        session.terrainSeed = SeedDeriver.domain(planet.seed, SeedDeriver.TERRAIN_DOMAIN);
+        session.startingBiomeMap = buildBiomeMap(planet);
         session.log.add("Surveying surface of " + planetName + "…");
 
-        // Phase 5 — spawn coordinates
+        // Phase 5 — spawn coordinates from the seeded heightmap
         float[] hmap = TerrainGenerator.generateHeightmap(
             TERRAIN_VERTS, TERRAIN_VERTS, TERRAIN_SIZE, TERRAIN_SIZE, session.terrainSeed);
         float groundH = TerrainGenerator.getHeightAt(
@@ -151,6 +153,80 @@ public final class GalaxyGenerationPipeline {
             if (p.type == type) return p;
         }
         return null;
+    }
+
+    /** Derives a BiomeMap from the planet's physical and atmospheric properties. */
+    private static BiomeMap buildBiomeMap(Planet planet) {
+        long biomeSeed = SeedDeriver.domain(planet.seed, SeedDeriver.BIOME_DOMAIN);
+
+        float seaLevel, snowLine, baseMoisture, surfaceTemp;
+        EnumSet<BiomeType> allowed;
+
+        switch (planet.type) {
+            case TERRAN:
+                seaLevel     = -0.05f;
+                snowLine     = 0.55f;
+                baseMoisture = 0.5f;
+                surfaceTemp  = (planet.atmosphere != null) ? planet.atmosphere.surfaceTemp : 290f;
+                allowed = EnumSet.allOf(BiomeType.class);
+                break;
+            case OCEAN:
+                seaLevel     = 0.25f;
+                snowLine     = 0.80f;
+                baseMoisture = 0.85f;
+                surfaceTemp  = (planet.atmosphere != null) ? planet.atmosphere.surfaceTemp : 285f;
+                allowed = EnumSet.of(BiomeType.OCEAN, BiomeType.TROPICAL_FOREST,
+                                     BiomeType.SWAMP, BiomeType.LAKE, BiomeType.RIVER);
+                break;
+            case ARID:
+                seaLevel     = -0.6f;
+                snowLine     = 0.90f;
+                baseMoisture = 0.08f;
+                surfaceTemp  = (planet.atmosphere != null) ? planet.atmosphere.surfaceTemp : 315f;
+                allowed = EnumSet.of(BiomeType.DESERT, BiomeType.ARID_SHRUB,
+                                     BiomeType.BADLANDS, BiomeType.STEPPE, BiomeType.ROCKY_WASTE);
+                break;
+            case TOXIC:
+                seaLevel     = 0.0f;
+                snowLine     = 0.95f;
+                baseMoisture = 0.3f;
+                surfaceTemp  = (planet.atmosphere != null) ? planet.atmosphere.surfaceTemp : 400f;
+                allowed = EnumSet.of(BiomeType.VOLCANIC, BiomeType.BADLANDS,
+                                     BiomeType.ROCKY_WASTE, BiomeType.OCEAN);
+                break;
+            case ICE_WORLD:
+                seaLevel     = 0.30f;
+                snowLine     = 0.05f;
+                baseMoisture = 0.4f;
+                surfaceTemp  = 200f;
+                allowed = EnumSet.of(BiomeType.ICE_SHEET, BiomeType.ICE_FIELD,
+                                     BiomeType.TUNDRA, BiomeType.POLAR_DESERT, BiomeType.OCEAN);
+                break;
+            case MOLTEN:
+                seaLevel     = -0.8f;
+                snowLine     = 1.00f;
+                baseMoisture = 0.0f;
+                surfaceTemp  = 800f;
+                allowed = EnumSet.of(BiomeType.VOLCANIC, BiomeType.BADLANDS, BiomeType.ROCKY_WASTE);
+                break;
+            case BARREN:
+                seaLevel     = -1.0f;
+                snowLine     = 0.95f;
+                baseMoisture = 0.0f;
+                surfaceTemp  = 300f;
+                allowed = EnumSet.of(BiomeType.ROCKY_WASTE, BiomeType.BADLANDS,
+                                     BiomeType.DESERT, BiomeType.POLAR_DESERT);
+                break;
+            default:
+                seaLevel     = -0.1f;
+                snowLine     = 0.6f;
+                baseMoisture = 0.4f;
+                surfaceTemp  = 280f;
+                allowed = EnumSet.allOf(BiomeType.class);
+                break;
+        }
+
+        return new BiomeMap(biomeSeed, seaLevel, snowLine, baseMoisture, surfaceTemp, allowed);
     }
 
     private static GalaxyConfig buildConfig(GalaxySize size, GalaxyType type) {

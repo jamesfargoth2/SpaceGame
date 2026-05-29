@@ -30,6 +30,11 @@ public final class SeedDeriver {
     public static final long CITY_DOMAIN           = 0xC17ED00DCAFEF00DL;
     public static final long SHIP_DOMAIN           = 0xD1B54A32D192ED03L;
 
+    // Terrain noise layer domains — distinct constants prevent cross-layer correlation
+    public static final long CONTINENT_NOISE_DOMAIN = 0xF0A5C3B2E9D1784EL;
+    public static final long RIDGE_NOISE_DOMAIN     = 0x3B89D2F1C4A6E057L;
+    public static final long DETAIL_NOISE_DOMAIN    = 0xA7B41E3C9D5F0826L;
+
     private SeedDeriver() {}
 
     public static long domain(long parentSeed, long domainConstant) {

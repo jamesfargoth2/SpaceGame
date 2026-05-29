@@ -31,7 +31,7 @@ public final class TerrainMeshBuilder {
                 Vector3 dir = CubeSphere.toSphere(face, u, v);
                 TerrainNoiseStack.Sample sample = noise.sampleAt(dir, biomeMap, lod);
                 biomes[gy * GRID_SIZE + gx] = sample.biome;
-                positions[gy * GRID_SIZE + gx] = dir.scl(planetRadius + sample.height * planetRadius * 0.01f);
+                positions[gy * GRID_SIZE + gx] = dir.scl(planetRadius + sample.height * planetRadius * 0.002f);
             }
         }
 
