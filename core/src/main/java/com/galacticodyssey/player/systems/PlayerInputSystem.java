@@ -257,6 +257,7 @@ public class PlayerInputSystem extends IteratingSystem {
 
         if (interactPressed) { input.interactPressed = true; interactPressed = false; }
         if (cameraTogglePressed) { input.cameraTogglePressed = true; cameraTogglePressed = false; }
+        if (flightAssistTogglePressed) { input.proneToggleRequested = true; flightAssistTogglePressed = false; }
 
         targetLockPressed = false;
         nextTargetPressed = false;
