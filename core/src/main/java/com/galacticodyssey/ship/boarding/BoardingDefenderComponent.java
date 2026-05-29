@@ -8,6 +8,8 @@ public class BoardingDefenderComponent implements Component {
     public Entity operationShip;
     /** True for attackers spawned when an NPC boards the player (inverted roles). */
     public boolean attacker;
+    /** True for friendly away-team crew deployed with the player; never counted as defenders. */
+    public boolean awayTeam;
     /** Guards against double-counting a death toward the defender tally. */
     public boolean counted;
 }

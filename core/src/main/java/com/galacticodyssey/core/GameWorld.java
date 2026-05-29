@@ -478,7 +478,7 @@ public class GameWorld implements Disposable {
         engine.addSystem(new BoardingInitiationSystem(eventBus, boardingAttachSystem));
         engine.addSystem(new BoardingCombatSystem(eventBus));
         engine.addSystem(new BoardingResolutionSystem(eventBus));
-        engine.addSystem(new EnemyBoardingAISystem(eventBus, boardingAttachSystem));
+        engine.addSystem(new EnemyBoardingAISystem(boardingAttachSystem));
         engine.addSystem(statusEffectSystem);
         engine.addSystem(combatAISystem);
         engine.addSystem(squadTacticsSystem);

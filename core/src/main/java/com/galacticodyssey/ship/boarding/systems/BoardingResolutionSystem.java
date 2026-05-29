@@ -42,6 +42,8 @@ public class BoardingResolutionSystem extends EntitySystem {
     private static final float SCRAP_CREDITS_PER_HP = 0.5f;
     private static final float RANSOM_CREDITS_PER_HP = 1.0f;
     private static final float RANSOM_REPUTATION_DELTA = -8f;
+    /** Hull-HP per unit of salvaged alloy recovered when scrapping. */
+    private static final float SCRAP_HP_PER_ALLOY_UNIT = 50f;
 
     private static final ComponentMapper<BoardingOperationComponent> OP_M =
         ComponentMapper.getFor(BoardingOperationComponent.class);
@@ -117,7 +119,7 @@ public class BoardingResolutionSystem extends EntitySystem {
     private void scrap(Entity target, BoardingOperationComponent op, Entity player) {
         ShipDataComponent data = DATA_M.get(target);
         float hull = (data != null) ? data.hullHp : 100f;
-        int salvage = Math.max(1, Math.round(hull / 50f));
+        int salvage = Math.max(1, Math.round(hull / SCRAP_HP_PER_ALLOY_UNIT));
         if (player != null) {
             CargoBayComponent cargo = CARGO_M.get(player);
             if (cargo != null) cargo.contents.merge("salvaged_alloy", salvage, Integer::sum);
@@ -188,6 +190,7 @@ public class BoardingResolutionSystem extends EntitySystem {
 
     private int playerTactics(Entity player) {
         // Tactics skill source is not yet wired into combat; default high so hijack succeeds.
+        // TODO: wire Tactics skill into combat so the hijack gate can fail
         return 100;
     }
 

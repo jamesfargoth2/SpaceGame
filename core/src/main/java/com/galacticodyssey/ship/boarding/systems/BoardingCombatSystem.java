@@ -26,11 +26,14 @@ import com.galacticodyssey.ship.boarding.BoardingOperationComponent.BoardingPhas
 import com.galacticodyssey.ship.boarding.BridgeComponent;
 import com.galacticodyssey.ship.boarding.events.BoardingClearedEvent;
 import com.galacticodyssey.ship.boarding.events.BoardingResolutionRequestedEvent;
+import com.galacticodyssey.ship.boarding.events.BoardingResolvedEvent;
 import com.galacticodyssey.ship.boarding.events.PlayerEnteredHostileInteriorEvent;
 import com.galacticodyssey.ship.components.ShipInteriorComponent;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 
@@ -62,6 +65,9 @@ public class BoardingCombatSystem extends EntitySystem {
     private final EventBus eventBus;
     private final Queue<PlayerEnteredHostileInteriorEvent> entries = new ArrayDeque<>();
     private final Queue<EntityKilledEvent> kills = new ArrayDeque<>();
+    private final Queue<BoardingResolvedEvent> resolutions = new ArrayDeque<>();
+    /** Scratch list for deferred entity removal (avoids mutating a family mid-iteration). */
+    private final List<Entity> toRemove = new ArrayList<>();
     private final Matrix4 shipMat = new Matrix4();
     private final Vector3 bridgeWorld = new Vector3();
     /**
@@ -80,6 +86,7 @@ public class BoardingCombatSystem extends EntitySystem {
         this.eventBus = eventBus;
         eventBus.subscribe(PlayerEnteredHostileInteriorEvent.class, entries::add);
         eventBus.subscribe(EntityKilledEvent.class, kills::add);
+        eventBus.subscribe(BoardingResolvedEvent.class, resolutions::add);
     }
 
     @Override
@@ -109,13 +116,38 @@ public class BoardingCombatSystem extends EntitySystem {
             countDefenderKill(kill.target);
         }
         checkWinConditions();
+        BoardingResolvedEvent resolved;
+        while ((resolved = resolutions.poll()) != null) {
+            despawnCombatants(resolved.target);
+        }
+    }
+
+    /**
+     * Removes every combatant (defenders, away team, and attackers) spawned for the operation on
+     * {@code target} once it resolves, so they don't linger in the engine. Collects matches first,
+     * then removes — avoids mutating the defender family while iterating it.
+     */
+    private void despawnCombatants(Entity target) {
+        if (defenders == null || target == null) return;
+        toRemove.clear();
+        for (int i = 0, n = defenders.size(); i < n; i++) {
+            Entity d = defenders.get(i);
+            BoardingDefenderComponent tag = DEFENDER_M.get(d);
+            if (tag != null && tag.operationShip == target) {
+                toRemove.add(d);
+            }
+        }
+        for (int i = 0, n = toRemove.size(); i < n; i++) {
+            getEngine().removeEntity(toRemove.get(i));
+        }
+        toRemove.clear();
     }
 
     /** Decrements the defender tally on the relevant operation when a tagged defender dies. */
     private void countDefenderKill(Entity dead) {
         if (dead == null) return;
         BoardingDefenderComponent tag = DEFENDER_M.get(dead);
-        if (tag == null || tag.attacker || tag.counted || tag.operationShip == null) return;
+        if (tag == null || tag.attacker || tag.awayTeam || tag.counted || tag.operationShip == null) return;
         BoardingOperationComponent op = OP_M.get(tag.operationShip);
         if (op == null) return;
         tag.counted = true;
@@ -148,7 +180,9 @@ public class BoardingCombatSystem extends EntitySystem {
             int awaySize = (away != null) ? away.size : 0;
             for (int i = 0; i < awaySize; i++) {
                 Entity mate = spawnCombatant(target, base, 100 + i, 100f, 12f, false);
-                mate.remove(BoardingDefenderComponent.class); // away team are not defenders
+                // Keep the tag (so they're despawned on resolution) but mark as away team
+                // so they are never tallied as defenders.
+                DEFENDER_M.get(mate).awayTeam = true;
             }
         }
     }
@@ -237,7 +271,7 @@ public class BoardingCombatSystem extends EntitySystem {
         for (int i = 0, n = defenders.size(); i < n; i++) {
             Entity d = defenders.get(i);
             BoardingDefenderComponent tag = DEFENDER_M.get(d);
-            if (tag == null || tag.operationShip != target || tag.attacker) continue;
+            if (tag == null || tag.operationShip != target || tag.attacker || tag.awayTeam) continue;
             HealthComponent h = HEALTH_M.get(d);
             if (h == null || !h.alive) continue;
             if (withinBridgeOnly) {

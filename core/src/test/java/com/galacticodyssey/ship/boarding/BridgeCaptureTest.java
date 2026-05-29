@@ -67,6 +67,63 @@ class BridgeCaptureTest {
             target.getComponent(BoardingOperationComponent.class).phase);
     }
 
+    @Test
+    void liveDefenderInsideBridgeBlocksCapture() {
+        EventBus eventBus = new EventBus();
+        Engine engine = new Engine();
+        engine.addSystem(new BoardingCombatSystem(eventBus));
+
+        Entity player = new Entity();
+        player.add(new PlayerTagComponent());
+        player.add(new TransformComponent());
+        engine.addEntity(player);
+
+        Entity aggressor = new Entity();
+        aggressor.add(new TransformComponent());
+        engine.addEntity(aggressor);
+
+        Entity target = new Entity();
+        target.add(new TransformComponent());
+        ShipInteriorComponent interior = new ShipInteriorComponent();
+        interior.layout = layoutWithBridgeAt(new com.badlogic.gdx.math.Vector3(50f, 0f, 0f));
+        target.add(interior);
+        BoardingDefenseComponent def = new BoardingDefenseComponent();
+        def.defenderCount = 2;
+        target.add(def);
+        BoardingOperationComponent op = new BoardingOperationComponent();
+        op.targetShip = target;
+        op.aggressorShip = aggressor;
+        op.phase = BoardingPhase.INTERIOR_COMBAT;
+        op.playerIsAggressor = true;
+        target.add(op);
+        engine.addEntity(target);
+
+        List<BoardingClearedEvent> cleared = new ArrayList<>();
+        eventBus.subscribe(BoardingClearedEvent.class, cleared::add);
+
+        eventBus.publish(new PlayerEnteredHostileInteriorEvent(player, target));
+        engine.update(0.016f); // spawns 2 defenders near origin
+
+        // Move a live defender INTO the bridge (same world center as the bridge).
+        Entity defenderInBridge = null;
+        for (Entity d : engine.getEntitiesFor(com.badlogic.ashley.core.Family.all(
+                BoardingDefenderComponent.class).get())) {
+            defenderInBridge = d;
+            break;
+        }
+        assertNotNull(defenderInBridge, "a defender was spawned");
+        defenderInBridge.getComponent(TransformComponent.class).position.set(50f, 0f, 0f);
+
+        // Player stands in the bridge, but a live defender is there too.
+        player.getComponent(TransformComponent.class).position.set(50f, 0f, 0f);
+        engine.update(0.016f);
+
+        assertTrue(cleared.isEmpty(),
+            "no capture while a live defender stands inside the bridge");
+        assertEquals(BoardingPhase.INTERIOR_COMBAT,
+            target.getComponent(BoardingOperationComponent.class).phase);
+    }
+
     /** Builds a minimal InteriorLayout whose pilotSeatPosition is the bridge center. */
     private InteriorLayout layoutWithBridgeAt(com.badlogic.gdx.math.Vector3 bridge) {
         return new InteriorLayout(

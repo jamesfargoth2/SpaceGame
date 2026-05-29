@@ -127,4 +127,11 @@ class BoardingResolutionSystemTest {
         assertFalse(BoardingResolutionSystem.hijackSucceeds(/*tactics*/ 1, /*required*/ 50));
         assertTrue(BoardingResolutionSystem.hijackSucceeds(/*tactics*/ 60, /*required*/ 50));
     }
+
+    @Test
+    void hijackGateBoundary() {
+        // Below requirement fails; meeting it exactly (the boundary) succeeds.
+        assertFalse(BoardingResolutionSystem.hijackSucceeds(/*tactics*/ 0, /*required*/ 1));
+        assertTrue(BoardingResolutionSystem.hijackSucceeds(/*tactics*/ 1, /*required*/ 1));
+    }
 }

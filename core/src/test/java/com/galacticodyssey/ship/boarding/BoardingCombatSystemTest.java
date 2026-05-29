@@ -98,6 +98,34 @@ class BoardingCombatSystemTest {
     }
 
     @Test
+    void awayTeamSpawnsButIsNotCountedAsDefenders() {
+        player.add(awayTeam(2));
+        eventBus.publish(new PlayerEnteredHostileInteriorEvent(player, target));
+        engine.update(0.016f);
+
+        // Only the 3 BoardingDefenseComponent defenders count toward the tally.
+        assertEquals(3, target.getComponent(BoardingOperationComponent.class).defendersRemaining,
+            "away team not counted as defenders");
+
+        // Total tagged combatants for this op = 3 defenders + 2 away-team.
+        int total = 0, awayTagged = 0;
+        for (Entity e : defenders()) {
+            BoardingDefenderComponent tag = e.getComponent(BoardingDefenderComponent.class);
+            if (tag.operationShip != target) continue;
+            total++;
+            if (tag.awayTeam) awayTagged++;
+        }
+        assertEquals(5, total, "3 defenders + 2 away-team are all tagged for the op");
+        assertEquals(2, awayTagged, "away-team members carry awayTeam=true");
+    }
+
+    private static AwayTeamComponent awayTeam(int size) {
+        AwayTeamComponent away = new AwayTeamComponent();
+        away.size = size;
+        return away;
+    }
+
+    @Test
     void doesNotSpawnTwice() {
         eventBus.publish(new PlayerEnteredHostileInteriorEvent(player, target));
         engine.update(0.016f);

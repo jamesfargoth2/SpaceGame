@@ -104,6 +104,8 @@ public final class KryoRegistrar {
         kryo.register(BoardingOperationSnapshot.class, 77);
         kryo.register(OwnedShipSnapshot.class, 78);
         kryo.register(PlayerGarageSnapshot.class, 79);
+        // ID jumps to 82: 75-79 are exhausted by the boarding snapshots above, and 80/81 are
+        // already taken by the NPC snapshots below.
         kryo.register(PlayerGarageSnapshot.Entry.class, 82);
 
         // --- NPC snapshots ---

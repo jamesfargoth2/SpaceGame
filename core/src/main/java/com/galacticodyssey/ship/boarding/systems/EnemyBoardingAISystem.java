@@ -7,7 +7,6 @@ import com.badlogic.ashley.core.EntitySystem;
 import com.badlogic.ashley.core.Family;
 import com.badlogic.ashley.utils.ImmutableArray;
 import com.badlogic.gdx.math.Vector3;
-import com.galacticodyssey.core.EventBus;
 import com.galacticodyssey.core.components.PlayerTagComponent;
 import com.galacticodyssey.core.components.TransformComponent;
 import com.galacticodyssey.player.components.PlayerStateComponent;
@@ -17,8 +16,9 @@ import com.galacticodyssey.ship.components.ShipDataComponent;
 
 /**
  * Bidirectional boarding: when the player's ship has been disabled (its operation is VULNERABLE
- * and no aggressor has been assigned), a hostile NPC ship within {@link #BOARD_RANGE} becomes the
- * aggressor and launches a breaching pod at the player. Marks the operation {@code
+ * and no aggressor has been assigned), a nearby NPC ship within {@link #BOARD_RANGE} becomes the
+ * aggressor and launches a breaching pod at the player. (Faction hostility is not yet checked —
+ * any in-range ship is currently treated as a potential aggressor.) Marks the operation {@code
  * playerIsAggressor = false} so the rest of the pipeline runs inverted.
  */
 public class EnemyBoardingAISystem extends EntitySystem {
@@ -33,14 +33,12 @@ public class EnemyBoardingAISystem extends EntitySystem {
     private static final ComponentMapper<PlayerStateComponent> STATE_M =
         ComponentMapper.getFor(PlayerStateComponent.class);
 
-    private final EventBus eventBus;
     private final BoardingAttachSystem attachSystem;
     private ImmutableArray<Entity> players;
     private ImmutableArray<Entity> ships;
 
-    public EnemyBoardingAISystem(EventBus eventBus, BoardingAttachSystem attachSystem) {
+    public EnemyBoardingAISystem(BoardingAttachSystem attachSystem) {
         super(PRIORITY);
-        this.eventBus = eventBus;
         this.attachSystem = attachSystem;
     }
 
@@ -81,6 +79,7 @@ public class EnemyBoardingAISystem extends EntitySystem {
     }
 
     private Entity nearestHostileNpc(Entity playerShip, Vector3 origin) {
+        // TODO: filter by faction hostility — any ship in range is currently treated as hostile
         if (ships == null) return null;
         Entity best = null;
         float bestDist2 = BOARD_RANGE * BOARD_RANGE;
