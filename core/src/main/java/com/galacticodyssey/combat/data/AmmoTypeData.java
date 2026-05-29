@@ -10,4 +10,8 @@ public class AmmoTypeData {
     public StatusEffectType statusEffect;
     public float statusEffectChance;
     public Float projectileSpeed;
+    public float mass = 0.004f;
+    public float dragCoeff = 0.3f;
+    public float crossSection = 5.7e-5f;
+    public boolean affectedByGravity = true;
 }

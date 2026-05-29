@@ -8,6 +8,7 @@ import java.util.Map;
 public class HitboxComponent implements Component {
     public final Map<HitRegion, Float> regionMultipliers = new EnumMap<>(HitRegion.class);
     public float bodyHeight = 1.8f;
+    public float collisionRadius = 0.5f;
     public float headHeightRatio = 0.85f;
     public float torsoHeightRatio = 0.5f;
     public float legsHeightRatio = 0.25f;

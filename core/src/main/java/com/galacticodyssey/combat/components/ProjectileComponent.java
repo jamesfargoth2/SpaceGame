@@ -8,6 +8,7 @@ import com.galacticodyssey.combat.CombatEnums.DamageType;
 
 public class ProjectileComponent implements Component, Pool.Poolable {
     public final Vector3 velocity = new Vector3();
+    public final Vector3 prevPosition = new Vector3();
     public float speed;
     public float damage;
     public DamageType damageType;
@@ -28,6 +29,7 @@ public class ProjectileComponent implements Component, Pool.Poolable {
     @Override
     public void reset() {
         velocity.setZero();
+        prevPosition.setZero();
         speed = 0f;
         damage = 0f;
         damageType = null;

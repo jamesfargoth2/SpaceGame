@@ -6,13 +6,17 @@ import com.badlogic.ashley.core.Entity;
 import com.badlogic.ashley.core.Family;
 import com.badlogic.ashley.systems.IteratingSystem;
 import com.badlogic.ashley.utils.ImmutableArray;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Pools;
 import com.galacticodyssey.combat.CombatEnums.FuseType;
+import com.galacticodyssey.combat.CombatEnums.HitRegion;
 import com.galacticodyssey.combat.components.GrenadeComponent;
+import com.galacticodyssey.combat.data.AmmoTypeData;
 import com.galacticodyssey.combat.data.GrenadeData;
 import com.galacticodyssey.combat.data.GrenadeDataRegistry;
+import com.galacticodyssey.combat.data.WeaponDataRegistry;
 import com.galacticodyssey.combat.components.HealthComponent;
 import com.galacticodyssey.combat.components.HitboxComponent;
 import com.galacticodyssey.combat.components.ProjectileComponent;
@@ -27,13 +31,18 @@ public class ProjectileSystem extends IteratingSystem {
 
     public static final int PRIORITY = 7;
 
-    private static final float COLLISION_RADIUS = 1.0f;
+    /** Sphere radius for grenade–entity proximity checks. */
+    private static final float GRENADE_COLLISION_RADIUS = 1.0f;
+    /** Fallback capsule radius for bullet swept-CCD when no HitboxComponent is present. */
+    private static final float BULLET_COLLISION_RADIUS = 0.5f;
+
     private static final Vector3 GRAVITY = new Vector3(0f, -9.81f, 0f);
 
     private final EventBus eventBus;
     private Engine engine;
     private final Array<Entity> toRemove = new Array<>();
     private GrenadeDataRegistry grenadeRegistry;
+    private WeaponDataRegistry weaponDataRegistry;
 
     private static final Family TARGET_FAMILY =
         Family.all(TransformComponent.class, HitboxComponent.class, HealthComponent.class).get();
@@ -46,9 +55,15 @@ public class ProjectileSystem extends IteratingSystem {
         ComponentMapper.getFor(RangedWeaponComponent.class);
     private static final ComponentMapper<HealthComponent> HEALTH_M =
         ComponentMapper.getFor(HealthComponent.class);
+    private static final ComponentMapper<HitboxComponent> HITBOX_M =
+        ComponentMapper.getFor(HitboxComponent.class);
 
     public void setGrenadeDataRegistry(GrenadeDataRegistry registry) {
         this.grenadeRegistry = registry;
+    }
+
+    public void setWeaponDataRegistry(WeaponDataRegistry registry) {
+        this.weaponDataRegistry = registry;
     }
 
     public ProjectileSystem(EventBus eventBus) {
@@ -79,8 +94,18 @@ public class ProjectileSystem extends IteratingSystem {
 
         if (shooterTransform == null || weaponComp == null) return;
 
-        float speed = weaponComp.projectileSpeed != null ? weaponComp.projectileSpeed : 40f;
-        float lifetime = (speed > 0f) ? weaponComp.range / speed : 2f;
+        // Resolve projectile speed: component value → ammo registry → fallback
+        float speed;
+        AmmoTypeData ammo = resolveAmmo(weaponComp.ammoTypeId);
+        if (weaponComp.projectileSpeed != null) {
+            speed = weaponComp.projectileSpeed;
+        } else if (ammo != null && ammo.projectileSpeed != null) {
+            speed = ammo.projectileSpeed;
+        } else {
+            speed = 40f;
+        }
+
+        float lifetime = (speed > 0f && weaponComp.range > 0f) ? weaponComp.range / speed : 2f;
 
         Vector3 dir = Pools.obtain(Vector3.class).set(event.aimDirection).nor();
 
@@ -99,11 +124,19 @@ public class ProjectileSystem extends IteratingSystem {
         proj.age = 0f;
         proj.areaOfEffect = 0f;
         proj.ammoTypeId = weaponComp.ammoTypeId;
+        proj.maxRange = weaponComp.range > 0f ? weaponComp.range : Float.MAX_VALUE;
+
+        // Physics from ammo data
+        if (ammo != null) {
+            proj.mass = ammo.mass > 0f ? ammo.mass : 1f;
+            proj.dragCoeff = ammo.dragCoeff;
+            proj.crossSection = ammo.crossSection;
+            proj.affectedByGravity = ammo.affectedByGravity;
+        }
 
         projectile.add(transform);
         projectile.add(proj);
 
-        // Attach GrenadeComponent if this is a grenade launcher
         if (weaponComp.grenadeTypeId != null && grenadeRegistry != null) {
             GrenadeData gData = grenadeRegistry.get(weaponComp.grenadeTypeId);
             if (gData != null) {
@@ -131,6 +164,11 @@ public class ProjectileSystem extends IteratingSystem {
         Pools.free(dir);
     }
 
+    private AmmoTypeData resolveAmmo(String ammoTypeId) {
+        if (ammoTypeId == null || weaponDataRegistry == null) return null;
+        return weaponDataRegistry.getAmmoType(ammoTypeId);
+    }
+
     @Override
     public void update(float deltaTime) {
         super.update(deltaTime);
@@ -154,18 +192,19 @@ public class ProjectileSystem extends IteratingSystem {
             return;
         }
 
-        // --- Physics integration ---
+        // Save position before integration so swept CCD can test the full tick's travel
+        proj.prevPosition.set(transform.position);
 
+        // --- Physics integration ---
         Vector3 accel = Pools.obtain(Vector3.class).setZero();
 
         if (proj.affectedByGravity) {
             accel.add(GRAVITY);
         }
 
-        if (proj.dragCoeff > 0f && proj.crossSection > 0f) {
+        if (proj.dragCoeff > 0f && proj.crossSection > 0f && proj.mass > 0f) {
             float vSq = proj.velocity.len2();
             if (vSq > 0.001f) {
-                // Simplified drag: F = 0.5 * rho * v^2 * Cd * A  (rho=1.225 at sea level)
                 float airDensity = 1.225f;
                 float dragMag = 0.5f * airDensity * vSq * proj.dragCoeff * proj.crossSection;
                 Vector3 drag = Pools.obtain(Vector3.class)
@@ -219,21 +258,20 @@ public class ProjectileSystem extends IteratingSystem {
             TransformComponent targetTransform = TRANSFORM_M.get(candidate);
             if (targetTransform == null) continue;
 
-            float dist = transform.position.dst(targetTransform.position);
-            if (dist <= COLLISION_RADIUS) {
-                // Check if this projectile is a grenade
-                GrenadeComponent grenadeComp = GrenadeComponent.MAPPER.get(entity);
-                if (grenadeComp != null) {
-                    if (grenadeComp.fuseType == FuseType.IMPACT) {
-                        grenadeComp.fuseTimer = 0f;
+            if (gc != null) {
+                // --- Grenade: simple end-of-frame sphere check ---
+                float dist = transform.position.dst(targetTransform.position);
+                if (dist <= GRENADE_COLLISION_RADIUS) {
+                    if (gc.fuseType == FuseType.IMPACT) {
+                        gc.fuseTimer = 0f;
                         proj.velocity.setZero();
                     } else {
-                        if (grenadeComp.bounceCount < grenadeComp.maxBounces) {
+                        if (gc.bounceCount < gc.maxBounces) {
                             Vector3 normal = new Vector3(transform.position).sub(targetTransform.position).nor();
                             float dot = proj.velocity.dot(normal);
                             proj.velocity.mulAdd(normal, -2f * dot);
-                            proj.velocity.scl(grenadeComp.bounceRestitution);
-                            grenadeComp.bounceCount++;
+                            proj.velocity.scl(gc.bounceRestitution);
+                            gc.bounceCount++;
                             if (proj.velocity.len() < 0.5f) {
                                 proj.velocity.setZero();
                             }
@@ -242,22 +280,79 @@ public class ProjectileSystem extends IteratingSystem {
                             proj.velocity.setZero();
                         }
                     }
-                    return; // Skip normal projectile hit processing for ALL grenades
+                    return;
                 }
-
-                // Normal projectile hit (non-grenade)
-                eventBus.publish(new ProjectileHitEvent(
-                    proj.owner,
-                    candidate,
-                    new Vector3(transform.position),
-                    proj.damage,
-                    proj.damageType,
-                    proj.areaOfEffect,
-                    proj.ammoTypeId
-                ));
-                toRemove.add(entity);
-                return;
+            } else {
+                // --- Bullet: swept CCD against the target's vertical capsule ---
+                HitboxComponent hitbox = HITBOX_M.get(candidate);
+                HitRegion region = computeSweptHit(
+                    proj.prevPosition, transform.position, targetTransform.position, hitbox);
+                if (region != null) {
+                    eventBus.publish(new ProjectileHitEvent(
+                        proj.owner,
+                        candidate,
+                        new Vector3(transform.position),
+                        proj.damage,
+                        proj.damageType,
+                        proj.areaOfEffect,
+                        proj.ammoTypeId,
+                        region
+                    ));
+                    toRemove.add(entity);
+                    return;
+                }
             }
         }
+    }
+
+    /**
+     * Swept CCD: tests whether the bullet path segment [p0→p1] passes through the vertical capsule
+     * centred on the target's feet with the given body height and collision radius.
+     *
+     * @return the HitRegion if the path intersects the capsule, or null on a miss.
+     */
+    private static HitRegion computeSweptHit(Vector3 p0, Vector3 p1,
+                                              Vector3 targetFeet, HitboxComponent hitbox) {
+        float colRadius  = hitbox != null ? hitbox.collisionRadius : BULLET_COLLISION_RADIUS;
+        float bodyHeight = hitbox != null ? hitbox.bodyHeight : 1.8f;
+
+        // Closest t on the bullet segment to the capsule's vertical axis in the XZ plane
+        float sdx = p1.x - p0.x;
+        float sdz = p1.z - p0.z;
+        float segLen2 = sdx * sdx + sdz * sdz;
+
+        float t;
+        if (segLen2 < 1e-8f) {
+            t = 0f;
+        } else {
+            float wx = targetFeet.x - p0.x;
+            float wz = targetFeet.z - p0.z;
+            t = MathUtils.clamp((wx * sdx + wz * sdz) / segLen2, 0f, 1f);
+        }
+
+        // Bullet world position at closest-approach t
+        float bx = p0.x + t * (p1.x - p0.x);
+        float by = p0.y + t * (p1.y - p0.y);
+        float bz = p0.z + t * (p1.z - p0.z);
+
+        // Horizontal (XZ) distance to capsule axis — must be within radius
+        float hDistSq = (bx - targetFeet.x) * (bx - targetFeet.x)
+                      + (bz - targetFeet.z) * (bz - targetFeet.z);
+        if (hDistSq > colRadius * colRadius) return null;
+
+        // Vertical extent: body column plus hemispherical end caps of radius colRadius
+        float footY = targetFeet.y;
+        float headY = footY + bodyHeight;
+        if (by < footY - colRadius || by > headY + colRadius) return null;
+
+        // Map vertical hit position to a body region
+        float clampedY = Math.max(footY, Math.min(headY, by));
+        float ratio = bodyHeight > 0f ? (clampedY - footY) / bodyHeight : 0.5f;
+        if (hitbox != null) return hitbox.getRegionForHeight(ratio);
+
+        if (ratio >= 0.85f) return HitRegion.HEAD;
+        if (ratio >= 0.50f) return HitRegion.TORSO;
+        if (ratio >= 0.25f) return HitRegion.ARMS;
+        return HitRegion.LEGS;
     }
 }
