@@ -241,7 +241,8 @@ public class BoardingResolutionSystem extends EntitySystem {
         switch (sizeClass) {
             case SMALL:  return 0;
             case MEDIUM: return 15;
-            default:     return 30;
+            case LARGE:  return 30;
+            default:     return 30; // fallback for any future size class
         }
     }
 

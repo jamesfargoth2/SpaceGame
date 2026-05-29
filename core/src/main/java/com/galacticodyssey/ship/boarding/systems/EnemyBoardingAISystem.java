@@ -18,10 +18,12 @@ import com.galacticodyssey.ship.components.ShipDataComponent;
 
 /**
  * Bidirectional boarding: when the player's ship has been disabled (its operation is VULNERABLE
- * and no aggressor has been assigned), a nearby NPC ship within {@link #BOARD_RANGE} becomes the
- * aggressor and launches a breaching pod at the player. (Faction hostility is not yet checked —
- * any in-range ship is currently treated as a potential aggressor.) Marks the operation {@code
- * playerIsAggressor = false} so the rest of the pipeline runs inverted.
+ * and no aggressor has been assigned), a hostile NPC ship within {@link #BOARD_RANGE} becomes the
+ * aggressor and launches a breaching pod at the player. A ship counts as hostile when the injected
+ * {@link ReputationQuery} reports its faction standing strictly below the HOSTILE threshold
+ * ({@link #HOSTILE_STANDING}). When no {@code ReputationQuery} is provided (reputation is not yet
+ * wired into GameWorld), any in-range ship is treated as hostile as a fallback. Marks the operation
+ * {@code playerIsAggressor = false} so the rest of the pipeline runs inverted.
  */
 public class EnemyBoardingAISystem extends EntitySystem {
 

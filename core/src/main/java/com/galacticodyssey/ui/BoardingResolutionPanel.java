@@ -57,7 +57,7 @@ public class BoardingResolutionPanel extends Table implements Disposable {
     }
 
     /** Publishes the chosen outcome for the current target and hides the panel. */
-    void choose(BoardingOutcome outcome) {
+    private void choose(BoardingOutcome outcome) {
         if (target == null) return;
         eventBus.publish(new BoardingResolutionChosenEvent(target, outcome));
         hide();
