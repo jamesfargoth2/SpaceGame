@@ -6,11 +6,16 @@ import com.badlogic.ashley.core.Entity;
 import com.badlogic.ashley.core.EntitySystem;
 import com.badlogic.ashley.core.Family;
 import com.badlogic.ashley.utils.ImmutableArray;
+import com.badlogic.gdx.physics.bullet.dynamics.btDiscreteDynamicsWorld;
 import com.galacticodyssey.core.EventBus;
+import com.galacticodyssey.core.components.PhysicsBodyComponent;
 import com.galacticodyssey.core.components.PlayerTagComponent;
 import com.galacticodyssey.core.events.ReputationChangeEvent;
 import com.galacticodyssey.economy.components.CargoBayComponent;
 import com.galacticodyssey.economy.components.PlayerWalletComponent;
+import com.galacticodyssey.player.components.PlayerStatsComponent;
+import com.galacticodyssey.player.stats.PointSkill;
+import com.galacticodyssey.ship.ShipSizeClass;
 import com.galacticodyssey.ship.boarding.BoardingDefenseComponent;
 import com.galacticodyssey.ship.boarding.BoardingOperationComponent;
 import com.galacticodyssey.ship.boarding.BoardingOperationComponent.BoardingPhase;
@@ -59,14 +64,18 @@ public class BoardingResolutionSystem extends EntitySystem {
         ComponentMapper.getFor(CargoBayComponent.class);
     private static final ComponentMapper<PlayerGarageComponent> GARAGE_M =
         ComponentMapper.getFor(PlayerGarageComponent.class);
+    private static final ComponentMapper<PlayerStatsComponent> STATS_M =
+        ComponentMapper.getFor(PlayerStatsComponent.class);
 
     private final EventBus eventBus;
+    private final btDiscreteDynamicsWorld mainWorld; // nullable (headless tests)
     private final Queue<BoardingResolutionChosenEvent> pending = new ArrayDeque<>();
     private ImmutableArray<Entity> players;
 
-    public BoardingResolutionSystem(EventBus eventBus) {
+    public BoardingResolutionSystem(EventBus eventBus, btDiscreteDynamicsWorld mainWorld) {
         super(PRIORITY);
         this.eventBus = eventBus;
+        this.mainWorld = mainWorld;
         eventBus.subscribe(BoardingResolutionChosenEvent.class, pending::add);
     }
 
@@ -110,7 +119,8 @@ public class BoardingResolutionSystem extends EntitySystem {
 
     private void hijack(Entity target, BoardingOperationComponent op, Entity player) {
         int tactics = playerTactics(player);
-        if (!hijackSucceeds(tactics, 0)) return; // gate; default required=0 → succeeds
+        int required = requiredTacticsFor(targetSizeClass(target));
+        if (!hijackSucceeds(tactics, required)) return; // crew repels the takeover
         flagOwned(target);
         restoreEngines(target);
         addGarageEntry(player, target, "HIJACK");
@@ -189,9 +199,26 @@ public class BoardingResolutionSystem extends EntitySystem {
     }
 
     private int playerTactics(Entity player) {
-        // Tactics skill source is not yet wired into combat; default high so hijack succeeds.
-        // TODO: wire Tactics skill into combat so the hijack gate can fail
-        return 100;
+        if (player == null) return 0;
+        PlayerStatsComponent stats = STATS_M.get(player);
+        if (stats == null) return 0;
+        Integer v = stats.pointSkills.get(PointSkill.TACTICS);
+        return v != null ? v : 0;
+    }
+
+    private static ShipSizeClass targetSizeClass(Entity target) {
+        ShipDataComponent data = DATA_M.get(target);
+        if (data != null && data.blueprint != null) return data.blueprint.sizeClass;
+        return ShipSizeClass.SMALL;
+    }
+
+    /** Minimum Tactics skill to hijack a hull of the given size class. */
+    public static int requiredTacticsFor(ShipSizeClass sizeClass) {
+        switch (sizeClass) {
+            case SMALL:  return 0;
+            case MEDIUM: return 15;
+            default:     return 30;
+        }
     }
 
     /** Deterministic hijack gate: succeeds when the player's Tactics meets the requirement. */

@@ -477,7 +477,7 @@ public class GameWorld implements Disposable {
         engine.addSystem(new BoardingEntrySystem(eventBus, bulletPhysicsSystem.getDynamicsWorld()));
         engine.addSystem(new BoardingInitiationSystem(eventBus, boardingAttachSystem));
         engine.addSystem(new BoardingCombatSystem(eventBus));
-        engine.addSystem(new BoardingResolutionSystem(eventBus));
+        engine.addSystem(new BoardingResolutionSystem(eventBus, bulletPhysicsSystem.getDynamicsWorld()));
         // TODO: pass a real ReputationQuery once ReputationManager is wired into GameWorld;
         // null preserves "any disabled-player ship may be boarded" behavior until then.
         engine.addSystem(new EnemyBoardingAISystem(boardingAttachSystem, null));
