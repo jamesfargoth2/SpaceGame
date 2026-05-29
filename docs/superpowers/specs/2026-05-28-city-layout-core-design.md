@@ -62,9 +62,19 @@ CityLayoutGenerator.generate(CityRequest request) -> CityLayout
 ### Pipeline stages (each its own class)
 
 1. **CityForm selection** — faction ethos + seed pick `GRID / ORGANIC / RADIAL / LINEAR / SPRAWL` (data-driven faction bias, modulated by the size tier's form bias).
+
+> **v1 geometry simplification:** Blocks and lots are **axis-aligned rectangles**
+> throughout (the skill's `LotSubdivider` assumes rectangular cells). `CityForm` is
+> realized as *modulations of an axis-aligned cell grid* rather than literal curved
+> geometry: GRID = uniform grid; RADIAL = aggressive centre-ward block-size gradient +
+> central plaza void; ORGANIC = per-cell boundary jitter + occasional cell merge/drop;
+> LINEAR = grid clipped to an elongated strip; SPRAWL = grid with a fraction of
+> peripheral cells omitted and enlarged. This yields visibly distinct city shapes while
+> keeping lots rectangular, deterministic, and unit-testable. Curved radial avenues /
+> winding organic streets are a deferred enhancement (later A refinement or E).
 2. **LandmarkPlacer** — places civic/government centre, spaceport (65–85% radius), market plaza, faction landmark. **Merges any `AuthoredLandmark`s from the request first**, then fills remaining required landmarks procedurally (hybrid procedural + handcrafted).
 3. **StreetNetworkBuilder** — strategy per form (`GridStreetBuilder`, `OrganicStreetBuilder` L-system, `RadialStreetBuilder`, `LinearStreetBuilder`, `SprawlStreetBuilder`). Produces tiered streets (`AVENUE / STREET / ALLEY`) with loops (extra cross-streets), never a bare spanning tree.
-4. **BlockExtractor** — enclosed street polygons → `CityBlock`s.
+4. **Block derivation** — each street builder emits its `CityBlock`s **directly as the cells it creates** (grid cells between avenues; radial ring-sectors; perturbed cells for organic/sprawl/linear). This avoids fragile general planar-graph face extraction and keeps block derivation deterministic and per-form. (`StreetNetworkBuilder.build(...)` returns a `StreetNetwork{ streets, blocks }`.)
 5. **DistrictZoner** — assigns `DistrictType` per block via centre-out gradient + landmark adjacency override + faction rules.
 6. **LotSubdivider** — blocks → `BuildingLot`s using zone-specific min/max lot sizes (iterative binary subdivision along longest axis).
 7. **LotFunctionAssigner** — tags each lot with a `BuildingFunction` drawn from its district's allowed-mix table. **This is the A/B handoff contract.**
@@ -82,7 +92,8 @@ rather than throwing — caller decides whether the site is viable (relevant to 
 ### `CityRequest`
 - `long seed` — derived via a new `SeedDeriver.CITY_DOMAIN` constant.
 - `int population` — **the single size driver.**
-- `FactionId rulingFaction` — drives form bias, district mix, naming style.
+- `FactionEthos rulingEthos` — drives form bias and district mix (the codebase has **no `FactionId` enum**; factions are `String id` + `FactionEthos`, cf. `SystemEconomyGenerator.generate(seed, "CORPORATE", dist)`).
+- `String factionId` — opaque faction identifier carried into the layout for downstream sub-projects.
 - `TerrainSampler terrain` — injected interface (see below).
 - `List<AuthoredLandmark> authoredLandmarks` — optional; hand-placed landmarks merged before procedural fill. Empty list = fully procedural.
 
@@ -138,7 +149,8 @@ CityLayout
   int         population
   CityType    type
   CityForm    form
-  FactionId   rulingFaction
+  FactionEthos rulingEthos
+  String      factionId
   GalaxyAnchor localToGalaxyAnchor   // double-precision placeholder; A leaves unset/identity, E fills
   List<Landmark>     landmarks       // type + local position (+ authored flag)
   List<Street>       streets         // start, end, tier
@@ -178,10 +190,13 @@ lat/lon + local-frame orientation). A constructs it empty/identity; documented a
 
 - `size_tiers.json` — the 7-tier table (thresholds, radius bands, form bias, wall flag, density, target building count).
 - `district_mix.json` — per `DistrictType`, the weighted allowed `BuildingFunction` mix and zone-specific min/max lot sizes.
-- `faction_form_bias.json` — per `FactionId`, weighting over `CityForm` (combined with the tier's form bias).
+- `faction_form_bias.json` — per `FactionEthos`, weighting over `CityForm` (combined with the tier's form bias).
 
 Loaded via the established registry/loader pattern (cf. `CommodityRegistry`,
 `FaunaDataRegistry`): a `CityDataRegistry` parses these on init and exposes typed lookups.
+The registry exposes a `loadFromReader(Reader)` form so unit tests can load the same
+JSON off the classpath with no `Gdx` files backend, while runtime uses
+`Gdx.files.internal(...)`.
 
 ---
 
