@@ -26,6 +26,7 @@ public final class SeedDeriver {
     public static final long TECTONIC_DOMAIN       = 0x8F2C6A4E1D5B7903L;
     public static final long EROSION_DOMAIN        = 0x5E1D3A7B9C2F4680L;
     public static final long FLORA_DOMAIN          = 0x6A1F4C8B3E7D2059L;
+    public static final long FAUNA_DOMAIN          = 0x6A09E667F3BCC909L;
 
     private SeedDeriver() {}
 
@@ -47,6 +48,8 @@ public final class SeedDeriver {
 
     public static long floraDomain(long parentSeed) {
         return domain(parentSeed, FLORA_DOMAIN);
+    public static long faunaDomain(long parentSeed) {
+        return domain(parentSeed, FAUNA_DOMAIN);
     }
 
     public static long forId(long domainSeed, long id) {

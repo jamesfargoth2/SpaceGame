@@ -28,12 +28,25 @@ public final class FactionData {
     /** Key into LanguageStyles for naming systems/stations in this faction's territory. */
     public final String namingStyleId;
 
+    /** Optional explicit hull style id; null means resolve from ethos. */
+    public final String styleId;
+
     public FactionData(String id, String name,
                        double capitalX, double capitalY, double capitalZ,
                        float militaryStrength, float economicStrength,
                        FactionEthos ethos,
                        float mapColorR, float mapColorG, float mapColorB,
                        float influenceRadiusLY, String namingStyleId) {
+        this(id, name, capitalX, capitalY, capitalZ, militaryStrength, economicStrength,
+             ethos, mapColorR, mapColorG, mapColorB, influenceRadiusLY, namingStyleId, null);
+    }
+
+    public FactionData(String id, String name,
+                       double capitalX, double capitalY, double capitalZ,
+                       float militaryStrength, float economicStrength,
+                       FactionEthos ethos,
+                       float mapColorR, float mapColorG, float mapColorB,
+                       float influenceRadiusLY, String namingStyleId, String styleId) {
         this.id = id;
         this.name = name;
         this.capitalX = capitalX;
@@ -47,5 +60,6 @@ public final class FactionData {
         this.mapColorB = mapColorB;
         this.influenceRadiusLY = influenceRadiusLY;
         this.namingStyleId = namingStyleId;
+        this.styleId = styleId;
     }
 }

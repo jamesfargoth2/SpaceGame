@@ -99,6 +99,13 @@ import com.galacticodyssey.mission.saga.SagaRegistry;
 import com.galacticodyssey.npc.events.RecruitmentOpenedEvent;
 import com.galacticodyssey.npc.events.RecruitmentClosedEvent;
 import com.galacticodyssey.ship.components.VehicleBayComponent;
+import com.galacticodyssey.data.FaunaDataRegistry;
+import com.galacticodyssey.fauna.CreatureGenerator;
+import com.galacticodyssey.fauna.CreatureMeshBuilder;
+import com.galacticodyssey.fauna.FaunaDebugSpawner;
+import com.galacticodyssey.fauna.components.CreatureRenderComponent;
+import com.galacticodyssey.fauna.geometry.ProceduralPartProvider;
+import com.galacticodyssey.fauna.geometry.AuthoredPartProvider;
 
 import java.util.Random;
 
@@ -179,6 +186,10 @@ public class GameScreen implements Screen {
     private com.galacticodyssey.ui.systems.RecruitmentScreenSystem recruitmentScreen;
     private VehicleBayPanel vehicleBayPanel;
     private com.badlogic.gdx.scenes.scene2d.Stage vehicleBayStage;
+
+    // DEV-ONLY: F6 debug creature spawn (Task 14, Creature Generation Core)
+    private FaunaDebugSpawner faunaDebugSpawner;
+    private final Array<ModelInstance> creatureRenderQueue = new Array<>();
 
     // Preserve existing constructor for load-game flow
     public GameScreen(GalacticOdyssey game) {
@@ -329,6 +340,19 @@ public class GameScreen implements Screen {
         sunLight.intensity = 3f;
         sunEntity.add(sunLight);
         gameWorld.getEngine().addEntity(sunEntity);
+
+        // DEV-ONLY: build the F6 debug creature spawner. Default fauna parts are all procedural,
+        // so the AuthoredPartProvider's AssetManager is never touched for this content.
+        FaunaDataRegistry faunaRegistry = new FaunaDataRegistry();
+        faunaRegistry.loadParts("data/fauna/parts/default-parts.json");
+        faunaRegistry.loadArchetypes("data/fauna/archetypes/default-archetypes.json");
+        faunaRegistry.validate();
+        CreatureGenerator creatureGenerator = new CreatureGenerator(faunaRegistry);
+        CreatureMeshBuilder creatureMeshBuilder = new CreatureMeshBuilder(
+            new ProceduralPartProvider(),
+            new AuthoredPartProvider(null));
+        disposables.add(creatureMeshBuilder);
+        faunaDebugSpawner = new FaunaDebugSpawner(creatureGenerator, creatureMeshBuilder);
     }
 
     private void openGalaxyMap() {
@@ -403,6 +427,18 @@ public class GameScreen implements Screen {
                 }
                 if (keycode == Input.Keys.F5) {
                     if (deferredRenderer != null) deferredRenderer.reloadShaders();
+                    return true;
+                }
+                if (keycode == Input.Keys.F6) {
+                    if (faunaDebugSpawner != null) {
+                        var players = gameWorld.getEngine().getEntitiesFor(
+                            Family.all(PlayerTagComponent.class, TransformComponent.class).get());
+                        Vector3 origin = players.size() > 0
+                            ? players.first().getComponent(TransformComponent.class).position
+                            : camera.position;
+                        faunaDebugSpawner.spawnInFront(
+                            gameWorld.getEngine(), origin, camera.direction, 6f);
+                    }
                     return true;
                 }
                 return false;
@@ -1182,6 +1218,7 @@ public class GameScreen implements Screen {
                 renderBoxes();
                 renderWorldObjects();
                 renderShips();
+                renderCreatures();
             },
             () -> renderFirstPersonWeapon(delta),
             atmosphericSkyRenderer,
@@ -1287,6 +1324,33 @@ public class GameScreen implements Screen {
         }
         for (int i = 0; i < populatedWorld.animalInstances.size; i++) {
             gbufferBatch.render(populatedWorld.animalInstances.get(i));
+        }
+        gbufferBatch.end();
+    }
+
+    /** DEV-ONLY: render debug-spawned creatures (F6). Instances live on CreatureRenderComponent. */
+    @SuppressWarnings("unchecked")
+    private void renderCreatures() {
+        if (gameWorld == null) return;
+        var creatures = gameWorld.getEngine().getEntitiesFor(
+            Family.all(CreatureRenderComponent.class).get());
+        if (creatures.size() == 0) return;
+
+        Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
+        Gdx.gl.glDepthMask(true);
+
+        creatureRenderQueue.clear();
+        for (int i = 0; i < creatures.size(); i++) {
+            CreatureRenderComponent render = creatures.get(i).getComponent(CreatureRenderComponent.class);
+            if (render.modelInstance instanceof Array) {
+                creatureRenderQueue.addAll((Array<ModelInstance>) render.modelInstance);
+            }
+        }
+        if (creatureRenderQueue.size == 0) return;
+
+        gbufferBatch.begin(camera);
+        for (int i = 0; i < creatureRenderQueue.size; i++) {
+            gbufferBatch.render(creatureRenderQueue.get(i));
         }
         gbufferBatch.end();
     }
