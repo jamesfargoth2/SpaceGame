@@ -76,8 +76,7 @@ public class DamageSystem extends EntitySystem {
     }
 
     private void onProjectileHit(ProjectileHitEvent event) {
-        // Projectiles have no specific hitRegion — treat as TORSO
-        processDamage(event.target, event.shooter, HitRegion.TORSO,
+        processDamage(event.target, event.shooter, event.hitRegion,
             event.damage, event.damageType, event.ammoTypeId);
     }
 
