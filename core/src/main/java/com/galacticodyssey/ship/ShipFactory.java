@@ -101,6 +101,12 @@ public class ShipFactory implements Disposable {
         this.moduleRegistry = registry;
     }
 
+    private com.galacticodyssey.ship.ai.PilotArchetypeRegistry pilotArchetypes;
+
+    public void setPilotArchetypes(com.galacticodyssey.ship.ai.PilotArchetypeRegistry registry) {
+        this.pilotArchetypes = registry;
+    }
+
     // -------------------------------------------------------------------------
     // Public API
     // -------------------------------------------------------------------------
@@ -306,6 +312,67 @@ public class ShipFactory implements Disposable {
 
         engine.addEntity(entity);
         return entity;
+    }
+
+    /**
+     * Builds a flyable, AI-piloted combat ship: the standard flight/physics stack from
+     * {@link #createShip} plus its own flight input, health, a gun hardpoint, and pilot AI.
+     */
+    public com.badlogic.ashley.core.Entity createNpcCombatShip(
+            long seed, ShipSizeClass sizeClass, String archetypeId,
+            float x, float y, float z) {
+
+        com.badlogic.ashley.core.Entity ship = createShip(seed, sizeClass, x, y, z);
+
+        ship.add(new com.galacticodyssey.ship.components.ShipFlightInputComponent());
+
+        com.galacticodyssey.combat.components.HealthComponent health =
+            new com.galacticodyssey.combat.components.HealthComponent();
+        health.maxHP = 100f * (sizeClass.ordinal() + 1);
+        health.currentHP = health.maxHP;
+        health.alive = true;
+        ship.add(health);
+
+        com.galacticodyssey.ship.weapons.components.ShipHardpointComponent hpc =
+            ship.getComponent(com.galacticodyssey.ship.weapons.components.ShipHardpointComponent.class);
+        if (hpc == null) {
+            hpc = new com.galacticodyssey.ship.weapons.components.ShipHardpointComponent();
+            ship.add(hpc);
+        }
+        com.galacticodyssey.ship.weapons.data.Hardpoint gunHp =
+            new com.galacticodyssey.ship.weapons.data.Hardpoint(
+                "npc_gun_0",
+                com.galacticodyssey.ship.weapons.ShipWeaponEnums.HardpointType.FIXED,
+                com.galacticodyssey.ship.weapons.ShipWeaponEnums.HardpointSize.SMALL, 0, 30);
+        com.galacticodyssey.ship.weapons.data.ShipWeaponData gun =
+            new com.galacticodyssey.ship.weapons.data.ShipWeaponData();
+        gun.id = "npc_cannon";
+        gun.name = "NPC Cannon";
+        gun.category = com.galacticodyssey.ship.weapons.ShipWeaponEnums.ShipWeaponCategory.BALLISTIC_CANNON;
+        gun.damage = 12f;
+        gun.damageType = com.galacticodyssey.combat.CombatEnums.DamageType.BALLISTIC;
+        gun.fireRate = 4f;
+        gun.projectileSpeed = 600f;
+        gun.range = 1000f;
+        gun.energyCost = 0f;
+        gun.heatPerShot = 0.05f;
+        gunHp.mountedWeapon = gun;
+        hpc.hardpoints.add(gunHp);
+
+        com.galacticodyssey.ship.ai.ShipPilotAIComponent ai =
+            new com.galacticodyssey.ship.ai.ShipPilotAIComponent();
+        ai.archetypeId = archetypeId;
+        if (pilotArchetypes != null) {
+            ai.archetype = pilotArchetypes.get(archetypeId);
+        }
+        if (ai.archetype == null) {
+            ai.archetype = new com.galacticodyssey.ship.ai.PilotArchetype();
+        }
+        ai.decisionInterval = ai.archetype.reactionTimeSec;
+        ai.behaviorTree = com.galacticodyssey.ship.ai.DogfightTreeFactory.build(ship, gun.range);
+        ship.add(ai);
+
+        return ship;
     }
 
     // -------------------------------------------------------------------------
@@ -579,6 +646,38 @@ public class ShipFactory implements Disposable {
     // -------------------------------------------------------------------------
     // Disposal
     // -------------------------------------------------------------------------
+
+    /**
+     * Releases the Bullet resources owned by a single ship entity (exterior body + shape):
+     * removes the body from the exterior physics world and the managed-body list, disposes
+     * body and shape, and drops them from this factory's tracked disposables so a later
+     * {@link #dispose()} does not double-free them. Safe to call on entities not created by
+     * this factory (no-op if there is no {@link PhysicsBodyComponent} or it is untracked).
+     *
+     * <p>Used by the fleet collapse path so despawned member ships do not leak Bullet bodies.
+     * Does not touch any interior physics world (NPC combat ships do not activate interiors).
+     */
+    public void disposeShip(Entity ship) {
+        if (ship == null) return;
+        PhysicsBodyComponent pbc = ship.getComponent(PhysicsBodyComponent.class);
+        if (pbc == null) return;
+
+        btDiscreteDynamicsWorld world = physics.getDynamicsWorld();
+        if (pbc.body != null) {
+            physics.removeManagedBody(pbc.body);
+            if (world != null) {
+                world.removeRigidBody(pbc.body);
+            }
+            disposables.removeValue(pbc.body, true);
+            pbc.body.dispose();
+        }
+        if (pbc.shape != null) {
+            disposables.removeValue(pbc.shape, true);
+            pbc.shape.dispose();
+        }
+        pbc.body = null;
+        pbc.shape = null;
+    }
 
     @Override
     public void dispose() {
