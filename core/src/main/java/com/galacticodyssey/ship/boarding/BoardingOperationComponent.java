@@ -37,6 +37,11 @@ public class BoardingOperationComponent implements Component, Snapshotable<Board
     public final Vector3 entryLocalPosition = new Vector3();
     public boolean playerIsAggressor;
 
+    /** Transient: true once defenders have been spawned for this operation. Not persisted. */
+    public transient boolean spawned;
+    /** Transient: live defender count; reaches 0 when the interior is cleared. Not persisted. */
+    public transient int defendersRemaining;
+
     // Persisted entity references (resolved by ReferenceResolver on load).
     public UUID aggressorShipId;
     public UUID targetShipId;
