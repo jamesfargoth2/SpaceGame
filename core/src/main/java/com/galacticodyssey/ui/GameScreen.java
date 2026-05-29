@@ -1342,7 +1342,9 @@ public class GameScreen implements Screen {
         creatureRenderQueue.clear();
         for (int i = 0; i < creatures.size(); i++) {
             CreatureRenderComponent render = creatures.get(i).getComponent(CreatureRenderComponent.class);
-            if (render.modelInstance instanceof Array) {
+            if (render.skinnedInstance != null) {
+                creatureRenderQueue.add(render.skinnedInstance);
+            } else if (render.modelInstance instanceof Array) {
                 creatureRenderQueue.addAll((Array<ModelInstance>) render.modelInstance);
             }
         }
