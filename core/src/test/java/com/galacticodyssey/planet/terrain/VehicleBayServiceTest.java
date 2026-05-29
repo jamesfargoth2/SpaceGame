@@ -4,17 +4,15 @@ import com.badlogic.ashley.core.Engine;
 import com.badlogic.ashley.core.Entity;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.bullet.Bullet;
-import com.badlogic.gdx.physics.bullet.collision.btCollisionDispatcher;
-import com.badlogic.gdx.physics.bullet.collision.btDbvtBroadphase;
-import com.badlogic.gdx.physics.bullet.collision.btDefaultCollisionConfiguration;
-import com.badlogic.gdx.physics.bullet.dynamics.btDiscreteDynamicsWorld;
-import com.badlogic.gdx.physics.bullet.dynamics.btSequentialImpulseConstraintSolver;
+import com.badlogic.gdx.physics.bullet.collision.*;
+import com.badlogic.gdx.physics.bullet.dynamics.*;
 import com.galacticodyssey.core.EventBus;
 import com.galacticodyssey.core.components.TransformComponent;
 import com.galacticodyssey.data.VehicleRegistry;
 import com.galacticodyssey.planet.terrain.events.VehicleDeployedEvent;
 import com.galacticodyssey.planet.terrain.events.VehicleRetrievedEvent;
 import com.galacticodyssey.ship.components.VehicleBayComponent;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import java.util.concurrent.atomic.AtomicReference;
@@ -27,12 +25,29 @@ class VehicleBayServiceTest {
         " \"mass\": 900, \"maxHP\": 200, \"baySlots\": 1," +
         " \"weapon\": { \"damage\": 10, \"magSize\": 20 } } ] }";
 
+    private btCollisionConfiguration collisionConfig;
+    private btCollisionDispatcher dispatcher;
+    private btBroadphaseInterface broadphase;
+    private btConstraintSolver solver;
+    private btDiscreteDynamicsWorld world;
+
+    /** Builds the single dynamics world for a test, retaining all sub-objects for disposal. */
     private btDiscreteDynamicsWorld newWorld() {
-        btDefaultCollisionConfiguration config = new btDefaultCollisionConfiguration();
-        btCollisionDispatcher dispatcher = new btCollisionDispatcher(config);
-        btDbvtBroadphase broadphase = new btDbvtBroadphase();
-        btSequentialImpulseConstraintSolver solver = new btSequentialImpulseConstraintSolver();
-        return new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, config);
+        collisionConfig = new btDefaultCollisionConfiguration();
+        dispatcher = new btCollisionDispatcher(collisionConfig);
+        broadphase = new btDbvtBroadphase();
+        solver = new btSequentialImpulseConstraintSolver();
+        world = new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, collisionConfig);
+        return world;
+    }
+
+    @AfterEach
+    void tearDownWorld() {
+        if (world != null) world.dispose();
+        if (solver != null) solver.dispose();
+        if (broadphase != null) broadphase.dispose();
+        if (dispatcher != null) dispatcher.dispose();
+        if (collisionConfig != null) collisionConfig.dispose();
     }
 
     private Entity ship(VehicleBayComponent bay) {

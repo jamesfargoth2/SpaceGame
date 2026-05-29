@@ -17,6 +17,7 @@ import com.galacticodyssey.player.components.PlayerStateComponent.PlayerMode;
 import com.galacticodyssey.ship.components.ShipAerodynamicsComponent;
 import com.galacticodyssey.ship.components.ShipFlightComponent;
 import com.galacticodyssey.ship.components.ShipThermalComponent;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
@@ -25,6 +26,21 @@ class AtmosphericFlightSystemTest {
 
     @BeforeAll
     static void initBullet() { Bullet.init(); }
+
+    private btCollisionConfiguration collisionConfig;
+    private btCollisionDispatcher dispatcher;
+    private btBroadphaseInterface broadphase;
+    private btConstraintSolver solver;
+    private btDiscreteDynamicsWorld world;
+
+    @AfterEach
+    void tearDownWorld() {
+        if (world != null) world.dispose();
+        if (solver != null) solver.dispose();
+        if (broadphase != null) broadphase.dispose();
+        if (dispatcher != null) dispatcher.dispose();
+        if (collisionConfig != null) collisionConfig.dispose();
+    }
 
     @Test
     void dragReducesVelocityInAtmosphere() {
@@ -182,11 +198,11 @@ class AtmosphericFlightSystemTest {
     }
 
     private btDiscreteDynamicsWorld createBulletWorld() {
-        btDefaultCollisionConfiguration config = new btDefaultCollisionConfiguration();
-        btCollisionDispatcher dispatcher = new btCollisionDispatcher(config);
-        btDbvtBroadphase broadphase = new btDbvtBroadphase();
-        btSequentialImpulseConstraintSolver solver = new btSequentialImpulseConstraintSolver();
-        btDiscreteDynamicsWorld world = new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, config);
+        collisionConfig = new btDefaultCollisionConfiguration();
+        dispatcher = new btCollisionDispatcher(collisionConfig);
+        broadphase = new btDbvtBroadphase();
+        solver = new btSequentialImpulseConstraintSolver();
+        world = new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, collisionConfig);
         world.setGravity(new Vector3(0, 0, 0));
         return world;
     }
@@ -195,6 +211,5 @@ class AtmosphericFlightSystemTest {
         world.removeRigidBody(physics.body);
         physics.body.dispose();
         physics.shape.dispose();
-        world.dispose();
     }
 }

@@ -16,6 +16,7 @@ import com.galacticodyssey.ship.components.EngineSpecComponent;
 import com.galacticodyssey.ship.components.FuelTankComponent;
 import com.galacticodyssey.ship.components.ShipFlightComponent;
 import com.galacticodyssey.ship.components.ShipFlightInputComponent;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
@@ -25,19 +26,34 @@ class ShipFlightSystemRefactoredTest {
     @BeforeAll
     static void initBullet() { Bullet.init(); }
 
+    private btCollisionConfiguration collisionConfig;
+    private btCollisionDispatcher dispatcher;
+    private btBroadphaseInterface broadphase;
+    private btConstraintSolver solver;
+    private btDiscreteDynamicsWorld world;
+
+    @AfterEach
+    void tearDownWorld() {
+        if (world != null) world.dispose();
+        if (solver != null) solver.dispose();
+        if (broadphase != null) broadphase.dispose();
+        if (dispatcher != null) dispatcher.dispose();
+        if (collisionConfig != null) collisionConfig.dispose();
+    }
+
     private btDiscreteDynamicsWorld createWorld() {
-        btDefaultCollisionConfiguration config = new btDefaultCollisionConfiguration();
-        btCollisionDispatcher dispatcher = new btCollisionDispatcher(config);
-        btDbvtBroadphase broadphase = new btDbvtBroadphase();
-        btSequentialImpulseConstraintSolver solver = new btSequentialImpulseConstraintSolver();
-        btDiscreteDynamicsWorld world = new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, config);
+        collisionConfig = new btDefaultCollisionConfiguration();
+        dispatcher = new btCollisionDispatcher(collisionConfig);
+        broadphase = new btDbvtBroadphase();
+        solver = new btSequentialImpulseConstraintSolver();
+        world = new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, collisionConfig);
         world.setGravity(new Vector3(0, 0, 0));
         return world;
     }
 
     @Test
     void readsFromShipFlightInputComponent() {
-        btDiscreteDynamicsWorld world = createWorld();
+        createWorld();
         Engine engine = new Engine();
         ShipFlightSystem system = new ShipFlightSystem();
         engine.addSystem(system);
@@ -60,12 +76,11 @@ class ShipFlightSystemRefactoredTest {
 
         physics.body.dispose();
         physics.shape.dispose();
-        world.dispose();
     }
 
     @Test
     void consumesFuelProportionalToThrust() {
-        btDiscreteDynamicsWorld world = createWorld();
+        createWorld();
         Engine engine = new Engine();
         ShipFlightSystem system = new ShipFlightSystem();
         engine.addSystem(system);
@@ -95,7 +110,6 @@ class ShipFlightSystemRefactoredTest {
 
         ship.getComponent(PhysicsBodyComponent.class).body.dispose();
         ship.getComponent(PhysicsBodyComponent.class).shape.dispose();
-        world.dispose();
     }
 
     private Entity createShipEntity(btDiscreteDynamicsWorld world) {
