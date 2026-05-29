@@ -175,7 +175,4 @@ public final class TectonicModel {
         float theta = ga * i;
         out.set(r * MathUtils.cos(theta), y, r * MathUtils.sin(theta)).nor();
     }
-
-    List<Plate> plates() { return plates; }
-    TectonicConfig config() { return config; }
 }
