@@ -9,6 +9,8 @@ import java.util.Random;
 
 /** Orchestrates the staged pipeline into a complete, deterministic CityLayout. */
 public final class CityLayoutGenerator {
+    private static final long NAME_SALT = 0x4A33L;
+
     private final CityDataRegistry registry;
     private final SpaceNameGenerator nameGen;
 
@@ -26,6 +28,7 @@ public final class CityLayoutGenerator {
 
         CitySizeProfile profile = CitySizeProfile.from(registry, req.population, citySeed);
         CityLayout layout = new CityLayout();
+        // cityId is the domain-derived generation seed, not a stable external identifier.
         layout.cityId = citySeed;
         layout.seed = req.seed;
         layout.population = req.population;
@@ -34,8 +37,8 @@ public final class CityLayoutGenerator {
         layout.type = profile.type;
         layout.form = CityFormSelector.select(registry, req.rulingEthos, profile, citySeed);
 
-        SpaceNameGenerator freshNameGen = new SpaceNameGenerator();
-        layout.name = freshNameGen.cityName(new Random(SeedDeriver.forId(citySeed, 0x4A33L)));
+        nameGen.reset();
+        layout.name = nameGen.cityName(new Random(SeedDeriver.forId(citySeed, NAME_SALT)));
 
         layout.landmarks.addAll(LandmarkPlacer.place(
                 profile.radiusMetres, req.hasSpaceport, req.authoredLandmarks, citySeed));
