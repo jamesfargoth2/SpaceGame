@@ -101,6 +101,12 @@ public class ShipFlightSystem extends EntitySystem {
         ShipFlightComponent flight = flightMapper.get(ship);
         if (physics == null || physics.body == null || flight == null) return;
 
+        // Flight-Assist toggle is processed even when engines are down (it's a computer mode).
+        if (input.flightAssistTogglePressed) {
+            flight.flightAssistEnabled = !flight.flightAssistEnabled;
+            input.flightAssistTogglePressed = false;
+        }
+
         // Engines disabled (destroyed or EMP) → ship coasts, ignore pilot thrust/turn input.
         if (!canThrust(ship)) {
             return;

@@ -194,6 +194,28 @@ class ShipFlightAssistTest {
     }
 
     @Test
+    void faTogglePressFlipsModeOncePerPress() {
+        Engine engine = new Engine();
+        ShipFlightSystem system = buildShip(engine, 100f, true, null);
+        ShipFlightComponent flight = ship.getComponent(ShipFlightComponent.class);
+        ShipFlightInputComponent in = ship.getComponent(ShipFlightInputComponent.class);
+
+        in.flightAssistTogglePressed = true;
+        system.update(1f / 60f);
+        assertFalse(flight.flightAssistEnabled, "first press disables FA");
+        assertFalse(in.flightAssistTogglePressed, "flag should be consumed");
+
+        // Held high without re-press should NOT flip again on its own; the input
+        // system is responsible for edge-detection, so a consumed flag stays false.
+        system.update(1f / 60f);
+        assertFalse(flight.flightAssistEnabled, "no second flip without a new press");
+
+        in.flightAssistTogglePressed = true;
+        system.update(1f / 60f);
+        assertTrue(flight.flightAssistEnabled, "second press re-enables FA");
+    }
+
+    @Test
     void blueZoneThrottleTurnsFasterThanFullThrottle() {
         // Blue-zone throttle (0.6) achieves higher yaw rate than full throttle (1.0).
         Engine blueEngine = new Engine();
