@@ -591,6 +591,11 @@ public class GameWorld implements Disposable {
             eventBus, playerPosSupplier, formationRegistry, shipFactory);
         engine.addSystem(fleetExpansionSystem);
 
+        // NPC ship pilot AI — reuses the same ShipWeaponSystem already registered above
+        com.galacticodyssey.ship.ai.ShipPilotAISystem shipPilotAISystem =
+            new com.galacticodyssey.ship.ai.ShipPilotAISystem(eventBus, shipWeaponSystem);
+        engine.addSystem(shipPilotAISystem);
+
         // Water / Hydrodynamics
         waveSystem = new WaveSystem(10);
         engine.addSystem(waveSystem);
