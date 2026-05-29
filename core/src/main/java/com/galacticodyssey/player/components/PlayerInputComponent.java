@@ -12,6 +12,7 @@ public class PlayerInputComponent implements Component {
     public float mouseDeltaY;
     public boolean interactPressed;
     public boolean boardPressed;
+    public boolean proneToggleRequested;
     public boolean cameraTogglePressed;
     public boolean rollLeft;
     public boolean rollRight;

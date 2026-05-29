@@ -9,9 +9,13 @@ import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.bullet.collision.ClosestRayResultCallback;
+import com.badlogic.gdx.physics.bullet.collision.btCollisionShape;
 import com.badlogic.gdx.physics.bullet.dynamics.btDiscreteDynamicsWorld;
+import com.galacticodyssey.core.EventBus;
 import com.galacticodyssey.core.components.PhysicsBodyComponent;
 import com.galacticodyssey.core.components.TransformComponent;
+import com.galacticodyssey.core.events.PlayerPostureChangedEvent;
+import com.galacticodyssey.player.PostureType;
 import com.galacticodyssey.player.components.FPSCameraComponent;
 import com.galacticodyssey.player.components.MovementStateComponent;
 import com.galacticodyssey.player.components.PlayerInputComponent;
@@ -39,6 +43,7 @@ public class PlayerMovementSystem extends IteratingSystem {
     private static final float EXHAUSTED_SPEED_MULTIPLIER = 0.4f;
     private static final float SLOPE_FORCE_BOOST = 2.5f;
     private static final float SLOPE_DAMPING_MIN = 0.4f;
+    private static final float PRONE_SPEED = 0.8f;
 
     private final ComponentMapper<PlayerInputComponent> inputMapper =
         ComponentMapper.getFor(PlayerInputComponent.class);
@@ -65,6 +70,12 @@ public class PlayerMovementSystem extends IteratingSystem {
     private final Matrix4 tempMat = new Matrix4();
     private final Quaternion tempQuat = new Quaternion();
 
+    private EventBus eventBus;
+
+    public void setEventBus(EventBus eventBus) {
+        this.eventBus = eventBus;
+    }
+
     public PlayerMovementSystem(btDiscreteDynamicsWorld dynamicsWorld) {
         super(Family.all(
             PlayerInputComponent.class,
@@ -85,6 +96,12 @@ public class PlayerMovementSystem extends IteratingSystem {
         if (playerState != null
                 && (playerState.currentMode == PlayerStateComponent.PlayerMode.PILOTING
                         || playerState.currentMode == PlayerStateComponent.PlayerMode.DRIVING)) {
+            PhysicsBodyComponent physics = physicsMapper.get(entity);
+            MovementStateComponent state = stateMapper.get(entity);
+            if (state != null && state.isProne && physics != null && physics.body != null) {
+                swapCapsule(physics, physics.shape);
+                state.isProne = false;
+            }
             return;
         }
 
@@ -110,11 +127,18 @@ public class PlayerMovementSystem extends IteratingSystem {
 
         SwimmingStateComponent swimState = entity.getComponent(SwimmingStateComponent.class);
         if (swimState != null && swimState.swimState != SwimState.DRY) {
+            input.proneToggleRequested = false;
             return;
         }
 
         MovementStateComponent state = stateMapper.get(entity);
         TransformComponent transform = transformMapper.get(entity);
+
+        // consume prone toggle before any movement decisions
+        if (input.proneToggleRequested) {
+            handleProneToggle(physics, state);
+            input.proneToggleRequested = false;
+        }
 
         boolean wasGrounded = state.isGrounded;
         performGroundCheck(physics, state, tempVec);
@@ -141,7 +165,7 @@ public class PlayerMovementSystem extends IteratingSystem {
 
         float slopeSpeedFactor = 1f;
         float slopeStaminaDrain = 0f;
-        if (movingUphill && slopeAngle > SLOPE_SPEED_PENALTY_START) {
+        if (!state.isProne && movingUphill && slopeAngle > SLOPE_SPEED_PENALTY_START) {
             float slopeFrac = (slopeAngle - SLOPE_SPEED_PENALTY_START) / (MAX_SLOPE_ANGLE - SLOPE_SPEED_PENALTY_START);
             slopeFrac = Math.min(1f, slopeFrac);
             slopeSpeedFactor = 1f - slopeFrac * 0.6f;
@@ -150,9 +174,9 @@ public class PlayerMovementSystem extends IteratingSystem {
 
         float forceMult = state.isGrounded ? GROUND_FORCE : AIR_FORCE;
 
-        boolean wantsSprint = input.sprint && state.currentStamina > 0 && !input.crouch;
+        boolean wantsSprint = input.sprint && state.currentStamina > 0 && !input.crouch && !state.isProne;
         state.isSprinting = wantsSprint && state.isGrounded && len > 0.001f;
-        state.isCrouching = input.crouch;
+        state.isCrouching = input.crouch && !state.isProne;
 
         if (state.isCrouching && input.crouchScrollSteps != 0) {
             state.crouchHeightStep = MathUtils.clamp(
@@ -162,6 +186,7 @@ public class PlayerMovementSystem extends IteratingSystem {
         float targetSpeed = WALK_SPEED;
         if (state.isSprinting) targetSpeed = SPRINT_SPEED;
         if (state.isCrouching) targetSpeed = CROUCH_SPEEDS[state.crouchHeightStep];
+        if (state.isProne) targetSpeed = PRONE_SPEED;
 
         targetSpeed *= slopeSpeedFactor;
         if (state.isExhausted) targetSpeed *= EXHAUSTED_SPEED_MULTIPLIER;
@@ -199,7 +224,7 @@ public class PlayerMovementSystem extends IteratingSystem {
         physics.body.setDamping(
             state.isGrounded ? groundDamp : AIR_DAMPING, 0f);
 
-        if (input.jumpRequested && state.isGrounded) {
+        if (input.jumpRequested && state.isGrounded && !state.isProne) {
             tempVec3.set(localUp).scl(JUMP_IMPULSE * physics.mass);
             physics.body.applyCentralImpulse(tempVec3);
             state.isGrounded = false;
@@ -305,5 +330,46 @@ public class PlayerMovementSystem extends IteratingSystem {
         float len = tempVec3.len();
         if (len > 0.001f) tempVec3.scl(1f / len);
         return len;
+    }
+
+    private void handleProneToggle(PhysicsBodyComponent physics, MovementStateComponent state) {
+        if (state.isProne) {
+            if (isClearToStand(physics)) {
+                swapCapsule(physics, physics.shape);
+                PostureType prev = PostureType.PRONE;
+                state.isProne = false;
+                if (eventBus != null) {
+                    eventBus.publish(new PlayerPostureChangedEvent(prev, PostureType.STANDING));
+                }
+            }
+        } else {
+            PostureType prev = state.isCrouching ? PostureType.CROUCHING : PostureType.STANDING;
+            swapCapsule(physics, physics.proneShape);
+            state.isCrouching = false;
+            state.isProne = true;
+            if (eventBus != null) {
+                eventBus.publish(new PlayerPostureChangedEvent(prev, PostureType.PRONE));
+            }
+        }
+    }
+
+    private void swapCapsule(PhysicsBodyComponent physics, btCollisionShape newShape) {
+        dynamicsWorld.removeRigidBody(physics.body);
+        physics.body.setCollisionShape(newShape);
+        newShape.calculateLocalInertia(physics.mass, tempVec2);
+        physics.body.setMassProps(physics.mass, tempVec2);
+        dynamicsWorld.addRigidBody(physics.body);
+        physics.body.activate();
+    }
+
+    private boolean isClearToStand(PhysicsBodyComponent physics) {
+        physics.body.getWorldTransform(tempMat);
+        tempMat.getTranslation(rayFrom);
+        rayTo.set(localUp).scl(CAPSULE_HALF_HEIGHT + 0.05f).add(rayFrom);
+        ClosestRayResultCallback callback = new ClosestRayResultCallback(rayFrom, rayTo);
+        dynamicsWorld.rayTest(rayFrom, rayTo, callback);
+        boolean clear = !callback.hasHit();
+        callback.dispose();
+        return clear;
     }
 }
