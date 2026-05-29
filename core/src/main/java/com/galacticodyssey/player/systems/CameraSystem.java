@@ -25,7 +25,9 @@ public class CameraSystem extends IteratingSystem {
     private static final float HEAD_BOB_MIN_SPEED = 0.5f;
     private static final float MAX_LANDING_DIP = 0.15f;
     private static final float LANDING_DIP_FACTOR = 0.02f;
-    private static final float RECOIL_RECOVERY_SPEED = 8f;
+    private static final float RECOIL_RECOVERY_SPEED = 20f;
+    private static final float MAX_RECOIL_PITCH = 8f;
+    private static final float MAX_RECOIL_YAW = 4f;
 
     private final ComponentMapper<TransformComponent> transformMapper =
         ComponentMapper.getFor(TransformComponent.class);
@@ -54,8 +56,8 @@ public class CameraSystem extends IteratingSystem {
     }
 
     private void onRecoil(RecoilEvent event) {
-        recoilYaw += event.recoilOffset.x;
-        recoilPitch += event.recoilOffset.y;
+        recoilYaw   = MathUtils.clamp(recoilYaw   + event.recoilOffset.x, -MAX_RECOIL_YAW,   MAX_RECOIL_YAW);
+        recoilPitch = MathUtils.clamp(recoilPitch + event.recoilOffset.y, -MAX_RECOIL_PITCH, MAX_RECOIL_PITCH);
     }
 
     public void setCamera(PerspectiveCamera camera) {
@@ -79,7 +81,7 @@ public class CameraSystem extends IteratingSystem {
 
         float targetEyeHeight;
         if (state.isProne) targetEyeHeight = cam.proneEyeHeight;
-        else if (state.isCrouching) targetEyeHeight = cam.crouchEyeHeight;
+        else if (state.isCrouching) targetEyeHeight = CROUCH_EYE_HEIGHTS[state.crouchHeightStep];
         else targetEyeHeight = cam.eyeHeight;
         cam.currentEyeHeight = MathUtils.lerp(cam.currentEyeHeight, targetEyeHeight,
             EYE_HEIGHT_LERP_SPEED * deltaTime);
@@ -111,8 +113,16 @@ public class CameraSystem extends IteratingSystem {
             cam.landingDipAmount = Math.max(0, cam.landingDipAmount - LANDING_DIP_DECAY_SPEED * deltaTime);
         }
 
-        // Lean processing
+        // 3rd person toggle and camera distance lerp
         PlayerInputComponent input = inputMapper.get(entity);
+        if (input != null && input.cameraTogglePressed) {
+            cam.targetCameraDistance = cam.targetCameraDistance < 0.1f ? cam.maxCameraDistance : 0f;
+            input.cameraTogglePressed = false;
+        }
+        cam.currentCameraDistance = MathUtils.lerp(
+            cam.currentCameraDistance, cam.targetCameraDistance, cam.zoomLerpSpeed * deltaTime);
+
+        // Lean processing
         float targetLean = 0f;
         if (input != null) {
             if (input.leanLeft) targetLean = cam.maxLeanAngle;
@@ -164,6 +174,31 @@ public class CameraSystem extends IteratingSystem {
             MathUtils.cos(leanRad),
             rightZ * MathUtils.sin(leanRad)
         ).nor();
+
+        // 3rd person: right-shoulder orbit camera
+        // Pull back along -forward, offset right (+X in camera space), and slightly up.
+        if (cam.currentCameraDistance > 0.001f) {
+            float dist = cam.currentCameraDistance;
+            // Camera right vector in world space (perpendicular to direction, in XZ plane)
+            float camRightX =  MathUtils.cos(yawRad);
+            float camRightZ = -MathUtils.sin(yawRad);
+
+            // Step back along -direction, shift right by 0.6m, shift up by 0.5m
+            camera.position.x -= camera.direction.x * dist - camRightX * 0.6f;
+            camera.position.y -= camera.direction.y * dist - 0.5f;
+            camera.position.z -= camera.direction.z * dist - camRightZ * 0.6f;
+
+            // Look at the focal point (original eye position) so the character stays in frame
+            float dx = camX - camera.position.x;
+            float dy = camY - camera.position.y;
+            float dz = camZ - camera.position.z;
+            float len = (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
+            if (len > 0.001f) {
+                camera.direction.set(dx / len, dy / len, dz / len);
+                // Keep up vector world-up to avoid roll artefacts
+                camera.up.set(0, 1, 0);
+            }
+        }
 
         // Apply ADS zoom: lerp FOV toward baseFov * zoomMultiplier as adsProgress reaches 1.
         ADSComponent ads = adsMapper.get(entity);

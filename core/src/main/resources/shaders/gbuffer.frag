@@ -39,6 +39,10 @@ uniform float u_metallicScale;
 uniform float u_roughnessScale;
 uniform float u_emissiveIntensity;
 uniform vec2 u_tiling;
+// Terrain-only backface darkening: only set by renderTerrain().
+// Darkens the inside of steep terrain only when the fragment is near camera altitude.
+uniform bool u_darkBackfaces;
+uniform vec3 u_cameraWorldPos;
 
 layout(location = 0) out vec4 rt0_albedoMetallic;
 layout(location = 1) out vec4 rt1_normalRoughnessAO;
@@ -89,6 +93,13 @@ void main() {
     #ifdef HAS_EMISSIVE_ATTRIB
     emissive = albedo * v_emissive * u_emissiveIntensity;
     #endif
+
+    // Backface darkening: only applies when u_darkBackfaces is true (set by renderTerrain
+    // when the camera clips into a steep face). All other geometry leaves it false so their
+    // interior faces are not accidentally blackened.
+    if (u_darkBackfaces && !gl_FrontFacing) {
+        albedo = albedo * 0.05;
+    }
 
     // Pack into G-Buffer
     rt0_albedoMetallic = vec4(albedo, metallic);

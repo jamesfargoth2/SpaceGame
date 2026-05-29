@@ -54,8 +54,12 @@ public class GBuffer implements Disposable {
         Gdx.gl.glDepthFunc(GL20.GL_LESS);
         Gdx.gl.glEnable(GL20.GL_STENCIL_TEST);
         Gdx.gl.glStencilFunc(GL20.GL_ALWAYS, 1, 0xFF);
-        Gdx.gl.glStencilOp(GL20.GL_KEEP, GL20.GL_KEEP, GL20.GL_REPLACE);
         Gdx.gl.glStencilMask(0xFF);
+        // Only front-faces write stencil=1; back-faces leave it at 0 (cleared above).
+        // This ensures sky fills every pixel where only a back-face was rendered, so
+        // terrain steep-slope interiors and unculled hull back-faces never appear black.
+        Gdx.gl.glStencilOpSeparate(GL20.GL_FRONT, GL20.GL_KEEP, GL20.GL_KEEP, GL20.GL_REPLACE);
+        Gdx.gl.glStencilOpSeparate(GL20.GL_BACK,  GL20.GL_KEEP, GL20.GL_KEEP, GL20.GL_KEEP);
     }
 
     public void end() {

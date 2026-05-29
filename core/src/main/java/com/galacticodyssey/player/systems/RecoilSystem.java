@@ -6,7 +6,6 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.galacticodyssey.combat.events.RecoilEvent;
 import com.galacticodyssey.core.EventBus;
-import com.galacticodyssey.player.components.FPSCameraComponent;
 import com.galacticodyssey.player.components.RecoilComponent;
 
 import java.util.ArrayList;
@@ -25,7 +24,7 @@ public class RecoilSystem extends EntitySystem {
     @Override
     public void addedToEngine(Engine engine) {
         entities = engine.getEntitiesFor(
-            Family.all(RecoilComponent.class, FPSCameraComponent.class).get());
+            Family.all(RecoilComponent.class).get());
     }
 
     @Override
@@ -43,7 +42,6 @@ public class RecoilSystem extends EntitySystem {
         for (int i = 0; i < entities.size(); i++) {
             Entity entity = entities.get(i);
             RecoilComponent rc = entity.getComponent(RecoilComponent.class);
-            FPSCameraComponent cam = entity.getComponent(FPSCameraComponent.class);
 
             rc.timeSinceLastShot += deltaTime;
             if (rc.timeSinceLastShot >= rc.patternResetDelay) {
@@ -53,9 +51,7 @@ public class RecoilSystem extends EntitySystem {
             float decay = rc.recoverySpeed * deltaTime;
             rc.currentPunch.x = approach(rc.currentPunch.x, 0f, decay);
             rc.currentPunch.y = approach(rc.currentPunch.y, 0f, decay);
-
-            cam.pitchAngle += rc.currentPunch.x * deltaTime;
-            cam.yawAngle += rc.currentPunch.y * deltaTime;
+            // Camera application is handled exclusively by CameraSystem.onRecoil
         }
     }
 

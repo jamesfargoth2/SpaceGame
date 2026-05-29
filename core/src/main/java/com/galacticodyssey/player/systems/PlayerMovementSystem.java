@@ -179,6 +179,7 @@ public class PlayerMovementSystem extends IteratingSystem {
         state.isCrouching = input.crouch && !state.isProne;
 
         if (state.isCrouching && input.crouchScrollSteps != 0) {
+            int prev = state.crouchHeightStep;
             state.crouchHeightStep = MathUtils.clamp(
                 state.crouchHeightStep - input.crouchScrollSteps, 0, CROUCH_STEP_COUNT - 1);
         }

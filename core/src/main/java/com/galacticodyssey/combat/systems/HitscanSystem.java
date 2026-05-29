@@ -6,14 +6,12 @@ import com.badlogic.ashley.core.Entity;
 import com.badlogic.ashley.core.EntitySystem;
 import com.badlogic.ashley.core.Family;
 import com.badlogic.gdx.math.MathUtils;
-import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.galacticodyssey.combat.CombatEnums.HitRegion;
 import com.galacticodyssey.combat.components.HealthComponent;
 import com.galacticodyssey.combat.components.HitboxComponent;
 import com.galacticodyssey.combat.components.RangedWeaponComponent;
 import com.galacticodyssey.combat.events.HitscanHitEvent;
-import com.galacticodyssey.combat.events.RecoilEvent;
 import com.galacticodyssey.combat.events.WeaponFiredEvent;
 import com.galacticodyssey.core.EventBus;
 import com.galacticodyssey.core.components.TransformComponent;
@@ -109,8 +107,7 @@ public class HitscanSystem extends EntitySystem {
         rayDir.set(event.aimDirection).nor();
         applySpread(rayDir, weaponComp.spread);
 
-        // 3. Publish RecoilEvent
-        publishRecoil(shooterEntity, weaponComp);
+        // 3. (Recoil published by WeaponSystem.fireShot for all weapon types)
 
         // 4. Entity-based raycast: find closest valid target along the ray
         if (engine == null) return;
@@ -212,24 +209,5 @@ public class HitscanSystem extends EntitySystem {
         dir.nor();
     }
 
-    /**
-     * Publishes a {@link RecoilEvent} for the shooter. Uses the weapon's recoil pattern if one
-     * is set, otherwise synthesises a pattern from the scalar {@code recoil} value.
-     */
-    private void publishRecoil(Entity shooter, RangedWeaponComponent weaponComp) {
-        Vector2 recoilOffset;
 
-        if (weaponComp.recoilPattern != null && weaponComp.recoilPattern.length > 0) {
-            int idx = weaponComp.recoilIndex % weaponComp.recoilPattern.length;
-            recoilOffset = weaponComp.recoilPattern[idx];
-            weaponComp.recoilIndex++;
-        } else {
-            // Synthesise: vertical kick only, random left/right jitter
-            float vertical = weaponComp.recoil;
-            float horizontal = (MathUtils.random() - 0.5f) * weaponComp.recoil * 0.3f;
-            recoilOffset = new Vector2(horizontal, vertical);
-        }
-
-        eventBus.publish(new RecoilEvent(shooter, recoilOffset));
-    }
 }

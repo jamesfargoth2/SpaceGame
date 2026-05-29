@@ -160,7 +160,6 @@ public class ProjectileSystem extends IteratingSystem {
         }
 
         engine.addEntity(projectile);
-
         Pools.free(dir);
     }
 

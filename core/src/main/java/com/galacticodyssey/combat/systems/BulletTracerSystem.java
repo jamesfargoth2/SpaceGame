@@ -28,6 +28,7 @@ public class BulletTracerSystem extends EntitySystem {
     private static final ComponentMapper<PhysicsBodyComponent> PHYSICS_M =
         ComponentMapper.getFor(PhysicsBodyComponent.class);
 
+    private int debugTracerCount = 0;
     private final Vector3 tmpVel = new Vector3();
 
     public BulletTracerSystem(EventBus eventBus, ParticlePoolComponent particlePool) {

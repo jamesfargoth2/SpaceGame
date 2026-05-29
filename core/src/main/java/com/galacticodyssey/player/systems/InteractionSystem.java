@@ -123,12 +123,6 @@ public class InteractionSystem extends EntitySystem {
             }
         }
 
-        npcLogTimer++;
-        if (npcLogTimer % 120 == 1 && Gdx.app != null) {
-            Gdx.app.log("Dialog", "NPC scan: npcEntities=" + npcEntities.size()
-                + (nearestNpc != null ? " nearestDist=" + nearestDist : " (none in radius)"));
-        }
-
         if (nearestNpc == null) return false;
 
         NpcIdentityComponent identity = npcIdentityMapper.get(nearestNpc);

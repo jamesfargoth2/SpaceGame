@@ -104,13 +104,17 @@ public class DeferredRenderer implements Disposable {
             Gdx.gl.glDisable(GL20.GL_BLEND);
         }
 
-        if (particleRenderer != null) {
-            particleRenderer.run();
-        }
-
         forwardHDRBuffer.end();
+        postFX.applyForward(forwardHDRBuffer);  // tone-maps to default framebuffer (screen)
 
-        postFX.applyForward(forwardHDRBuffer);
+        // Particles render AFTER tone-mapping so additive colours are not remapped.
+        // No scene depth is available here; particles draw over opaque geometry.
+        if (particleRenderer != null) {
+            Gdx.gl.glDisable(GL20.GL_DEPTH_TEST);
+            Gdx.gl.glEnable(GL20.GL_BLEND);
+            particleRenderer.run();
+            Gdx.gl.glDisable(GL20.GL_BLEND);
+        }
     }
 
     private void renderDeferred(PerspectiveCamera camera,
@@ -166,7 +170,7 @@ public class DeferredRenderer implements Disposable {
         Gdx.gl.glDisable(GL20.GL_STENCIL_TEST);
         Gdx.gl.glStencilMask(0xFF);
 
-        // Transparent geometry (water, particles) with depth test, no stencil restriction
+        // Transparent geometry (water) with depth test, no stencil restriction
         if (waterRenderer != null) {
             Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
             Gdx.gl.glEnable(GL20.GL_BLEND);
@@ -176,12 +180,17 @@ public class DeferredRenderer implements Disposable {
             Gdx.gl.glDepthMask(true);
             Gdx.gl.glDisable(GL20.GL_BLEND);
         }
-        if (particleRenderer != null) {
-            particleRenderer.run();
-        }
 
         forwardHDRBuffer.end();
-        postFX.applyForward(forwardHDRBuffer);
+        postFX.applyForward(forwardHDRBuffer);  // tone-maps to default framebuffer (screen)
+
+        // Particles render AFTER tone-mapping so additive colours are not remapped.
+        if (particleRenderer != null) {
+            Gdx.gl.glDisable(GL20.GL_DEPTH_TEST);
+            Gdx.gl.glEnable(GL20.GL_BLEND);
+            particleRenderer.run();
+            Gdx.gl.glDisable(GL20.GL_BLEND);
+        }
     }
 
     public void setDeferredEnabled(boolean enabled) { this.deferredEnabled = enabled; }

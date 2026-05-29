@@ -128,10 +128,13 @@ public class PlayerInputSystem extends IteratingSystem {
                 return true;
             }
             if (keycode == Input.Keys.V) {
-                cameraTogglePressed = true;
                 if (combatInputSystem != null) {
                     combatInputSystem.setQuickMeleeInput();
                 }
+                return true;
+            }
+            if (keycode == Input.Keys.F3) {
+                cameraTogglePressed = true;
                 return true;
             }
             if (keycode == Input.Keys.R) {

@@ -118,8 +118,11 @@ import java.util.Random;
 
 public class GameScreen implements Screen {
 
-    private static final int TERRAIN_VERTS_X = 257;
-    private static final int TERRAIN_VERTS_Z = 257;
+    // 255×255 = 65,025 vertices — safely within the 65,535 limit of 16-bit (short) index buffers.
+    // 257×257 = 66,049 overflowed the limit, causing the last terrain rows to wrap back to vertex 0
+    // and produce giant phantom triangles across the sky.
+    private static final int TERRAIN_VERTS_X = 255;
+    private static final int TERRAIN_VERTS_Z = 255;
     private static final float TERRAIN_WIDTH = 500f;
     private static final float TERRAIN_DEPTH = 500f;
     private static final long TERRAIN_SEED = 42L;
@@ -155,6 +158,7 @@ public class GameScreen implements Screen {
     private DeferredRenderer deferredRenderer;
     private DayNightCycle dayNightCycle;
     private float gameTime;
+    private int debugPosLogFrame = 0;
 
     private GrassField grassField;
     private GrassRenderer grassRenderer;
@@ -162,6 +166,7 @@ public class GameScreen implements Screen {
     private static final int GRASS_MAX_INSTANCES = 200_000;
 
     private boolean paused;
+    private int debugRenderFrame = 0;
     private Stage pauseStage;
     private Texture overlayTexture;
     private InputMultiplexer inputMultiplexer = new InputMultiplexer();
@@ -184,7 +189,10 @@ public class GameScreen implements Screen {
     private float muzzleFlashTimer;
     private Texture particleTexture;
     private static final Vector3 SUN_COLOR = new Vector3(1f, 0.95f, 0.9f);
-    private static final Vector3 AMBIENT_COLOR = new Vector3(0.1f, 0.1f, 0.15f);
+    // Sky-scatter ambient: enough to show unlit faces as their actual colour rather than black.
+    // Value chosen so that a mid-grey surface (albedo 0.5) in shadow reads ~12 % brightness —
+    // realistic for an open planetary surface with a bright overhead sun.
+    private static final Vector3 AMBIENT_COLOR = new Vector3(0.8f, 0.85f, 1.0f);
 
     private DialogHudSystem dialogHudSystem;
     private boolean inDialog;
@@ -1152,6 +1160,8 @@ public class GameScreen implements Screen {
         Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
         Gdx.gl.glDepthFunc(GL20.GL_LEQUAL);
         Gdx.gl.glDepthMask(true);
+        Gdx.gl.glEnable(GL20.GL_CULL_FACE);
+        Gdx.gl.glCullFace(GL20.GL_BACK);
 
         Entity pilotedShip = getPilotedShip();
 
@@ -1173,6 +1183,29 @@ public class GameScreen implements Screen {
             ShipMeshComponent meshComp = ship.getComponent(ShipMeshComponent.class);
             if (meshComp == null || meshComp.hullMesh == null) continue;
 
+            if (debugRenderFrame % 120 == 0) {
+                float dx = t.position.x - camera.position.x;
+                float dy = t.position.y - camera.position.y;
+                float dz = t.position.z - camera.position.z;
+                float dist = (float) Math.sqrt(dx*dx + dy*dy + dz*dz);
+                ShipDataComponent data =
+                    ship.getComponent(ShipDataComponent.class);
+                String hullInfo = "";
+                if (data != null && data.hullGeometry != null
+                        && data.hullGeometry.vertices.length >= 11) {
+                    float[] v = data.hullGeometry.vertices;
+                    hullInfo = String.format(
+                        " v0_norm=(%.2f,%.2f,%.2f) v0_col=(%.2f,%.2f,%.2f)",
+                        v[3], v[4], v[5], v[6], v[7], v[8]);
+                }
+                Gdx.app.log("DEBUG_SHIP",
+                    "ship[" + i + "] pos=" + t.position
+                    + " dist=" + String.format("%.1f", dist)
+                    + " rot=(" + t.rotation.x + "," + t.rotation.y
+                    + "," + t.rotation.z + "," + t.rotation.w + ")"
+                    + hullInfo);
+            }
+
             tmpMat4.set(t.position, t.rotation);
             shader.setUniformMatrix("u_worldTrans", tmpMat4);
 
@@ -1182,6 +1215,7 @@ public class GameScreen implements Screen {
 
             meshComp.hullMesh.render(shader, GL20.GL_TRIANGLES);
         }
+        Gdx.gl.glDisable(GL20.GL_CULL_FACE);
     }
 
     private ShaderProgram getTerrainShader() {
@@ -1260,6 +1294,19 @@ public class GameScreen implements Screen {
 
         if (grassField != null && grassField.update(camera.position.x, camera.position.z)) {
             grassRenderer.setInstances(grassField.instanceBuffer(), grassField.instanceCount());
+        }
+
+        debugRenderFrame++;
+        if (debugRenderFrame % 120 == 0) {
+            Gdx.app.log("DEBUG_LIGHT",
+                "sunDir=" + sunDir
+                + " sunI=" + String.format("%.3f", sunIntensity * 3f)
+                + " ambI=" + String.format("%.3f", ambientIntensity)
+                + " ambCol=(" + AMBIENT_COLOR.x + "," + AMBIENT_COLOR.y + "," + AMBIENT_COLOR.z + ")"
+                + " ships=" + shipEntities.size
+                + " camPos=(" + String.format("%.1f", camera.position.x)
+                + "," + String.format("%.1f", camera.position.y)
+                + "," + String.format("%.1f", camera.position.z) + ")");
         }
 
         deferredRenderer.render(
@@ -1397,6 +1444,7 @@ public class GameScreen implements Screen {
             shader.setUniformMatrix("u_normalMatrix", tmpNormalMat3);
         } else {
             // Ground-level view: use the seeded flat terrain mesh.
+            debugTerrainPenetration();
             terrainMesh.render(shader, GL20.GL_TRIANGLES);
             // Restore camera.far to game-world default after any sphere pass.
             if (camera.far > 5000f) {
@@ -1404,6 +1452,59 @@ public class GameScreen implements Screen {
                 camera.update();
             }
         }
+
+    }
+
+    /**
+     * Samples the 5×5 terrain-vertex neighbourhood around the camera and pushes the camera
+     * up if it would clip inside a nearby face.  Only applies when the needed lift is < 2 m
+     * so the camera doesn't jump to the top of a cliff it's merely standing next to.
+     * NOTE: disabled — causes dark banding at horizon; kept for reference.
+     */
+    private void pushCameraAboveTerrain() {
+        if (heightmap == null || camera == null) return;
+
+        float cellW = TERRAIN_WIDTH  / (TERRAIN_VERTS_X - 1);
+        float cellD = TERRAIN_DEPTH  / (TERRAIN_VERTS_Z - 1);
+        int cx = com.badlogic.gdx.math.MathUtils.clamp(
+            (int)((camera.position.x + TERRAIN_WIDTH  / 2f) / cellW), 0, TERRAIN_VERTS_X - 1);
+        int cz = com.badlogic.gdx.math.MathUtils.clamp(
+            (int)((camera.position.z + TERRAIN_DEPTH  / 2f) / cellD), 0, TERRAIN_VERTS_Z - 1);
+
+        float maxNearH = -Float.MAX_VALUE;
+        for (int dx = -2; dx <= 2; dx++) {
+            for (int dz = -2; dz <= 2; dz++) {
+                int nx = cx + dx, nz = cz + dz;
+                if (nx >= 0 && nx < TERRAIN_VERTS_X && nz >= 0 && nz < TERRAIN_VERTS_Z) {
+                    float vh = heightmap[nz * TERRAIN_VERTS_X + nx];
+                    if (vh > maxNearH) maxNearH = vh;
+                }
+            }
+        }
+
+        final float MARGIN = 0.3f;
+        float needed = (maxNearH + MARGIN) - camera.position.y;
+        if (needed > 0f && needed < 2.0f) {
+            Gdx.app.log("DEBUG_PASSTHROUGH",
+                "pushCameraAboveTerrain: lifting " + needed + " m"
+                + " (maxNearH=" + maxNearH + " camY=" + camera.position.y + ")");
+            camera.position.y += needed;
+            camera.update();
+        }
+    }
+
+    private void debugTerrainPenetration() {
+        if (heightmap == null) return;
+        if (debugPosLogFrame++ % 300 != 0) return;
+        float camY = camera.position.y;
+        float terrainH = TerrainGenerator.getHeightAt(
+            heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z,
+            TERRAIN_WIDTH, TERRAIN_DEPTH, camera.position.x, camera.position.z);
+        Gdx.app.log("DEBUG_POS",
+            "camY=" + String.format("%.2f", camY)
+            + " terrainH=" + String.format("%.2f", terrainH)
+            + " seaLevel=" + (populatedWorld != null
+                ? String.format("%.2f", populatedWorld.seaLevel) : "?"));
     }
 
     private void renderBoxes() {

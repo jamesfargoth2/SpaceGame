@@ -4,8 +4,12 @@ import com.badlogic.ashley.core.ComponentMapper;
 import com.badlogic.ashley.core.Entity;
 import com.badlogic.ashley.core.Family;
 import com.badlogic.ashley.systems.IteratingSystem;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.galacticodyssey.combat.CombatEnums.FiringMode;
+import com.galacticodyssey.combat.events.RecoilEvent;
 import com.galacticodyssey.combat.components.CombatInputComponent;
 import com.galacticodyssey.combat.components.RangedWeaponComponent;
 import com.galacticodyssey.combat.components.WeaponInventoryComponent;
@@ -28,6 +32,7 @@ public class WeaponSystem extends IteratingSystem {
 
     public static final int PRIORITY = 4;
 
+    private int debugShotCount = 0;
     private final EventBus eventBus;
 
     private static final ComponentMapper<CombatInputComponent> INPUT_M =
@@ -162,11 +167,27 @@ public class WeaponSystem extends IteratingSystem {
         }
     }
 
-    /** Fires one shot: decrements ammo, resets fire cooldown, publishes WeaponFiredEvent. */
+    /** Fires one shot: decrements ammo, resets fire cooldown, publishes WeaponFiredEvent and RecoilEvent. */
     private void fireShot(Entity entity, RangedWeaponComponent ranged, CombatInputComponent input) {
         ranged.currentAmmo--;
         ranged.fireTimer = ranged.fireRate > 0f ? 1f / ranged.fireRate : 0f;
-        eventBus.publish(new WeaponFiredEvent(entity, input.aimDirection, ranged.hitscan, computeMuzzlePosition(entity)));
+        Vector3 muzzle = computeMuzzlePosition(entity);
+        eventBus.publish(new WeaponFiredEvent(entity, input.aimDirection, ranged.hitscan, muzzle));
+        publishRecoil(entity, ranged);
+    }
+
+    private void publishRecoil(Entity entity, RangedWeaponComponent weaponComp) {
+        Vector2 recoilOffset;
+        if (weaponComp.recoilPattern != null && weaponComp.recoilPattern.length > 0) {
+            int idx = weaponComp.recoilIndex % weaponComp.recoilPattern.length;
+            recoilOffset = weaponComp.recoilPattern[idx];
+            weaponComp.recoilIndex++;
+        } else {
+            float vertical = weaponComp.recoil;
+            float horizontal = (MathUtils.random() - 0.5f) * weaponComp.recoil * 0.3f;
+            recoilOffset = new Vector2(horizontal, vertical);
+        }
+        eventBus.publish(new RecoilEvent(entity, recoilOffset));
     }
 
     /**
@@ -181,8 +202,12 @@ public class WeaponSystem extends IteratingSystem {
         if (transform == null) return new Vector3();
 
         if (cam != null) {
-            // CameraSystem (priority 4, registered before WeaponSystem) has already written
-            // worldEyePos this frame, so it is always current.
+            // worldBarrelTip is written by renderFirstPersonWeapon each render frame and is
+            // intentionally one frame behind (see FPSCameraComponent Javadoc). Use it when set.
+            if (cam.worldBarrelTip.len2() > 0.0001f) {
+                return new Vector3(cam.worldBarrelTip);
+            }
+            // Fallback: eye position (first frame or 3rd-person where weapon isn't rendered)
             if (cam.worldEyePos.len2() > 0f) {
                 return new Vector3(cam.worldEyePos);
             }
