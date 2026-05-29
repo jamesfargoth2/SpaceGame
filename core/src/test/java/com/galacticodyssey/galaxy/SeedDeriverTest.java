@@ -64,7 +64,7 @@ class SeedDeriverTest {
             SeedDeriver.STAR_DOMAIN, SeedDeriver.PLANET_DOMAIN, SeedDeriver.MOON_DOMAIN,
             SeedDeriver.TERRAIN_DOMAIN, SeedDeriver.ATMOSPHERE_DOMAIN, SeedDeriver.BIOME_DOMAIN,
             SeedDeriver.STATION_DOMAIN, SeedDeriver.INTERIOR_DOMAIN, SeedDeriver.FACTION_DOMAIN,
-            SeedDeriver.NAME_DOMAIN, SeedDeriver.NEBULA_DOMAIN,
+            SeedDeriver.NAME_DOMAIN, SeedDeriver.NEBULA_DOMAIN, SeedDeriver.CITY_DOMAIN,
             SeedDeriver.FLORA_DOMAIN
         };
         Set<Long> derived = new HashSet<>();

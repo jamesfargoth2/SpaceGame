@@ -1,0 +1,9 @@
+[
+  {"type":"OUTPOST","minPopulation":0,"maxPopulation":49,"radiusMin":30,"radiusMax":50,"wall":"no","density":0.15,"formBias":["LINEAR","SPRAWL"]},
+  {"type":"FRONTIER_TOWN","minPopulation":50,"maxPopulation":799,"radiusMin":90,"radiusMax":150,"wall":"no","density":0.3,"formBias":["GRID","GRID","SPRAWL"]},
+  {"type":"COLONY","minPopulation":800,"maxPopulation":7999,"radiusMin":240,"radiusMax":360,"wall":"maybe","density":0.45,"formBias":["GRID","ORGANIC"]},
+  {"type":"CITY","minPopulation":8000,"maxPopulation":59999,"radiusMin":600,"radiusMax":800,"wall":"yes","density":0.6,"formBias":["RADIAL","GRID"]},
+  {"type":"LARGE_CITY","minPopulation":60000,"maxPopulation":99999,"radiusMin":1000,"radiusMax":1200,"wall":"yes","density":0.7,"formBias":["RADIAL"]},
+  {"type":"METROPOLIS","minPopulation":100000,"maxPopulation":499999,"radiusMin":1600,"radiusMax":2000,"wall":"yes","density":0.8,"formBias":["RADIAL","SPRAWL"]},
+  {"type":"LARGE_METROPOLIS","minPopulation":500000,"maxPopulation":2147483647,"radiusMin":2800,"radiusMax":3600,"wall":"yes","density":0.9,"formBias":["SPRAWL","RADIAL"]}
+]

@@ -42,6 +42,11 @@ public final class SpaceNameGenerator {
         return generator.generate(LanguageStyles.HUMAN_COLONY, rng, "planet");
     }
 
+    /** Generates a city/settlement name using the HUMAN_COLONY style. */
+    public String cityName(Random rng) {
+        return generator.generate(LanguageStyles.HUMAN_COLONY, rng, "city");
+    }
+
     /** Generates a faction name using FACTION_IMPERIAL or ALIEN_HARSH style. */
     public String factionName(Random rng) {
         LanguageStyle style = rng.nextBoolean()

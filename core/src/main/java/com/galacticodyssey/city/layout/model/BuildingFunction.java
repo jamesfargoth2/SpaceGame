@@ -1,0 +1,7 @@
+package com.galacticodyssey.city.layout.model;
+
+public enum BuildingFunction {
+    HOUSE, APARTMENT, TENEMENT, SHOP, MARKET_STALL, CANTINA, WAREHOUSE, WORKSHOP,
+    FACTORY, FACTION_HQ, COURTHOUSE, TOWN_HALL, BARRACKS, TEMPLE, SHRINE, CLINIC,
+    HANGAR, TERMINAL, PARK, EMPTY_LOT
+}

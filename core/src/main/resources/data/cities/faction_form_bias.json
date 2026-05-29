@@ -1,0 +1,7 @@
+{
+  "CORPORATE":        ["GRID","GRID","RADIAL"],
+  "MILITARIST":       ["GRID","RADIAL"],
+  "ISOLATIONIST":     ["ORGANIC","SPRAWL"],
+  "FEDERATION":       ["RADIAL","GRID"],
+  "PIRATE_SYNDICATE": ["SPRAWL","ORGANIC"]
+}
