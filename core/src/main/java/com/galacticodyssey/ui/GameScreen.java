@@ -57,10 +57,13 @@ import com.galacticodyssey.core.components.TransformComponent;
 import com.galacticodyssey.data.GameSession;
 import com.galacticodyssey.data.TerrainGenerator;
 import com.galacticodyssey.data.WorldPopulator;
+import com.galacticodyssey.flora.alien.AlienPlantGenerator;
+import com.galacticodyssey.flora.alien.AlienPlantRegistry;
 import com.galacticodyssey.flora.grass.GrassField;
 import com.galacticodyssey.flora.grass.GrassRenderer;
 import com.galacticodyssey.flora.grass.GrassRegistry;
 import com.galacticodyssey.flora.grass.HeightmapTerrainSampler;
+import com.galacticodyssey.rendering.EmissiveGBufferShaderProvider;
 import com.galacticodyssey.planet.BiomeType;
 import com.galacticodyssey.ship.HullGeometry;
 import com.galacticodyssey.ship.ShipFactory;
@@ -154,6 +157,7 @@ public class GameScreen implements Screen {
 
     private GrassField grassField;
     private GrassRenderer grassRenderer;
+    private ModelBatch alienBatch;
     private static final int GRASS_MAX_INSTANCES = 200_000;
 
     private boolean paused;
@@ -258,6 +262,12 @@ public class GameScreen implements Screen {
             heightmap, populatedWorld.biomeGrid, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH);
         grassField = new GrassField(grassRegistry.config(), grassSampler, terrainSeed);
         grassRenderer = new GrassRenderer(deferredRenderer.getShaderCache(), grassRegistry.config(), GRASS_MAX_INSTANCES);
+
+        AlienPlantRegistry alienRegistry = new AlienPlantRegistry();
+        alienRegistry.load("data/flora/alien_plants.json");
+        AlienPlantGenerator.populate(populatedWorld, alienRegistry, heightmap,
+            TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, populatedWorld.seaLevel, terrainSeed);
+        alienBatch = new ModelBatch(new EmissiveGBufferShaderProvider(deferredRenderer.getShaderCache()));
 
         gameWorld.getOceanSpawner().spawnSeawater(populatedWorld.seaLevel, terrainSeed);
 
@@ -1237,6 +1247,7 @@ public class GameScreen implements Screen {
                 if (grassRenderer != null) grassRenderer.render(camera, gameTime);
                 renderBoxes();
                 renderWorldObjects();
+                renderAlienPlants();
                 renderShips();
                 renderCreatures();
             },
@@ -1345,6 +1356,17 @@ public class GameScreen implements Screen {
         gbufferBatch.end();
     }
 
+    private void renderAlienPlants() {
+        if (alienBatch == null || populatedWorld == null || populatedWorld.alienInstances.size == 0) return;
+        Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
+        Gdx.gl.glDepthMask(true);
+        alienBatch.begin(camera);
+        for (int i = 0; i < populatedWorld.alienInstances.size; i++) {
+            alienBatch.render(populatedWorld.alienInstances.get(i));
+        }
+        alienBatch.end();
+    }
+
     /** DEV-ONLY: render debug-spawned creatures (F6). Instances live on CreatureRenderComponent. */
     @SuppressWarnings("unchecked")
     private void renderCreatures() {
@@ -1400,6 +1422,7 @@ public class GameScreen implements Screen {
     public void dispose() {
         if (deferredRenderer != null) { deferredRenderer.dispose(); deferredRenderer = null; }
         if (grassRenderer != null) { grassRenderer.dispose(); grassRenderer = null; }
+        if (alienBatch != null) { alienBatch.dispose(); alienBatch = null; }
         // ShipFactory must dispose before gameWorld, because it removes rigid bodies
         // from the dynamics world that gameWorld owns.
         if (shipFactory != null) { shipFactory.dispose(); shipFactory = null; }
