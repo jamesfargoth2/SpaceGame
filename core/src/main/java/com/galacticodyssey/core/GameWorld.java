@@ -468,6 +468,7 @@ public class GameWorld implements Disposable {
         MeleeSystem meleeSystem = new MeleeSystem(eventBus, combatData);
         HitscanSystem hitscanSystem = new HitscanSystem(eventBus);
         ProjectileSystem projectileSystem = new ProjectileSystem(eventBus);
+        projectileSystem.setWeaponDataRegistry(weaponData);
         DamageSystem damageSystem = new DamageSystem(eventBus, combatData, weaponData);
         StatusEffectSystem statusEffectSystem = new StatusEffectSystem(eventBus, combatData);
         CombatAISystem combatAISystem = new CombatAISystem(eventBus);

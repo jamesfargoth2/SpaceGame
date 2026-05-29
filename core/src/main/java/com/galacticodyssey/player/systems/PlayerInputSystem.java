@@ -252,7 +252,13 @@ public class PlayerInputSystem extends IteratingSystem {
         accumulatedMouseDeltaX = 0;
         accumulatedMouseDeltaY = 0;
 
-        input.scrollDelta = accumulatedScrollDelta;
+        if (input.crouch && accumulatedScrollDelta != 0) {
+            input.crouchScrollSteps = Math.round(accumulatedScrollDelta);
+            input.scrollDelta = 0;
+        } else {
+            input.crouchScrollSteps = 0;
+            input.scrollDelta = accumulatedScrollDelta;
+        }
         accumulatedScrollDelta = 0;
 
         if (interactPressed) { input.interactPressed = true; interactPressed = false; }
