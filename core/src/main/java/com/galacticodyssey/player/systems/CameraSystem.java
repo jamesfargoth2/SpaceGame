@@ -118,8 +118,21 @@ public class CameraSystem extends IteratingSystem {
 
         float leanFraction = cam.leanAngle / cam.maxLeanAngle;
         float yawRadForLean = cam.yawAngle * MathUtils.degreesToRadians;
-        camX += MathUtils.cos(yawRadForLean) * leanFraction * cam.leanHorizontalOffset;
-        camZ += -MathUtils.sin(yawRadForLean) * leanFraction * cam.leanHorizontalOffset;
+        // Left-direction unit vector: camera-right is (+cos, 0, -sin), so left is (-cos, 0, +sin)
+        float sideX = -MathUtils.cos(yawRadForLean);
+        float sideZ =  MathUtils.sin(yawRadForLean);
+
+        // Shift the body sideways so the rendered model follows; physics capsule stays centred
+        float bodyShift = leanFraction * cam.leanBodyShift;
+        transform.position.x += sideX * bodyShift;
+        transform.position.z += sideZ * bodyShift;
+        camX += sideX * bodyShift;
+        camZ += sideZ * bodyShift;
+
+        // Remaining eye/head lean offset past the body pivot
+        float eyeExtra = leanFraction * (cam.leanHorizontalOffset - cam.leanBodyShift);
+        camX += sideX * eyeExtra;
+        camZ += sideZ * eyeExtra;
 
         cam.worldEyePos.set(camX, camY, camZ);
         camera.position.set(camX, camY, camZ);
