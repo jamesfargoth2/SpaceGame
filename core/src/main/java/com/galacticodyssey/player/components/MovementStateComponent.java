@@ -9,6 +9,7 @@ public class MovementStateComponent implements Component, Snapshotable<MovementS
     public boolean isGrounded;
     public boolean isSprinting;
     public boolean isCrouching;
+    public int crouchHeightStep = 2;
     public boolean isProne;
     public float currentSpeed;
     public float currentStamina = 100f;
@@ -26,6 +27,7 @@ public class MovementStateComponent implements Component, Snapshotable<MovementS
         s.isGrounded = isGrounded;
         s.isSprinting = isSprinting;
         s.isCrouching = isCrouching;
+        s.crouchHeightStep = crouchHeightStep;
         s.isProne = isProne;
         s.currentSpeed = currentSpeed;
         s.currentStamina = currentStamina;
@@ -43,6 +45,7 @@ public class MovementStateComponent implements Component, Snapshotable<MovementS
         isGrounded = s.isGrounded;
         isSprinting = s.isSprinting;
         isCrouching = s.isCrouching;
+        crouchHeightStep = s.crouchHeightStep;
         isProne = s.isProne;
         currentSpeed = s.currentSpeed;
         currentStamina = s.currentStamina;

@@ -21,4 +21,5 @@ public class PlayerInputComponent implements Component {
     public boolean leanLeft;
     public boolean leanRight;
     public float scrollDelta;
+    public int crouchScrollSteps;
 }

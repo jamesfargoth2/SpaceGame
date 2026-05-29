@@ -28,6 +28,8 @@ public class PlayerMovementSystem extends IteratingSystem {
     private static final float WALK_SPEED = 3.5f;
     private static final float SPRINT_SPEED = 6.0f;
     private static final float CROUCH_SPEED = 1.5f;
+    private static final int CROUCH_STEP_COUNT = 5;
+    private static final float[] CROUCH_SPEEDS = { 0.8f, 1.0f, 1.5f, 1.8f, 2.0f };
     private static final float JUMP_IMPULSE = 5.0f;
     private static final float GROUND_FORCE = 50f;
     private static final float AIR_FORCE = 10f;
@@ -176,9 +178,14 @@ public class PlayerMovementSystem extends IteratingSystem {
         state.isSprinting = wantsSprint && state.isGrounded && len > 0.001f;
         state.isCrouching = input.crouch && !state.isProne;
 
+        if (state.isCrouching && input.crouchScrollSteps != 0) {
+            state.crouchHeightStep = MathUtils.clamp(
+                state.crouchHeightStep - input.crouchScrollSteps, 0, CROUCH_STEP_COUNT - 1);
+        }
+
         float targetSpeed = WALK_SPEED;
         if (state.isSprinting) targetSpeed = SPRINT_SPEED;
-        if (state.isCrouching) targetSpeed = CROUCH_SPEED;
+        if (state.isCrouching) targetSpeed = CROUCH_SPEEDS[state.crouchHeightStep];
         if (state.isProne) targetSpeed = PRONE_SPEED;
 
         targetSpeed *= slopeSpeedFactor;

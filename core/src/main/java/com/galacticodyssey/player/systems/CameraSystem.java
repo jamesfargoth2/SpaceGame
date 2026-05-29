@@ -19,6 +19,7 @@ import com.galacticodyssey.player.components.PlayerStateComponent;
 public class CameraSystem extends IteratingSystem {
 
     private static final float EYE_HEIGHT_LERP_SPEED = 10f;
+    private static final float[] CROUCH_EYE_HEIGHTS = { 0.70f, 0.85f, 1.00f, 1.15f, 1.30f };
     private static final float LANDING_DIP_DECAY_SPEED = 8f;
     private static final float WALK_SPEED_REF = 3.5f;
     private static final float HEAD_BOB_MIN_SPEED = 0.5f;

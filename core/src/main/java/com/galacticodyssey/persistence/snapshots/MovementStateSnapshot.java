@@ -4,6 +4,7 @@ public class MovementStateSnapshot {
     public boolean isGrounded;
     public boolean isSprinting;
     public boolean isCrouching;
+    public int crouchHeightStep = 2;
     public boolean isProne;
     public float currentSpeed;
     public float currentStamina;
