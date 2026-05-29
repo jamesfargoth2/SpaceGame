@@ -53,7 +53,7 @@ public final class CityLayoutGenerator {
         LotFunctionAssigner.assign(layout.lots, layout.landmarks, registry, citySeed);
 
         if (profile.hasWall && !layout.blocks.isEmpty()) {
-            layout.wall = WallBuilder.build(layout.blocks);
+            layout.wall = WallBuilder.build(layout.blocks, layout.streets);
         }
 
         TerrainConformer.conform(layout.streets, layout.lots, req.terrain);
