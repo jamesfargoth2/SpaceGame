@@ -136,7 +136,23 @@ public class BoardingResolutionSystem extends EntitySystem {
             PlayerWalletComponent wallet = WALLET_M.get(player);
             if (wallet != null) wallet.credits += Math.round(hull * SCRAP_CREDITS_PER_HP);
         }
-        if (data != null) data.currentHullHp = 0f; // marked destroyed (removal handled in-game)
+        if (data != null) data.currentHullHp = 0f; // marked destroyed
+        destroyShip(target);
+    }
+
+    /** Disposes a scrapped ship's Bullet natives and removes its entity from the engine. */
+    private void destroyShip(Entity target) {
+        ShipInteriorComponent interior = target.getComponent(ShipInteriorComponent.class);
+        if (interior != null) interior.dispose();
+
+        PhysicsBodyComponent physics = target.getComponent(PhysicsBodyComponent.class);
+        if (physics != null && physics.body != null) {
+            if (mainWorld != null) mainWorld.removeRigidBody(physics.body);
+            physics.body.dispose();
+            if (physics.shape != null) physics.shape.dispose();
+            physics.body = null;
+        }
+        getEngine().removeEntity(target);
     }
 
     private void ransom(Entity target, BoardingOperationComponent op, Entity player) {
