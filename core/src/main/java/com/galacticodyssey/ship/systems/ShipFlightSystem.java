@@ -34,6 +34,11 @@ public class ShipFlightSystem extends EntitySystem {
         ComponentMapper.getFor(EngineSpecComponent.class);
     private final ComponentMapper<FuelTankComponent> fuelMapper =
         ComponentMapper.getFor(FuelTankComponent.class);
+    private final ComponentMapper<com.galacticodyssey.ship.components.ShipDataComponent> shipDataMapper =
+        ComponentMapper.getFor(com.galacticodyssey.ship.components.ShipDataComponent.class);
+
+    private static final float DEFAULT_MAX_SPEED = 100f;
+    private static final float DEFAULT_MAX_TURN_RATE_DEG = 45f;
 
     private ImmutableArray<Entity> playerEntities;
     private ImmutableArray<Entity> npcShips;
@@ -45,6 +50,8 @@ public class ShipFlightSystem extends EntitySystem {
     private final Vector3 localUp = new Vector3();
     private final Matrix4 shipTransform = new Matrix4();
     private final Vector3 currentVelocity = new Vector3();
+    private final Vector3 lateralVel = new Vector3();
+    private final Vector3 forwardVelComp = new Vector3();
 
     /** False when the ship has subsystems and its engines are non-operational. */
     public static boolean canThrust(Entity ship) {
@@ -128,16 +135,57 @@ public class ShipFlightSystem extends EntitySystem {
         localRight.set(1, 0, 0).rot(shipTransform).nor();
         localUp.set(0, 1, 0).rot(shipTransform).nor();
 
-        force.setZero();
-        force.mulAdd(localForward, effectiveThrottle * flight.linearThrust);
-        force.mulAdd(localRight, input.strafe * flight.linearThrust * flight.strafeThrustFraction);
-        force.mulAdd(localUp, input.verticalThrust * flight.linearThrust * flight.verticalThrustFraction);
+        // --- Effective max speed (live from ShipData; boost handled in a later task) ---
+        com.galacticodyssey.ship.components.ShipDataComponent shipData = shipDataMapper.get(ship);
+        float maxSpeed = (shipData != null && shipData.maxSpeed > 0f)
+            ? shipData.maxSpeed : DEFAULT_MAX_SPEED;
+        if (flight.boostTimer > 0f) maxSpeed *= flight.boostSpeedMultiplier;
 
         currentVelocity.set(physics.body.getLinearVelocity());
+        force.setZero();
+
+        if (flight.flightAssistEnabled) {
+            // Forward axis tracking toward target speed (P-controller, mass-relative, thrust-capped).
+            float targetSpeed = effectiveThrottle * maxSpeed;
+            float forwardSpeed = currentVelocity.dot(localForward);
+            float fwdError = targetSpeed - forwardSpeed;
+            float fwdForce = MathUtils.clamp(flight.faLinearGain * physics.mass * fwdError,
+                -flight.linearThrust, flight.linearThrust);
+            force.mulAdd(localForward, fwdForce);
+
+            // Lateral velocity = velocity minus forward component.
+            forwardVelComp.set(localForward).scl(forwardSpeed);
+            lateralVel.set(currentVelocity).sub(forwardVelComp);
+
+            // Strafe / vertical: intentional input adds thrust; otherwise bleed drift.
+            float strafeThrust = flight.linearThrust * flight.strafeThrustFraction;
+            float vertThrust   = flight.linearThrust * flight.verticalThrustFraction;
+            float rightVel = lateralVel.dot(localRight);
+            float upVel    = lateralVel.dot(localUp);
+
+            float rightForce = (Math.abs(input.strafe) > 0.05f)
+                ? input.strafe * strafeThrust
+                : MathUtils.clamp(-flight.faLateralBleed * physics.mass * rightVel,
+                    -strafeThrust, strafeThrust);
+            float upForce = (Math.abs(input.verticalThrust) > 0.05f)
+                ? input.verticalThrust * vertThrust
+                : MathUtils.clamp(-flight.faLateralBleed * physics.mass * upVel,
+                    -vertThrust, vertThrust);
+
+            force.mulAdd(localRight, rightForce);
+            force.mulAdd(localUp, upForce);
+        } else {
+            // Newtonian: direct thrust, no cap, no bleed.
+            force.mulAdd(localForward, effectiveThrottle * flight.linearThrust);
+            force.mulAdd(localRight, input.strafe * flight.linearThrust * flight.strafeThrustFraction);
+            force.mulAdd(localUp, input.verticalThrust * flight.linearThrust * flight.verticalThrustFraction);
+        }
+
+        // Relativistic correction near light speed (unchanged behavior).
         final float speed = currentVelocity.len();
         if (speed > RelativisticConstants.THRESHOLD) {
             final float restMass = physics.mass;
-            final Vector3 velDir = currentVelocity.nor();
+            final Vector3 velDir = currentVelocity.cpy().nor();
             final float longComponent = force.dot(velDir);
             final Vector3 longForce = new Vector3(velDir).scl(longComponent);
             final Vector3 transForce = new Vector3(force).sub(longForce);
@@ -161,7 +209,9 @@ public class ShipFlightSystem extends EntitySystem {
         torque.mulAdd(localForward, input.rollInput * flight.rollTorque);
 
         physics.body.applyTorque(torque);
-        physics.body.setDamping(flight.linearDrag, flight.angularDrag);
+        // FA controllers govern velocity convergence; never double-damp linear.
+        // Angular auto-stop is applied in the rotation block (later task). Keep both 0 here.
+        physics.body.setDamping(0f, 0f);
 
         flight.currentThrottle = effectiveThrottle;
         physics.body.activate();
