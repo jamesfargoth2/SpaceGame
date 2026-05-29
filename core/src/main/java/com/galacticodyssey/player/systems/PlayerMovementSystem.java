@@ -94,6 +94,12 @@ public class PlayerMovementSystem extends IteratingSystem {
         if (playerState != null
                 && (playerState.currentMode == PlayerStateComponent.PlayerMode.PILOTING
                         || playerState.currentMode == PlayerStateComponent.PlayerMode.DRIVING)) {
+            PhysicsBodyComponent physics = physicsMapper.get(entity);
+            MovementStateComponent state = stateMapper.get(entity);
+            if (state != null && state.isProne && physics != null && physics.body != null) {
+                swapCapsule(physics, physics.shape);
+                state.isProne = false;
+            }
             return;
         }
 
@@ -119,6 +125,7 @@ public class PlayerMovementSystem extends IteratingSystem {
 
         SwimmingStateComponent swimState = entity.getComponent(SwimmingStateComponent.class);
         if (swimState != null && swimState.swimState != SwimState.DRY) {
+            input.proneToggleRequested = false;
             return;
         }
 
