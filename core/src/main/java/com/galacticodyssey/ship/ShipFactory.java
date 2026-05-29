@@ -15,6 +15,7 @@ import com.galacticodyssey.ship.components.*;
 import com.galacticodyssey.ship.modules.*;
 import com.galacticodyssey.ship.modules.components.ShipCargoComponent;
 import com.galacticodyssey.ship.modules.components.ShipLoadoutComponent;
+import com.galacticodyssey.ship.boarding.BoardingDefenseComponent;
 import com.galacticodyssey.ship.boarding.ShipSubsystemsComponent;
 import com.galacticodyssey.ship.power.PowerStateComponent;
 import com.galacticodyssey.ship.power.ReactorSpec;
@@ -169,6 +170,7 @@ public class ShipFactory implements Disposable {
         ShipSubsystemsComponent subsystems = new ShipSubsystemsComponent();
         subsystems.initDefaults(shipData.hullHp * 0.25f);
         entity.add(subsystems);
+        entity.add(BoardingDefenseComponent.forSizeClass(sizeClass));
 
         // Mesh component — hullMesh intentionally null until GL context available
         ShipMeshComponent meshComp = new ShipMeshComponent();
@@ -272,6 +274,7 @@ public class ShipFactory implements Disposable {
         ShipSubsystemsComponent subsystems2 = new ShipSubsystemsComponent();
         subsystems2.initDefaults(data.hullHp * 0.25f);
         entity.add(subsystems2);
+        entity.add(BoardingDefenseComponent.forSizeClass(design.sizeClass));
 
         ShipMeshComponent meshComp = new ShipMeshComponent();
         meshComp.vertexStride = hull.vertexStride;

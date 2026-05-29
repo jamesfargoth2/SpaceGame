@@ -28,6 +28,7 @@ public class PlayerInputSystem extends IteratingSystem {
     private float accumulatedScrollDelta;
     private boolean jumpPressed;
     private boolean interactPressed;
+    private boolean boardPressed;
     private boolean cameraTogglePressed;
     private boolean enabled = true;
 
@@ -115,6 +116,10 @@ public class PlayerInputSystem extends IteratingSystem {
                 interactPressed = true;
                 return true;
             }
+            if (keycode == Input.Keys.G) {
+                boardPressed = true;
+                return true;
+            }
             if (keycode == Input.Keys.V) {
                 cameraTogglePressed = true;
                 if (combatInputSystem != null) {
@@ -179,6 +184,7 @@ public class PlayerInputSystem extends IteratingSystem {
             accumulatedScrollDelta = 0;
             jumpPressed = false;
             interactPressed = false;
+            boardPressed = false;
             cameraTogglePressed = false;
             fireGroup0Held = false;
             fireGroup1Held = false;
@@ -285,6 +291,11 @@ public class PlayerInputSystem extends IteratingSystem {
             PlayerInputComponent input = inputMapper.get(entity);
             if (input != null) input.interactPressed = true;
             interactPressed = false;
+        }
+        if (boardPressed) {
+            PlayerInputComponent input = inputMapper.get(entity);
+            if (input != null) input.boardPressed = true;
+            boardPressed = false;
         }
 
         jumpPressed = false;
