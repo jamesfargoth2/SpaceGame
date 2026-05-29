@@ -13,7 +13,7 @@ import com.galacticodyssey.core.components.TransformComponent;
 import com.galacticodyssey.player.components.PlayerStateComponent;
 import com.galacticodyssey.ship.boarding.BoardingOperationComponent;
 import com.galacticodyssey.ship.boarding.BoardingOperationComponent.BoardingPhase;
-import com.galacticodyssey.ship.boarding.BreachingPodComponent;
+import com.galacticodyssey.ship.components.ShipDataComponent;
 
 /**
  * Bidirectional boarding: when the player's ship has been disabled (its operation is VULNERABLE
@@ -48,10 +48,9 @@ public class EnemyBoardingAISystem extends EntitySystem {
     public void addedToEngine(Engine engine) {
         players = engine.getEntitiesFor(Family.all(
             PlayerTagComponent.class, PlayerStateComponent.class).get());
-        // Candidate aggressor ships: any positioned entity that is neither the player avatar
-        // nor an in-flight breaching pod. The player's own ship is excluded by reference below.
-        ships = engine.getEntitiesFor(Family.all(TransformComponent.class)
-            .exclude(PlayerTagComponent.class, BreachingPodComponent.class).get());
+        // Candidate aggressor ships: real ships (carry ShipDataComponent) with a position.
+        // The player's own ship is excluded by reference below.
+        ships = engine.getEntitiesFor(Family.all(ShipDataComponent.class, TransformComponent.class).get());
     }
 
     @Override

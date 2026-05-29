@@ -9,6 +9,7 @@ import com.galacticodyssey.core.components.TransformComponent;
 import com.galacticodyssey.ship.boarding.BoardingOperationComponent.BoardingPhase;
 import com.galacticodyssey.ship.boarding.systems.BoardingAttachSystem;
 import com.galacticodyssey.ship.boarding.systems.EnemyBoardingAISystem;
+import com.galacticodyssey.ship.components.ShipDataComponent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -30,6 +31,10 @@ class EnemyBoardingAISystemTest {
         TransformComponent t = new TransformComponent();
         t.position.set(x, 0, 0);
         e.add(t);
+        ShipDataComponent d = new ShipDataComponent();
+        d.hullHp = 200f;
+        d.currentHullHp = 200f;
+        e.add(d);
         engine.addEntity(e);
         return e;
     }
@@ -39,6 +44,10 @@ class EnemyBoardingAISystemTest {
         TransformComponent t = new TransformComponent();
         t.position.set(x, 0, 0);
         ship.add(t);
+        ShipDataComponent d = new ShipDataComponent();
+        d.hullHp = 200f;
+        d.currentHullHp = 200f;
+        ship.add(d);
         BoardingOperationComponent op = new BoardingOperationComponent();
         op.targetShip = ship;
         op.phase = BoardingPhase.VULNERABLE; // player ship disabled
