@@ -10,11 +10,12 @@ import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
-import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Disposable;
+import com.galacticodyssey.flora.FloraGenerator;
+import com.galacticodyssey.flora.data.FloraRegistry;
 import com.galacticodyssey.planet.BiomeType;
 import com.galacticodyssey.planet.WhittakerGrid;
 
@@ -77,6 +78,16 @@ public final class WorldPopulator {
 
     private WorldPopulator() {}
 
+    private static FloraRegistry floraRegistry;
+
+    private static FloraRegistry floraRegistry() {
+        if (floraRegistry == null) {
+            floraRegistry = new FloraRegistry();
+            floraRegistry.load("data/flora/species.json", "data/flora/palettes.json");
+        }
+        return floraRegistry;
+    }
+
     public static PopulatedWorld populate(
             float[] heightmap, int vertsX, int vertsZ,
             float worldWidth, float worldDepth, long seed) {
@@ -103,7 +114,8 @@ public final class WorldPopulator {
         ModelBuilder mb = new ModelBuilder();
         int attrs = VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal;
 
-        placeTrees(world, mb, attrs, heightmap, biomeGrid, vertsX, vertsZ, worldWidth, worldDepth, rng, seaLevel);
+        FloraGenerator.populate(world, floraRegistry(), heightmap, vertsX, vertsZ,
+            worldWidth, worldDepth, seaLevel, seed);
         placeRocks(world, mb, attrs, heightmap, biomeGrid, vertsX, vertsZ, worldWidth, worldDepth, rng, seaLevel);
         placeGrass(world, mb, attrs, heightmap, biomeGrid, vertsX, vertsZ, worldWidth, worldDepth, rng, seaLevel);
         placeAnimals(world, mb, attrs, heightmap, biomeGrid, vertsX, vertsZ, worldWidth, worldDepth, rng, seaLevel);
@@ -254,80 +266,6 @@ public final class WorldPopulator {
     private static float smoothstep(float edge0, float edge1, float x) {
         float t = Math.max(0f, Math.min(1f, (x - edge0) / (edge1 - edge0)));
         return t * t * (3f - 2f * t);
-    }
-
-    private static void placeTrees(PopulatedWorld world, ModelBuilder mb, int attrs,
-                                    float[] heightmap, BiomeType[] biomeGrid,
-                                    int vertsX, int vertsZ, float worldWidth, float worldDepth,
-                                    Random rng, float seaLevel) {
-        float halfW = worldWidth / 2f;
-        float halfD = worldDepth / 2f;
-
-        for (int i = 0; i < 300; i++) {
-            float wx = (rng.nextFloat() - 0.5f) * worldWidth * 0.9f;
-            float wz = (rng.nextFloat() - 0.5f) * worldDepth * 0.9f;
-            float h = TerrainGenerator.getHeightAt(heightmap, vertsX, vertsZ, worldWidth, worldDepth, wx, wz);
-            if (h < seaLevel + 0.5f) continue;
-
-            int gx = Math.min(vertsX - 1, Math.max(0, (int) ((wx + halfW) / worldWidth * (vertsX - 1))));
-            int gz = Math.min(vertsZ - 1, Math.max(0, ((int) ((wz + halfD) / worldDepth * (vertsZ - 1)))));
-            BiomeType biome = biomeGrid[gz * vertsX + gx];
-
-            float density = treeDensity(biome);
-            if (rng.nextFloat() > density) continue;
-
-            float trunkHeight = 1.5f + rng.nextFloat() * 3f;
-            float trunkRadius = 0.15f + rng.nextFloat() * 0.15f;
-            float canopyHeight = 1.5f + rng.nextFloat() * 2.5f;
-            float canopyRadius = 0.8f + rng.nextFloat() * 1.5f;
-
-            Color trunkColor = new Color(0.35f, 0.22f, 0.10f, 1f);
-            Color canopyColor = canopyColorForBiome(biome, rng);
-
-            mb.begin();
-            MeshPartBuilder trunk = mb.part("trunk", GL20.GL_TRIANGLES, attrs,
-                new Material(ColorAttribute.createDiffuse(trunkColor)));
-            trunk.cylinder(trunkRadius * 2, trunkHeight, trunkRadius * 2, 8);
-
-            MeshPartBuilder canopy = mb.part("canopy", GL20.GL_TRIANGLES, attrs,
-                new Material(ColorAttribute.createDiffuse(canopyColor)));
-            if (biome == BiomeType.BOREAL_FOREST || biome == BiomeType.TUNDRA) {
-                canopy.cone(canopyRadius * 2, canopyHeight, canopyRadius * 2, 8);
-            } else {
-                canopy.sphere(canopyRadius * 2, canopyHeight, canopyRadius * 2, 8, 8);
-            }
-            Model treeModel = mb.end();
-            world.addModel(treeModel);
-
-            ModelInstance instance = new ModelInstance(treeModel);
-            instance.transform.setToTranslation(wx, h + trunkHeight * 0.5f, wz);
-            world.treeInstances.add(instance);
-        }
-    }
-
-    private static float treeDensity(BiomeType biome) {
-        switch (biome) {
-            case TROPICAL_FOREST: return 0.9f;
-            case BOREAL_FOREST:   return 0.8f;
-            case TEMPERATE_FOREST:return 0.85f;
-            case SWAMP:           return 0.5f;
-            case SAVANNA:         return 0.15f;
-            case GRASSLAND:       return 0.05f;
-            case TUNDRA:          return 0.02f;
-            default:              return 0f;
-        }
-    }
-
-    private static Color canopyColorForBiome(BiomeType biome, Random rng) {
-        float vary = rng.nextFloat() * 0.08f;
-        switch (biome) {
-            case BOREAL_FOREST:    return new Color(0.10f + vary, 0.28f + vary, 0.12f, 1f);
-            case TROPICAL_FOREST:  return new Color(0.05f + vary, 0.45f + vary, 0.08f, 1f);
-            case TEMPERATE_FOREST: return new Color(0.15f + vary, 0.42f + vary, 0.10f, 1f);
-            case SWAMP:            return new Color(0.18f + vary, 0.30f + vary, 0.15f, 1f);
-            case SAVANNA:          return new Color(0.40f + vary, 0.45f + vary, 0.12f, 1f);
-            default:               return new Color(0.20f + vary, 0.40f + vary, 0.15f, 1f);
-        }
     }
 
     private static void placeRocks(PopulatedWorld world, ModelBuilder mb, int attrs,
