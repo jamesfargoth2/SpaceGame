@@ -102,6 +102,9 @@ public final class KryoRegistrar {
         kryo.register(ShipSubsystemsSnapshot.class, 75);
         kryo.register(ShipSubsystemsSnapshot.Entry.class, 76);
         kryo.register(BoardingOperationSnapshot.class, 77);
+        kryo.register(OwnedShipSnapshot.class, 78);
+        kryo.register(PlayerGarageSnapshot.class, 79);
+        kryo.register(PlayerGarageSnapshot.Entry.class, 82);
 
         // --- NPC snapshots ---
         kryo.register(CombatAISnapshot.class, 80);
