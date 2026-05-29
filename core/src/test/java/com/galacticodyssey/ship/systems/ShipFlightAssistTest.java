@@ -171,6 +171,21 @@ class ShipFlightAssistTest {
     }
 
     @Test
+    void perShipReverseFractionCapsSetPoint() {
+        Engine engine = new Engine();
+        ShipFlightSystem system = buildShip(engine, 100f, true, null);
+        ShipFlightComponent flight = ship.getComponent(ShipFlightComponent.class);
+        flight.reverseFraction = 0.25f;
+        ShipFlightInputComponent in = ship.getComponent(ShipFlightInputComponent.class);
+        in.throttle = -0.9f; // commanded beyond the ship's reverse cap
+
+        system.update(1f / 60f);
+
+        // The system must clamp the persistent set-point to -reverseFraction.
+        assertEquals(-0.25f, in.throttle, 1e-4, "throttle clamped to per-ship reverse cap");
+    }
+
+    @Test
     void flightAssistAutoStopsRotationWhenStickReleased() {
         Engine engine = new Engine();
         ShipFlightSystem system = buildShip(engine, 100f, true, null);

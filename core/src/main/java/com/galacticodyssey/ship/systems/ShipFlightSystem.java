@@ -124,6 +124,10 @@ public class ShipFlightSystem extends EntitySystem {
             }
         }
 
+        // Enforce the ship's per-class reverse cap on the persistent set-point
+        // (authoritative for both player and AI input). Forward is unbounded at +1.
+        input.throttle = MathUtils.clamp(input.throttle, -flight.reverseFraction, 1f);
+
         // Throttle management via EngineSpec
         EngineSpecComponent engineSpec = engineMapper.get(ship);
         float effectiveThrottle = input.throttle;

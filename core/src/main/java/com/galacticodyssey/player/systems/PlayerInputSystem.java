@@ -35,7 +35,9 @@ public class PlayerInputSystem extends IteratingSystem {
     private boolean enabled = true;
 
     private static final float THROTTLE_RAMP_RATE = 1.5f;     // full-range in ~0.9s held
-    private static final float REVERSE_FRACTION_INPUT = 0.4f;  // keyboard reverse cap
+    // Keyboard ramp allows full reverse; ShipFlightSystem enforces the ship's
+    // per-class reverseFraction cap authoritatively, so the ramp must not under-limit it.
+    private static final float REVERSE_FRACTION_INPUT = 1f;
 
     private boolean fireGroup0Held;
     private boolean fireGroup1Held;
