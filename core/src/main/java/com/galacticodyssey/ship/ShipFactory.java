@@ -648,35 +648,43 @@ public class ShipFactory implements Disposable {
     // -------------------------------------------------------------------------
 
     /**
-     * Releases the Bullet resources owned by a single ship entity (exterior body + shape):
-     * removes the body from the exterior physics world and the managed-body list, disposes
-     * body and shape, and drops them from this factory's tracked disposables so a later
-     * {@link #dispose()} does not double-free them. Safe to call on entities not created by
-     * this factory (no-op if there is no {@link PhysicsBodyComponent} or it is untracked).
+     * Releases the Bullet resources owned by a single ship entity (exterior body + shape,
+     * plus any interior physics world): removes the body from the exterior physics world and
+     * the managed-body list, disposes body and shape, drops them from this factory's tracked
+     * disposables so a later {@link #dispose()} does not double-free them, and disposes the
+     * ship's {@link ShipInteriorComponent} (interior Bullet world, dispatcher, broadphase,
+     * solver, config, and any static trimesh body/shape) if present. Safe to call on entities
+     * not created by this factory (no-op if there is no {@link PhysicsBodyComponent} or it is
+     * untracked).
      *
-     * <p>Used by the fleet collapse path so despawned member ships do not leak Bullet bodies.
-     * Does not touch any interior physics world (NPC combat ships do not activate interiors).
+     * <p>Used by the fleet collapse path so despawned member ships do not leak Bullet bodies
+     * or native interior physics worlds.
      */
     public void disposeShip(Entity ship) {
         if (ship == null) return;
         PhysicsBodyComponent pbc = ship.getComponent(PhysicsBodyComponent.class);
-        if (pbc == null) return;
-
-        btDiscreteDynamicsWorld world = physics.getDynamicsWorld();
-        if (pbc.body != null) {
-            physics.removeManagedBody(pbc.body);
-            if (world != null) {
-                world.removeRigidBody(pbc.body);
+        if (pbc != null) {
+            btDiscreteDynamicsWorld world = physics.getDynamicsWorld();
+            if (pbc.body != null) {
+                physics.removeManagedBody(pbc.body);
+                if (world != null) {
+                    world.removeRigidBody(pbc.body);
+                }
+                disposables.removeValue(pbc.body, true);
+                pbc.body.dispose();
             }
-            disposables.removeValue(pbc.body, true);
-            pbc.body.dispose();
+            if (pbc.shape != null) {
+                disposables.removeValue(pbc.shape, true);
+                pbc.shape.dispose();
+            }
+            pbc.body = null;
+            pbc.shape = null;
         }
-        if (pbc.shape != null) {
-            disposables.removeValue(pbc.shape, true);
-            pbc.shape.dispose();
+
+        ShipInteriorComponent interior = ship.getComponent(ShipInteriorComponent.class);
+        if (interior != null) {
+            interior.dispose();
         }
-        pbc.body = null;
-        pbc.shape = null;
     }
 
     @Override

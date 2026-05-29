@@ -1232,8 +1232,6 @@ public class GameWorld implements Disposable {
         return bulletPhysicsSystem;
     }
 
-    public com.galacticodyssey.ship.ShipFactory getShipFactory() { return shipFactory; }
-
     public PlayerInputSystem getPlayerInputSystem() {
         return playerInputSystem;
     }
