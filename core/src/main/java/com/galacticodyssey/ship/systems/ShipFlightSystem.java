@@ -36,6 +36,7 @@ public class ShipFlightSystem extends EntitySystem {
         ComponentMapper.getFor(FuelTankComponent.class);
 
     private ImmutableArray<Entity> playerEntities;
+    private ImmutableArray<Entity> npcShips;
 
     private final Vector3 force = new Vector3();
     private final Vector3 torque = new Vector3();
@@ -60,20 +61,35 @@ public class ShipFlightSystem extends EntitySystem {
     public void addedToEngine(Engine engine) {
         playerEntities = engine.getEntitiesFor(Family.all(
             PlayerTagComponent.class, PlayerStateComponent.class).get());
+        npcShips = engine.getEntitiesFor(Family.all(
+            ShipFlightInputComponent.class, ShipFlightComponent.class,
+            PhysicsBodyComponent.class).get());
     }
 
     @Override
     public void update(float deltaTime) {
-        if (playerEntities.size() == 0) return;
+        // Player-piloted ship: input lives on the player entity, applied to currentShip.
+        if (playerEntities.size() > 0) {
+            Entity player = playerEntities.first();
+            PlayerStateComponent state = stateMapper.get(player);
+            if (state.currentMode == PlayerMode.PILOTING && state.currentShip != null) {
+                ShipFlightInputComponent input = flightInputMapper.get(player);
+                if (input != null) {
+                    applyFlight(state.currentShip, input, deltaTime);
+                }
+            }
+        }
 
-        Entity player = playerEntities.first();
-        PlayerStateComponent state = stateMapper.get(player);
-        if (state.currentMode != PlayerMode.PILOTING || state.currentShip == null) return;
+        // NPC ships: input lives on the ship entity itself (driven by AI).
+        for (int i = 0; i < npcShips.size(); i++) {
+            Entity ship = npcShips.get(i);
+            applyFlight(ship, flightInputMapper.get(ship), deltaTime);
+        }
+    }
 
-        ShipFlightInputComponent input = flightInputMapper.get(player);
+    private void applyFlight(Entity ship, ShipFlightInputComponent input, float deltaTime) {
         if (input == null) return;
 
-        Entity ship = state.currentShip;
         PhysicsBodyComponent physics = physicsMapper.get(ship);
         ShipFlightComponent flight = flightMapper.get(ship);
         if (physics == null || physics.body == null || flight == null) return;

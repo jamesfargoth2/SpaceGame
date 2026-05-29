@@ -111,6 +111,7 @@ public final class KryoRegistrar {
         // --- NPC snapshots ---
         kryo.register(CombatAISnapshot.class, 80);
         kryo.register(SquadSnapshot.class, 81);
+        kryo.register(ShipPilotAISnapshot.class, 82);
 
         // --- Enum types used as actual enum fields in snapshots ---
         registerEnums(kryo);

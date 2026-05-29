@@ -38,6 +38,7 @@ import com.galacticodyssey.persistence.snapshots.ShipCargoSnapshot;
 import com.galacticodyssey.persistence.snapshots.ShipDataSnapshot;
 import com.galacticodyssey.persistence.snapshots.ShipFlightSnapshot;
 import com.galacticodyssey.persistence.snapshots.ShipLoadoutSnapshot;
+import com.galacticodyssey.persistence.snapshots.ShipPilotAISnapshot;
 import com.galacticodyssey.persistence.snapshots.SquadSnapshot;
 import com.galacticodyssey.persistence.snapshots.StatusEffectsSnapshot;
 import com.galacticodyssey.persistence.snapshots.BoardingOperationSnapshot;
@@ -50,6 +51,7 @@ import com.galacticodyssey.player.components.MovementStateComponent;
 import com.galacticodyssey.player.components.PlayerStateComponent;
 import com.galacticodyssey.player.components.PlayerStatsComponent;
 import com.galacticodyssey.core.components.PlayerTagComponent;
+import com.galacticodyssey.ship.ai.ShipPilotAIComponent;
 import com.galacticodyssey.ship.components.EngineSpecComponent;
 import com.galacticodyssey.ship.components.FuelTankComponent;
 import com.galacticodyssey.ship.components.ShipDataComponent;
@@ -109,6 +111,7 @@ public final class SnapshotComponentRegistry {
         register("StatusEffects",   StatusEffectsSnapshot.class,   StatusEffectsComponent::new);
         register("CombatAI",        CombatAISnapshot.class,        CombatAIComponent::new);
         register("Squad",           SquadSnapshot.class,           SquadComponent::new);
+        register("ShipPilotAI",     ShipPilotAISnapshot.class,     ShipPilotAIComponent::new);
 
         // ----- Equipment -----
         register("Inventory",       InventorySnapshot.class,
