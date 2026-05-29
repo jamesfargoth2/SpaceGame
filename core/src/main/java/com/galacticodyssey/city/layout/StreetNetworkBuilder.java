@@ -18,10 +18,12 @@ public final class StreetNetworkBuilder {
     private static final float MAX_BLOCK = 60f;
     private static final float MIN_BLOCK = 20f;
     private static final float STREET_WIDTH = 8f;
+    private static final int AVENUE_PERIOD = 3;
 
     private StreetNetworkBuilder() {}
 
     public static StreetNetwork build(CityForm form, float radius, float density, long citySeed) {
+        density = MathUtils.clamp(density, 0f, 1f);
         StreetNetwork net = new StreetNetwork();
         Random rng = new Random(citySeed ^ 0x57BEE7A1L);
 
@@ -74,9 +76,22 @@ public final class StreetNetworkBuilder {
             float p = i * spacing - spacing / 2f; // street runs in the gap before cell i
             float ext = chordHalfLength(radius, p);
             if (ext <= 0f) continue;
-            StreetTier tier = (i % 3 == 0) ? StreetTier.AVENUE : StreetTier.STREET;
-            net.streets.add(new Street(new Vector2(p, -ext), new Vector2(p, ext), tier));
-            net.streets.add(new Street(new Vector2(-ext, p), new Vector2(ext, p), tier));
+            StreetTier tier = (i % AVENUE_PERIOD == 0) ? StreetTier.AVENUE : StreetTier.STREET;
+
+            if (form == CityForm.LINEAR) {
+                // Vertical line (constant x=p): clip its y-extent to the strip.
+                float yExt = Math.min(ext, stripHalf);
+                if (yExt > 0f) {
+                    net.streets.add(new Street(new Vector2(p, -yExt), new Vector2(p, yExt), tier));
+                }
+                // Horizontal line (constant y=p): only emit within the strip.
+                if (Math.abs(p) <= stripHalf) {
+                    net.streets.add(new Street(new Vector2(-ext, p), new Vector2(ext, p), tier));
+                }
+            } else {
+                net.streets.add(new Street(new Vector2(p, -ext), new Vector2(p, ext), tier));
+                net.streets.add(new Street(new Vector2(-ext, p), new Vector2(ext, p), tier));
+            }
         }
 
         return net;

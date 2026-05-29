@@ -61,4 +61,15 @@ class StreetNetworkBuilderTest {
             }
         }
     }
+
+    @Test
+    void organicBlocksDoNotOverlap() {
+        StreetNetwork n = StreetNetworkBuilder.build(CityForm.ORGANIC, 300f, 0.6f, 8L);
+        for (int i = 0; i < n.blocks.size(); i++) {
+            for (int j = i + 1; j < n.blocks.size(); j++) {
+                assertFalse(n.blocks.get(i).footprint.overlaps(n.blocks.get(j).footprint),
+                        "ORGANIC blocks must not overlap");
+            }
+        }
+    }
 }
