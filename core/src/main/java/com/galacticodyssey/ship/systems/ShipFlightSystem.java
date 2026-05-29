@@ -270,7 +270,8 @@ public class ShipFlightSystem extends EntitySystem {
         // Bullet damping stays 0 on both axes so we never double-damp.
         physics.body.setDamping(0f, 0f);
 
-        flight.currentThrottle = effectiveThrottle;
+        // HUD/readout reflects the commanded set-point, not the lerped engine ramp.
+        flight.currentThrottle = input.throttle;
 
         // --- Boost timers + gauge ---
         if (flight.boostTimer > 0f) {

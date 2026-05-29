@@ -294,6 +294,16 @@ class ShipFlightAssistTest {
     }
 
     @Test
+    void currentThrottleMirrorsSetPoint() {
+        Engine engine = new Engine();
+        ShipFlightSystem system = buildShip(engine, 100f, true, null);
+        ShipFlightComponent flight = ship.getComponent(ShipFlightComponent.class);
+        ship.getComponent(ShipFlightInputComponent.class).throttle = 0.7f;
+        system.update(1f / 60f);
+        assertEquals(0.7f, flight.currentThrottle, 0.05f, "HUD throttle should track set-point");
+    }
+
+    @Test
     void boostRaisesAchievableSpeed() {
         // Apples-to-apples: both runs accelerate for the same 4s window; only the
         // boost run gets the surge + raised speed cap, so it must end up faster.
