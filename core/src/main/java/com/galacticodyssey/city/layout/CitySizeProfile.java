@@ -7,6 +7,7 @@ import com.galacticodyssey.city.layout.model.CityType;
 import com.galacticodyssey.galaxy.RngUtil;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
@@ -34,7 +35,8 @@ public final class CitySizeProfile {
         boolean wall = resolveWall(tier.wall, rng);
         List<CityForm> bias = new ArrayList<>();
         for (String f : tier.formBias) bias.add(CityForm.valueOf(f));
-        return new CitySizeProfile(CityType.valueOf(tier.type), radius, wall, tier.density, bias);
+        return new CitySizeProfile(CityType.valueOf(tier.type), radius, wall, tier.density,
+                Collections.unmodifiableList(bias));
     }
 
     private static boolean resolveWall(String wall, Random rng) {
