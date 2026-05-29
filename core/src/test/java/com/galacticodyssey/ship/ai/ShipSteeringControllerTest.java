@@ -26,7 +26,8 @@ class ShipSteeringControllerTest {
         float dt = 1f / 60f;
         for (int i = 0; i < 240; i++) {
             ctrl.computeInputs(rot, angularVel, aim, 0f, out);
-            angularVel.add(out.pitchInput * 3f * dt, out.yawInput * 3f * dt, out.rollInput * 3f * dt);
+            // Mirror ShipFlightSystem torque convention: pitch about +X, yaw NEGATED about +Y, roll about +Z.
+            angularVel.add(out.pitchInput * 3f * dt, -out.yawInput * 3f * dt, out.rollInput * 3f * dt);
             angularVel.scl(0.98f);
             Quaternion dq = new Quaternion().setEulerAnglesRad(
                 angularVel.y * dt, angularVel.x * dt, angularVel.z * dt);

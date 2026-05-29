@@ -48,7 +48,7 @@ public class ShipSteeringController {
         float roll  = -rollKd * angularVel.z;
 
         out.pitchInput = MathUtils.clamp(pitch, -1f, 1f);
-        out.yawInput   = MathUtils.clamp(yaw, -1f, 1f);
+        out.yawInput   = MathUtils.clamp(-yaw, -1f, 1f);
         out.rollInput  = MathUtils.clamp(roll, -1f, 1f);
         out.throttle   = MathUtils.clamp(desiredThrottle, -1f, 1f);
     }
