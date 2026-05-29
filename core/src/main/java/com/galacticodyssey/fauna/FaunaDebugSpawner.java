@@ -4,7 +4,7 @@ import com.badlogic.ashley.core.Engine;
 import com.badlogic.ashley.core.Entity;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.math.Vector3;
-import com.badlogic.gdx.utils.Array;
+import com.galacticodyssey.fauna.components.CreatureAnimationComponent;
 import com.galacticodyssey.fauna.components.CreatureRenderComponent;
 
 /**
@@ -30,10 +30,11 @@ public final class FaunaDebugSpawner {
         Vector3 pos = new Vector3(origin).add(flat);
         Entity e = new CreatureFactory().create(engine, spec, pos);
 
-        Array<ModelInstance> instances = meshBuilder.build(spec);
-        for (ModelInstance inst : instances) inst.transform.translate(pos);
+        CreatureAnimationComponent anim = e.getComponent(CreatureAnimationComponent.class);
+        ModelInstance instance = meshBuilder.buildSkinned(spec, anim.rig);
+        instance.transform.translate(pos);
         CreatureRenderComponent render = e.getComponent(CreatureRenderComponent.class);
-        render.modelInstance = instances;   // render system iterates and draws
+        render.skinnedInstance = instance;
         return e;
     }
 }

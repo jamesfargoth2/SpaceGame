@@ -5,8 +5,12 @@ import com.badlogic.ashley.core.Entity;
 import com.badlogic.gdx.math.Vector3;
 import com.galacticodyssey.combat.components.HealthComponent;
 import com.galacticodyssey.core.components.TransformComponent;
+import com.galacticodyssey.fauna.animation.GaitControllerFactory;
+import com.galacticodyssey.fauna.components.CreatureAnimationComponent;
 import com.galacticodyssey.fauna.components.CreatureComponent;
 import com.galacticodyssey.fauna.components.CreatureRenderComponent;
+import com.galacticodyssey.fauna.rig.CreatureRig;
+import com.galacticodyssey.fauna.rig.CreatureRigBuilder;
 
 /** Builds the logical creature entity from a {@link CreatureSpec}. Model attached by GL layer. */
 public final class CreatureFactory {
@@ -33,7 +37,22 @@ public final class CreatureFactory {
 
         e.add(new CreatureRenderComponent());
 
+        CreatureRig rig = new CreatureRigBuilder().build(spec);
+        CreatureAnimationComponent anim = new CreatureAnimationComponent();
+        anim.rig = rig;
+        anim.gaitController = GaitControllerFactory.create(resolveGaitClass(spec));
+        anim.params.sizeMultiplier = spec.sizeMultiplier;
+        e.add(anim);
+
         engine.addEntity(e);
         return e;
+    }
+
+    private String resolveGaitClass(CreatureSpec spec) {
+        switch (spec.bodyPlan) {
+            case HEXAPOD:    return "skitter";
+            case SERPENTINE: return "slither";
+            default:         return "walk";
+        }
     }
 }
