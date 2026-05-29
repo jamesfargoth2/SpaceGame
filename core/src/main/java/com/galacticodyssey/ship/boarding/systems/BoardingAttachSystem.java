@@ -86,6 +86,10 @@ public class BoardingAttachSystem extends EntitySystem {
         ShipEntryPointComponent entry = ENTRY_M.get(target);
         Vector3 entryLocal = (entry != null) ? entry.interiorPosition : Vector3.Zero;
 
+        // Per design, NPC aggressors use breach-pod only and EnemyBoardingAISystem claims the op
+        // (out of VULNERABLE) before clamp can fire. A clamp reaching here on a still-VULNERABLE
+        // target is therefore always the player.
+        op.playerIsAggressor = true;
         breach(op, aggressor, target, AttachMethod.CLAMP, entryLocal);
     }
 

@@ -91,13 +91,6 @@ class FullBoardingPipelineTest {
         target.add(def);
         engine.addEntity(target);
 
-        // Mark player as the aggressor when the target becomes VULNERABLE: the orchestrator
-        // creates the op with aggressorShip=null, so we set playerIsAggressor on first sight.
-        eventBus.subscribe(com.galacticodyssey.ship.boarding.events.ShipBoardableEvent.class, e -> {
-            BoardingOperationComponent op = e.ship.getComponent(BoardingOperationComponent.class);
-            if (op != null) op.playerIsAggressor = true;
-        });
-
         // 1. Disable engines via EMP to the aft.
         for (int i = 0; i < 3; i++) {
             eventBus.publish(new ShipDamageEvent(target, aggressor, 10f, DamageType.EMP,
@@ -110,6 +103,8 @@ class FullBoardingPipelineTest {
 
         // 2. Launch a breach pod; fly to BREACHED, then entry → INTERIOR_COMBAT.
         attach.launchPod(aggressor, target);
+        // BoardingInitiationSystem sets this in-game; set directly here since this test calls launchPod directly
+        target.getComponent(BoardingOperationComponent.class).playerIsAggressor = true;
         step(120);
         assertEquals(BoardingPhase.INTERIOR_COMBAT,
             target.getComponent(BoardingOperationComponent.class).phase);

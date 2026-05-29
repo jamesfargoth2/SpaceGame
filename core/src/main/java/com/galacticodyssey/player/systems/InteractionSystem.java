@@ -374,6 +374,10 @@ public class InteractionSystem extends EntitySystem {
         if (op == null) return null;
         if (op.phase == BoardingOperationComponent.BoardingPhase.RESOLVED
                 || op.phase == BoardingOperationComponent.BoardingPhase.NONE) return null;
+        // Only route to the aggressor ship when the PLAYER is the aggressor. For an
+        // NPC-boards-player op, aggressorShip is the NPC — returning it would wrongly route the
+        // player toward the NPC on exit. Fall through to the normal exit path instead.
+        if (!op.playerIsAggressor) return null;
         return op.aggressorShip;
     }
 

@@ -62,6 +62,8 @@ class BoardingAttachClampTest {
         assertEquals(AttachMethod.CLAMP, op.attachMethod);
         assertEquals(new Vector3(1f, 2f, 3f), op.entryLocalPosition);
         assertSame(aggressor, op.aggressorShip);
+        assertTrue(op.playerIsAggressor,
+            "a clamp bridge on a still-VULNERABLE target is always the player (per design)");
         assertEquals(1, breaches.size());
         assertSame(target, breaches.get(0).target);
     }

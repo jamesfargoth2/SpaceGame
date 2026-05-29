@@ -72,6 +72,10 @@ public class BoardingInitiationSystem extends EntitySystem {
         Vector3 origin = (shipT != null) ? shipT.position : Vector3.Zero;
         Entity target = nearestBoardable(getEngine(), state.currentShip, origin, POD_RANGE);
         if (target != null) {
+            // The player pressed board on a VULNERABLE target: they are the aggressor. Set this
+            // here (not in launchPod, which is shared with the NPC aggressor path).
+            BoardingOperationComponent op = target.getComponent(BoardingOperationComponent.class);
+            if (op != null) op.playerIsAggressor = true;
             attachSystem.launchPod(state.currentShip, target);
         }
     }

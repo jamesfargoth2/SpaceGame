@@ -74,5 +74,7 @@ class BoardingInitiationSystemTest {
         assertFalse(player.getComponent(
             com.galacticodyssey.player.components.PlayerInputComponent.class).boardPressed,
             "board input consumed");
+        assertTrue(target.getComponent(BoardingOperationComponent.class).playerIsAggressor,
+            "player pressing G to board marks them as the aggressor (reachable in-game)");
     }
 }
