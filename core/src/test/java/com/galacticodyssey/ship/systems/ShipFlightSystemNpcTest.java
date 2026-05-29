@@ -13,6 +13,7 @@ import com.badlogic.gdx.physics.bullet.dynamics.btDiscreteDynamicsWorld;
 import com.badlogic.gdx.physics.bullet.dynamics.btRigidBody;
 import com.badlogic.gdx.physics.bullet.dynamics.btSequentialImpulseConstraintSolver;
 import com.galacticodyssey.core.components.PhysicsBodyComponent;
+import com.galacticodyssey.ship.components.ShipDataComponent;
 import com.galacticodyssey.ship.components.ShipFlightComponent;
 import com.galacticodyssey.ship.components.ShipFlightInputComponent;
 import org.junit.jupiter.api.BeforeAll;
@@ -77,6 +78,74 @@ class ShipFlightSystemNpcTest {
 
         float speed = physics.body.getLinearVelocity().len();
         assertTrue(speed > 1f, "NPC ship should have accelerated, speed=" + speed);
+
+        world.removeRigidBody(physics.body);
+        physics.body.dispose();
+        physics.shape.dispose();
+        world.dispose(); solver.dispose(); broadphase.dispose();
+        dispatcher.dispose(); config.dispose();
+    }
+
+    /**
+     * Regression guard for the ED flight-model rewrite: an NPC ship (which carries its
+     * own ShipFlightInputComponent on the ship entity, no player entity) flying under
+     * Flight Assist at full throttle must still converge to ~maxSpeed via the new
+     * set-point linear controller.
+     */
+    @Test
+    void npcShipConvergesToMaxSpeedUnderFlightAssist() {
+        btDefaultCollisionConfiguration config = new btDefaultCollisionConfiguration();
+        btCollisionDispatcher dispatcher = new btCollisionDispatcher(config);
+        btDbvtBroadphase broadphase = new btDbvtBroadphase();
+        btSequentialImpulseConstraintSolver solver = new btSequentialImpulseConstraintSolver();
+        btDiscreteDynamicsWorld world =
+            new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, config);
+        world.setGravity(new Vector3(0, 0, 0));
+
+        Engine engine = new Engine();
+        ShipFlightSystem system = new ShipFlightSystem();
+        engine.addSystem(system);
+
+        Entity ship = new Entity();
+        PhysicsBodyComponent physics = new PhysicsBodyComponent();
+        physics.shape = new btBoxShape(new Vector3(1, 1, 1));
+        float mass = 10000f;
+        Vector3 inertia = new Vector3();
+        physics.shape.calculateLocalInertia(mass, inertia);
+        btRigidBody.btRigidBodyConstructionInfo info =
+            new btRigidBody.btRigidBodyConstructionInfo(mass, null, physics.shape, inertia);
+        physics.body = new btRigidBody(info);
+        physics.body.setWorldTransform(new Matrix4().idt());
+        physics.mass = mass;
+        info.dispose();
+        ship.add(physics);
+
+        ShipFlightComponent flight = new ShipFlightComponent();
+        flight.linearThrust = 150000f;
+        flight.flightAssistEnabled = true;
+        ship.add(flight);
+
+        ShipDataComponent data = new ShipDataComponent();
+        data.maxSpeed = 80f;
+        data.maxTurnRate = 90f;
+        ship.add(data);
+
+        // NPC path: ShipFlightInputComponent lives on the ship entity itself.
+        ShipFlightInputComponent input = new ShipFlightInputComponent();
+        input.throttle = 1f;
+        ship.add(input);
+
+        engine.addEntity(ship);
+        world.addRigidBody(physics.body);
+
+        float dt = 1f / 60f;
+        for (int i = 0; i < 600; i++) { // ~10s
+            system.update(dt);
+            world.stepSimulation(dt, 1, dt);
+        }
+
+        float speed = ship.getComponent(PhysicsBodyComponent.class).body.getLinearVelocity().len();
+        assertEquals(80f, speed, 8f, "NPC under FA should hold ~maxSpeed, got " + speed);
 
         world.removeRigidBody(physics.body);
         physics.body.dispose();
