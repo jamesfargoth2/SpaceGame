@@ -753,6 +753,7 @@ public class GameWorld implements Disposable {
         }
         dialogSystem = new DialogSystem(eventBus, dialogDataRegistry);
         engine.addSystem(dialogSystem);
+        interactionSystem.setDialogSystem(dialogSystem);
 
         // Recruitment systems
         NpcDataRegistry npcDataRegistry = new NpcDataRegistry();
