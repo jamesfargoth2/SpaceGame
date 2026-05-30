@@ -68,6 +68,48 @@ class TerrainNoiseStackTest {
             "Volcanic avg amplitude " + sumRough/n + " should exceed desert " + sumFlat/n);
     }
 
+    @Test
+    void highLodAddsSubTwentyMetreRelief() {
+        // Heights at lod 13 must differ measurably from heights at lod 5, proving that the
+        // fine octaves add real terrain relief that coarse octaves alone do not carry.
+        // Averaged over a small neighbourhood on the sphere to avoid sign-cancellation from
+        // any single point pair.
+        TerrainNoiseStack noise = new TerrainNoiseStack(12345L);
+        // Fixed biome parameters: seaLevel=0.2f keeps sample points above ocean; high-amplitude
+        // ROCKY_WASTE/BADLANDS biomes dominate when allBiomes is allowed, giving amplitude ≥ 0.2.
+        BiomeMap biome = new BiomeMap(0L, 0.2f, 0.8f, 0.5f, 293f,
+            java.util.EnumSet.allOf(com.galacticodyssey.planet.BiomeType.class));
+
+        // Sample 8 directions near the +Z pole; for each, measure how much the height
+        // changes between lod 5 and lod 13 (the extra high-frequency octaves).
+        float totalDiff = 0f;
+        int samples = 8;
+        for (int i = 0; i < samples; i++) {
+            float angle = (float)(i * 2 * Math.PI / samples);
+            float r = 0.01f; // small angular offset — within a single terrain chunk
+            Vector3 dir = new Vector3(r * (float)Math.cos(angle), r * (float)Math.sin(angle), 1f).nor();
+            float h5  = noise.heightAt(dir, biome, 5);
+            float h13 = noise.heightAt(dir, biome, 13);
+            totalDiff += Math.abs(h13 - h5);
+        }
+        float avgDiff = totalDiff / samples;
+
+        // Four fine octaves (lod>=7/9/11/13) together contribute amplitude*(0.01+0.005+0.0025+0.0012).
+        // With amplitude ≥ 0.1 (minimum land biome) the average absolute change reliably exceeds 5e-4.
+        assertTrue(avgDiff > 5e-4f,
+            "average height change from fine octaves (" + avgDiff + ") should exceed 5e-4");
+    }
+
+    @Test
+    void highLodIsDeterministic() {
+        TerrainNoiseStack n1 = new TerrainNoiseStack(777L);
+        TerrainNoiseStack n2 = new TerrainNoiseStack(777L);
+        BiomeMap biome = new BiomeMap(0L, 0.2f, 0.8f, 0.5f, 293f,
+            java.util.EnumSet.allOf(com.galacticodyssey.planet.BiomeType.class));
+        Vector3 dir = new Vector3(0.3f, 0.2f, 1f).nor();
+        assertEquals(n1.heightAt(dir, biome, 13), n2.heightAt(dir, biome, 13), 0f);
+    }
+
     private BiomeMap makeBiomeMap() {
         return makeBiomeMapWith(BiomeType.GRASSLAND);
     }

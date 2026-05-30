@@ -84,6 +84,27 @@ public final class TerrainNoiseStack {
             height += fine * amplitude * 0.02f;
         }
 
+        // SP2: progressive high-frequency octaves so deep chunks carry real meter-scale
+        // relief instead of re-tessellating a smooth surface. Each step roughly doubles
+        // frequency and halves contribution; amplitudes stay well inside the height
+        // envelope so slopes remain walkable.
+        if (lod >= 7) {
+            float n = detailNoise.fbm(dir.x * 512f, dir.y * 512f, dir.z * 512f, 3, 0.5f, 2.0f);
+            height += n * amplitude * 0.010f;
+        }
+        if (lod >= 9) {
+            float n = detailNoise.fbm(dir.x * 1024f, dir.y * 1024f, dir.z * 1024f, 3, 0.5f, 2.0f);
+            height += n * amplitude * 0.005f;
+        }
+        if (lod >= 11) {
+            float n = detailNoise.fbm(dir.x * 2048f, dir.y * 2048f, dir.z * 2048f, 2, 0.5f, 2.0f);
+            height += n * amplitude * 0.0025f;
+        }
+        if (lod >= 13) {
+            float n = detailNoise.fbm(dir.x * 4096f, dir.y * 4096f, dir.z * 4096f, 2, 0.5f, 2.0f);
+            height += n * amplitude * 0.0012f;
+        }
+
         Sample s = new Sample();
         s.height = height;
         s.biome = biome;
