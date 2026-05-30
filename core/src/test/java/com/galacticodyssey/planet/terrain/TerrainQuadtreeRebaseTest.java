@@ -1,14 +1,22 @@
 package com.galacticodyssey.planet.terrain;
 
+import com.badlogic.gdx.physics.bullet.Bullet;
 import com.galacticodyssey.core.coords.LocalCoordsM;
 import com.galacticodyssey.core.coords.PlanetCoordsKM;
 import com.galacticodyssey.planet.BiomeMap;
 import com.galacticodyssey.planet.BiomeType;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import java.util.EnumSet;
 import static org.junit.jupiter.api.Assertions.*;
 
 class TerrainQuadtreeRebaseTest {
+
+    @BeforeAll
+    static void initBullet() {
+        Bullet.init();
+    }
+
     private TerrainQuadtree newTree(PlanetCoordsKM origin) {
         double radiusKm = 6371.0;
         TerrainNoiseStack noise = new TerrainNoiseStack(42L);
