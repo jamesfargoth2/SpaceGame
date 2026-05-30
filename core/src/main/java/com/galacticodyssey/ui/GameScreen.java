@@ -280,12 +280,11 @@ public class GameScreen implements Screen {
 
         long terrainSeed = (session != null) ? session.terrainSeed : TERRAIN_SEED;
 
-        heightmap = TerrainGenerator.generateHeightmap(
-            TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, terrainSeed);
-
         gameWorld.initializeSystems(camera);
 
-        // Load sphere terrain from session planet — aligns with game-world planet centre
+        // Load sphere terrain from session planet — aligns with game-world planet centre.
+        // This is the real ground in SP2 (NOT flat-pad dressing) — it must always run, and the
+        // player spawn below depends on it being loaded so the terrain system can pre-warm.
         if (session != null && session.startingPlanet != null && session.startingBiomeMap != null) {
             gameWorld.loadPlanetTerrain(session.startingPlanet, session.startingBiomeMap);
         }
@@ -297,75 +296,67 @@ public class GameScreen implements Screen {
         pix.dispose();
         gameWorld.getParticleRenderSystem().initialize(new TextureRegion(particleTexture));
 
-        populatedWorld = WorldPopulator.populate(
-            heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, terrainSeed);
+        // SP2: the flat 5km pad is retired. Grass, alien plants, water, scatter boxes, and the
+        // test NPC were all pinned to its heightmap; re-anchoring them to the sphere surface
+        // sampler is the next sub-project (TODO(SP2-followup)). Disabled here so nothing floats
+        // over the bare sphere. The sphere terrain itself is loaded above, OUTSIDE this guard.
+        final boolean SP2_FLAT_DRESSING = false;
+        if (SP2_FLAT_DRESSING) {
+            heightmap = TerrainGenerator.generateHeightmap(
+                TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, terrainSeed);
 
-        GrassRegistry grassRegistry = new GrassRegistry();
-        grassRegistry.load("data/flora/grass.json");
-        HeightmapTerrainSampler grassSampler = new HeightmapTerrainSampler(
-            heightmap, populatedWorld.biomeGrid, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH);
-        grassField = new GrassField(grassRegistry.config(), grassSampler, terrainSeed);
-        grassRenderer = new GrassRenderer(deferredRenderer.getShaderCache(), grassRegistry.config(), GRASS_MAX_INSTANCES);
+            populatedWorld = WorldPopulator.populate(
+                heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, terrainSeed);
 
-        AlienPlantRegistry alienRegistry = new AlienPlantRegistry();
-        alienRegistry.load("data/flora/alien_plants.json");
-        AlienPlantGenerator.populate(populatedWorld, alienRegistry, heightmap,
-            TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, populatedWorld.seaLevel, terrainSeed);
-        alienBatch = new ModelBatch(new EmissiveGBufferShaderProvider(deferredRenderer.getShaderCache()));
+            GrassRegistry grassRegistry = new GrassRegistry();
+            grassRegistry.load("data/flora/grass.json");
+            HeightmapTerrainSampler grassSampler = new HeightmapTerrainSampler(
+                heightmap, populatedWorld.biomeGrid, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH);
+            grassField = new GrassField(grassRegistry.config(), grassSampler, terrainSeed);
+            grassRenderer = new GrassRenderer(deferredRenderer.getShaderCache(), grassRegistry.config(), GRASS_MAX_INSTANCES);
 
-        gameWorld.getOceanSpawner().spawnSeawater(populatedWorld.seaLevel, terrainSeed);
+            AlienPlantRegistry alienRegistry = new AlienPlantRegistry();
+            alienRegistry.load("data/flora/alien_plants.json");
+            AlienPlantGenerator.populate(populatedWorld, alienRegistry, heightmap,
+                TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, populatedWorld.seaLevel, terrainSeed);
+            alienBatch = new ModelBatch(new EmissiveGBufferShaderProvider(deferredRenderer.getShaderCache()));
 
-        createTerrainMesh();
-        terrainDetailTexture = createDetailTexture(terrainSeed);
-        createTerrainMaterialTextures(terrainSeed);
-        createTerrainPhysics();
-        createScatterBoxes();
+            gameWorld.getOceanSpawner().spawnSeawater(populatedWorld.seaLevel, terrainSeed);
 
-        if (session != null && session.playerSpawnPos != null) {
-            gameWorld.createPlayerEntity(
-                session.playerSpawnPos.x, session.playerSpawnPos.y, session.playerSpawnPos.z);
-        } else {
-            float spawnHeight = TerrainGenerator.getHeightAt(
-                heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, 0, 0) + 2f;
-            gameWorld.createPlayerEntity(0, spawnHeight, 0);
+            createTerrainMesh();
+            terrainDetailTexture = createDetailTexture(terrainSeed);
+            createTerrainMaterialTextures(terrainSeed);
+            createTerrainPhysics();
+            createScatterBoxes();
+
+            // Spawn test NPC near player for dialog testing (negative Z = in front of default camera)
+            float npcX = 0f, npcZ = -2f;
+            float npcY = TerrainGenerator.getHeightAt(
+                heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, npcX, npcZ) + 1f;
+            gameWorld.spawnTestNpc(npcX, npcY, npcZ);
         }
-
-        // Spawn test NPC near player for dialog testing (negative Z = in front of default camera)
-        float npcX = 0f, npcZ = -2f;
-        float npcY = TerrainGenerator.getHeightAt(
-            heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, npcX, npcZ) + 1f;
-        gameWorld.spawnTestNpc(npcX, npcY, npcZ);
 
         shipFactory = new ShipFactory(gameWorld.getEngine(), gameWorld.getBulletPhysicsSystem());
         shipFactory.setReactorSpecRegistry(gameWorld.getReactorSpecRegistry());
 
-        if (session != null && session.shipSpawnPos != null) {
-            float shipY = TerrainGenerator.getHeightAt(
-                heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH,
-                session.shipSpawnPos.x, session.shipSpawnPos.z) + 0.5f;
-            Entity starterShip = shipFactory.createShip(
-                session.seed, ShipSizeClass.SMALL,
-                session.shipSpawnPos.x, shipY, session.shipSpawnPos.z);
-            shipEntities.add(starterShip);
+        // SP2: spawn on the sphere surface at the +Y pole (matches loadPlanetTerrain origin (0,radiusKm,0)).
+        com.badlogic.gdx.math.Vector3 spawnDir = new com.badlogic.gdx.math.Vector3(0, 1, 0).nor();
+        if (session != null && session.playerSpawnPos != null) {
+            gameWorld.createPlayerEntity(
+                session.playerSpawnPos.x, session.playerSpawnPos.y, session.playerSpawnPos.z);
         } else {
-            float smallX = 0f, smallZ = -20f;
-            float smallY = TerrainGenerator.getHeightAt(
-                heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, smallX, smallZ) + 2f;
-            Entity smallShip = shipFactory.createShip(42L, ShipSizeClass.SMALL, smallX, smallY, smallZ);
-            shipEntities.add(smallShip);
-
-            float medX = 40f, medZ = 40f;
-            float medY = TerrainGenerator.getHeightAt(
-                heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, medX, medZ) + 4f;
-            Entity medShip = shipFactory.createShip(123L, ShipSizeClass.MEDIUM, medX, medY, medZ);
-            shipEntities.add(medShip);
-
-            float lgX = -60f, lgZ = -60f;
-            float lgY = TerrainGenerator.getHeightAt(
-                heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH, lgX, lgZ) + 6f;
-            Entity largeShip = shipFactory.createShip(999L, ShipSizeClass.LARGE, lgX, lgY, lgZ);
-            shipEntities.add(largeShip);
+            gameWorld.spawnPlayerOnSphere(spawnDir, 2f);
         }
+
+        // SP2: starter ship sits just off the spawn point on the sphere surface.
+        com.galacticodyssey.core.coords.LocalCoordsM shipSurface =
+            gameWorld.getPlanetTerrainSystem().surfacePointLocal(spawnDir);
+        com.badlogic.gdx.math.Vector3 shipPos = shipSurface.toVector3();
+        Entity starterShip = shipFactory.createShip(
+            (session != null) ? session.seed : 42L, ShipSizeClass.SMALL,
+            shipPos.x + 20f, shipPos.y + 2f, shipPos.z);
+        shipEntities.add(starterShip);
+        // TODO(SP2-followup): re-anchor demo ships + test NPC + dressing to surfaceHeightAt.
 
         buildShipMeshes();
 
@@ -1595,7 +1586,8 @@ public class GameScreen implements Screen {
             gameTime += clampedDelta;
         }
 
-        if (!paused) {
+        // SP2: animal/grass updates only run when the flat-pad dressing is active (heightmap-pinned).
+        if (!paused && populatedWorld != null) {
             WorldPopulator.updateAnimals(populatedWorld, delta,
                 heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH);
         }
@@ -1630,12 +1622,16 @@ public class GameScreen implements Screen {
             camera,
             () -> {
                 renderTerrain();
-                // Vegetation is ground-level detail: cull when terrain itself starts to fade.
-                float vegAltitude = camera.position.y - 2f;
-                if (vegAltitude < FLAT_TERRAIN_FADE_START_Y) {
-                    if (grassRenderer != null) grassRenderer.render(camera, gameTime);
-                    renderWorldObjects();
-                    renderAlienPlants();
+                // SP2: vegetation/world-object/alien-plant dressing is heightmap-pinned and disabled.
+                // Guarded by populatedWorld != null (only created when SP2_FLAT_DRESSING is on).
+                if (populatedWorld != null) {
+                    // Vegetation is ground-level detail: cull when terrain itself starts to fade.
+                    float vegAltitude = camera.position.y - 2f;
+                    if (vegAltitude < FLAT_TERRAIN_FADE_START_Y) {
+                        if (grassRenderer != null) grassRenderer.render(camera, gameTime);
+                        renderWorldObjects();
+                        renderAlienPlants();
+                    }
                 }
                 renderBoxes();
                 renderShips();
@@ -1708,43 +1704,31 @@ public class GameScreen implements Screen {
             (gameWorld != null) ? gameWorld.getPlanetTerrainSystem() : null;
         float sphereRadius = (pts != null) ? pts.getRadiusLocalMetres() : 0f;
 
-        // Sphere terrain activates only after the flat terrain has fully faded out, then fades IN
-        // over 1000 m so there is never a hard pop. It fades OUT again at extreme (orbital) altitude.
-        boolean useSphereTerrain = false;
+        // SP2: the sphere IS the ground now — it is active whenever loaded, from the surface up.
+        // The flat 5km pad is retired. We keep ONLY the orbital fade-OUT (SP3 owns the
+        // far-hemisphere / orbit transition); there is no longer a low-altitude fade-IN gate.
+        boolean useSphereTerrain = sphereRadius > 0f;
         float terrainFade = 1f;
-        if (sphereRadius > 0f) {
-            float altitudeAboveSurface = camera.position.y - 2f;
-            useSphereTerrain = altitudeAboveSurface > FLAT_TERRAIN_FADE_END_Y;
-            if (useSphereTerrain) {
-                float requiredFar = sphereRadius * 3f;
-                if (camera.far < requiredFar) {
-                    camera.far = requiredFar;
-                    camera.update();
-                }
-                pts.setCameraPositionLocal(camera.position);
-                // Fade IN: 0→1 over the 1000 m window above the activation threshold.
-                float fadeIn = Math.min(1f, (altitudeAboveSurface - FLAT_TERRAIN_FADE_END_Y) / 1000f);
-                // Fade OUT at extreme altitude (orbital / beyond-atmosphere view).
-                float distFromCenter = camera.position.dst(pts.getPlanetCenterLocal());
-                float altAboveSphere = distFromCenter - sphereRadius;
-                float fadeOutFrac = (altAboveSphere - sphereRadius * TERRAIN_FADE_START_FRAC)
-                                  / (sphereRadius * (TERRAIN_FADE_END_FRAC - TERRAIN_FADE_START_FRAC));
-                float fadeOut = 1f - Math.min(1f, Math.max(0f, fadeOutFrac));
-                terrainFade = Math.min(fadeIn, fadeOut);
+        if (useSphereTerrain) {
+            float requiredFar = sphereRadius * 3f;
+            if (camera.far < requiredFar) {
+                camera.far = requiredFar;
+                camera.update();
             }
+            pts.setCameraPositionLocal(camera.position);
+            // Keep ONLY the orbital fade-OUT (SP3 owns the far-hemisphere/orbit transition).
+            float distFromCenter = camera.position.dst(pts.getPlanetCenterLocal());
+            float altAboveSphere = distFromCenter - sphereRadius;
+            float fadeOutFrac = (altAboveSphere - sphereRadius * TERRAIN_FADE_START_FRAC)
+                              / (sphereRadius * (TERRAIN_FADE_END_FRAC - TERRAIN_FADE_START_FRAC));
+            terrainFade = 1f - Math.min(1f, Math.max(0f, fadeOutFrac));
         }
 
         // --- Terrain fade debug (remove when tuning is done) ---
         {
-            float camY = camera.position.y;
-            float flatAlt = camY - 2f;
-            float flatFrac = Math.min(1f, Math.max(0f,
-                (flatAlt - FLAT_TERRAIN_FADE_START_Y) / (FLAT_TERRAIN_FADE_END_Y - FLAT_TERRAIN_FADE_START_Y)));
-            float flatFade = 1f - flatFrac;
             String dbg = String.format(
-                "camY=%.1f flatAlt=%.1f flatFade=%.2f | sphereR=%.0f useSphereTerrain=%b sphereFade=%.2f | vegCull=%b",
-                camY, flatAlt, flatFade, sphereRadius, useSphereTerrain, terrainFade,
-                (camY - 2f) >= FLAT_TERRAIN_FADE_START_Y);
+                "sphereR=%.0f useSphereTerrain=%b sphereFade=%.2f",
+                sphereRadius, useSphereTerrain, terrainFade);
             if (gameWorld != null) gameWorld.getDebugHudSystem().setTerrainDebug(dbg);
         }
 
@@ -1777,50 +1761,8 @@ public class GameScreen implements Screen {
                 }
             }
             // terrainFade == 0: fully transparent — skip GL work; LOD has merged to coarse chunks anyway.
-        } else {
-            // Flat terrain fades out with altitude so the rectangular mesh edge never pops
-            // visibly from above (whether or not sphere terrain is loaded).
-            float flatAltitude = camera.position.y - 2f;
-            float flatFadeFrac = (flatAltitude - FLAT_TERRAIN_FADE_START_Y)
-                               / (FLAT_TERRAIN_FADE_END_Y - FLAT_TERRAIN_FADE_START_Y);
-            float flatTerrainFade = 1f - Math.min(1f, Math.max(0f, flatFadeFrac));
-
-            if (flatTerrainFade > 0f) {
-                debugTerrainPenetration();
-                ShaderProgram tShader = deferredRenderer.getShaderCache()
-                    .get("gbuffer_terrain.vert", "gbuffer_terrain.frag", "TERRAIN_FADE");
-                tShader.bind();
-                tShader.setUniformMatrix("u_projViewTrans", camera.combined);
-                tmpMat4.idt();
-                tShader.setUniformMatrix("u_worldTrans", tmpMat4);
-                tmpMat4.set(camera.view);
-                tmpNormalMat3.set(tmpMat4).inv().transpose();
-                tShader.setUniformMatrix("u_normalMatrix", tmpNormalMat3);
-                tShader.setUniformf("u_texScale", 0.15f);
-                tShader.setUniformi("u_darkBackfaces", 0);
-                tShader.setUniformf("u_terrainFade", flatTerrainFade);
-
-                if (terrainGrassTex != null) {
-                    terrainGrassTex.bind(0);
-                    tShader.setUniformi("u_grassTex", 0);
-                    terrainDirtTex.bind(1);
-                    tShader.setUniformi("u_dirtTex", 1);
-                    terrainRockTex.bind(2);
-                    tShader.setUniformi("u_rockTex", 2);
-                    terrainGravelTex.bind(3);
-                    tShader.setUniformi("u_gravelTex", 3);
-                }
-
-                terrainMesh.render(tShader, GL20.GL_TRIANGLES);
-                Gdx.gl.glActiveTexture(GL20.GL_TEXTURE0);
-            }
-
-            if (camera.far > 5000f) {
-                camera.far = 5000f;
-                camera.update();
-            }
         }
-
+        // SP2: the flat-pad render branch was removed. The sphere is always the ground now.
     }
 
     /**
