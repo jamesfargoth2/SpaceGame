@@ -25,11 +25,23 @@ class TerrainQuadtreeRebaseTest {
         return new TerrainQuadtree(radiusKm, origin, noise, biomeMap, null); // null world = headless
     }
 
+    /** Drive the async quadtree until every visible leaf has had its placement applied. */
+    private static void settle(TerrainQuadtree tree, PlanetCoordsKM camera) throws InterruptedException {
+        for (int i = 0; i < 200; i++) {
+            tree.update(camera);
+            tree.pump();
+            boolean allPlaced = tree.getVisibleLeaves().stream()
+                .allMatch(l -> l.state == TerrainChunk.State.READY);
+            if (allPlaced && !tree.getVisibleLeaves().isEmpty()) return;
+            Thread.sleep(2);
+        }
+    }
+
     @Test
-    void placementEqualsPlanetToLocalOfChunkCentre() {
+    void placementEqualsPlanetToLocalOfChunkCentre() throws InterruptedException {
         PlanetCoordsKM origin = new PlanetCoordsKM(0, 6371.0, 0);
         TerrainQuadtree tree = newTree(origin);
-        tree.update(new PlanetCoordsKM(0, 6371.001, 0));
+        settle(tree, new PlanetCoordsKM(0, 6371.001, 0)); // async: wait for builds, apply placement
         for (TerrainChunk leaf : tree.getVisibleLeaves()) {
             LocalCoordsM expected = com.galacticodyssey.core.coords.CoordConvert
                 .planetToLocal(leaf.centerPlanetKm, origin);
@@ -40,10 +52,10 @@ class TerrainQuadtreeRebaseTest {
     }
 
     @Test
-    void rebaseShiftsEveryPlacementByTheSameDelta() {
+    void rebaseShiftsEveryPlacementByTheSameDelta() throws InterruptedException {
         PlanetCoordsKM origin = new PlanetCoordsKM(0, 6371.0, 0);
         TerrainQuadtree tree = newTree(origin);
-        tree.update(new PlanetCoordsKM(0, 6371.001, 0));
+        settle(tree, new PlanetCoordsKM(0, 6371.001, 0)); // async: wait for builds, apply placement
         java.util.Map<TerrainChunk, float[]> before = new java.util.HashMap<>();
         for (TerrainChunk leaf : tree.getVisibleLeaves())
             before.put(leaf, new float[]{leaf.placementLocal.x(), leaf.placementLocal.y(), leaf.placementLocal.z()});
