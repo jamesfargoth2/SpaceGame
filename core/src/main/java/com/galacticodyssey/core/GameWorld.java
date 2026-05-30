@@ -1173,8 +1173,9 @@ public class GameWorld implements Disposable {
         com.galacticodyssey.core.coords.PlanetCoordsKM origin =
             new com.galacticodyssey.core.coords.PlanetCoordsKM(0, radiusKm, 0);
         planetTerrainSystem.loadPlanet(planet, biomeMap, origin);
-        // Re-centre radial gravity: planet centre is radiusKm*1000 m straight down in local space.
-        com.badlogic.gdx.math.Vector3 centerLocal = planetTerrainSystem.getPlanetCenterLocal(); // (0,-radiusKm*1000,0)
+        // Re-centre radial gravity: planet centre is radiusKm*1000 m straight down in local space
+        // because the player spawns at the +Y pole, so the origin is radiusKm km above the centre.
+        com.badlogic.gdx.math.Vector3 centerLocal = planetTerrainSystem.getPlanetCenterLocal(); // shared read-only; (0,-radiusKm*1000,0)
         radialGravitySystem.setPlanetCenterLocal(centerLocal);
         playerMovementSystem.setPlanetCenter(centerLocal);
     }

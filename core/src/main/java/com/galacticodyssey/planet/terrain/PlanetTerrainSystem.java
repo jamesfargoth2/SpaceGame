@@ -5,7 +5,6 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.bullet.dynamics.btDiscreteDynamicsWorld;
 import com.badlogic.gdx.utils.Disposable;
 import com.galacticodyssey.core.coords.CoordConvert;
-import com.galacticodyssey.core.coords.LocalCoordsM;
 import com.galacticodyssey.core.coords.PlanetCoordsKM;
 import com.galacticodyssey.galaxy.SeedDeriver;
 import com.galacticodyssey.planet.BiomeMap;
@@ -24,6 +23,11 @@ public final class PlanetTerrainSystem extends EntitySystem implements Disposabl
     private double radiusKm;
     private PlanetCoordsKM originPlanetKm = PlanetCoordsKM.ORIGIN;
     private final Vector3 cameraLocal = new Vector3();
+    /**
+     * Cached planet centre in the current LOCAL frame — updated only on loadPlanet/onOriginRebased.
+     * Shared/read-only: callers must not mutate the returned instance (see getPlanetCenterLocal()).
+     */
+    private final Vector3 planetCenterLocal = new Vector3();
 
     public PlanetTerrainSystem(btDiscreteDynamicsWorld dynamicsWorld) {
         this.dynamicsWorld = dynamicsWorld;
@@ -41,6 +45,7 @@ public final class PlanetTerrainSystem extends EntitySystem implements Disposabl
         TerrainNoiseStack noise = new TerrainNoiseStack(terrainSeed, tectonic);
         this.radiusKm = planet.radius * EARTH_RADIUS_KM;
         this.originPlanetKm = originPlanetKm;
+        recomputePlanetCenterLocal();
         quadtree = new TerrainQuadtree(radiusKm, originPlanetKm, noise, biomeMap, dynamicsWorld);
     }
 
@@ -52,7 +57,11 @@ public final class PlanetTerrainSystem extends EntitySystem implements Disposabl
     public void setCameraPositionLocal(Vector3 localMetres) { cameraLocal.set(localMetres); }
 
     public PlanetCoordsKM getCameraPlanetKm() {
-        return CoordConvert.localToPlanet(new LocalCoordsM(cameraLocal.x, cameraLocal.y, cameraLocal.z), originPlanetKm);
+        // Inline conversion: avoids allocating an intermediate LocalCoordsM wrapper.
+        return new PlanetCoordsKM(
+            originPlanetKm.x() + cameraLocal.x * CoordConvert.M_TO_KM,
+            originPlanetKm.y() + cameraLocal.y * CoordConvert.M_TO_KM,
+            originPlanetKm.z() + cameraLocal.z * CoordConvert.M_TO_KM);
     }
 
     /** Apply a floating-origin rebase (metre deltas) — shift the planet-space origin. */
@@ -61,6 +70,7 @@ public final class PlanetTerrainSystem extends EntitySystem implements Disposabl
             originPlanetKm.x() + dxM * CoordConvert.M_TO_KM,
             originPlanetKm.y() + dyM * CoordConvert.M_TO_KM,
             originPlanetKm.z() + dzM * CoordConvert.M_TO_KM);
+        recomputePlanetCenterLocal();
         if (quadtree != null) quadtree.setOrigin(originPlanetKm);
     }
 
@@ -69,9 +79,21 @@ public final class PlanetTerrainSystem extends EntitySystem implements Disposabl
     public float getRadiusLocalMetres() { return (float) (radiusKm * CoordConvert.KM_TO_M); }
     public PlanetCoordsKM getOriginPlanetKm() { return originPlanetKm; }
 
-    /** Planet centre in the current LOCAL frame (large magnitude — fade/far-plane use only, NOT meshes). */
+    /** Planet centre in the current LOCAL frame (large magnitude — fade/far-plane use only, NOT meshes).
+     *  Returns the shared cached instance — callers must not mutate it (both known call sites only read/copy). */
     public Vector3 getPlanetCenterLocal() {
-        return CoordConvert.planetToLocal(PlanetCoordsKM.ORIGIN, originPlanetKm).toVector3();
+        return planetCenterLocal;
+    }
+
+    /** Recompute {@link #planetCenterLocal} from the current {@code originPlanetKm}.
+     *  Call whenever {@code originPlanetKm} changes (loadPlanet, onOriginRebased). */
+    private void recomputePlanetCenterLocal() {
+        // Planet centre is at PlanetCoordsKM.ORIGIN (0,0,0); convert to local metres.
+        // Equivalent to CoordConvert.planetToLocal(ORIGIN, originPlanetKm) inlined to avoid allocation.
+        planetCenterLocal.set(
+            (float) (-originPlanetKm.x() * CoordConvert.KM_TO_M),
+            (float) (-originPlanetKm.y() * CoordConvert.KM_TO_M),
+            (float) (-originPlanetKm.z() * CoordConvert.KM_TO_M));
     }
 
     public List<TerrainChunk> getVisibleLeaves() {
