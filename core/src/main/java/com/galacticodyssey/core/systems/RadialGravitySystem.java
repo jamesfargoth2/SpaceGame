@@ -33,10 +33,22 @@ public class RadialGravitySystem extends IteratingSystem {
         super(Family.all(PhysicsBodyComponent.class, TransformComponent.class).get());
         this.planetCenter.set(planetCenter);
         this.gravity = gravity;
-        dynamicsWorld.setGravity(new Vector3(0, 0, 0));
+        if (dynamicsWorld != null) dynamicsWorld.setGravity(new Vector3(0, 0, 0));
     }
 
     public float getGravityMagnitude() { return gravity; }
+
+    public void setPlanetCenterLocal(Vector3 c) { this.planetCenter.set(c); }
+
+    /** Shift the local planet centre on a floating-origin rebase (every fixed point moves by -delta). */
+    public void onOriginRebased(float dxM, float dyM, float dzM) {
+        planetCenter.sub(dxM, dyM, dzM);
+    }
+
+    /** Pure radial-gravity force for a body at a local position. Headless-testable. */
+    public void computeGravityForce(Vector3 bodyLocal, float mass, Vector3 out) {
+        out.set(bodyLocal).sub(planetCenter).nor().scl(-gravity * mass);
+    }
 
     @Override
     protected void processEntity(Entity entity, float deltaTime) {
@@ -53,8 +65,7 @@ public class RadialGravitySystem extends IteratingSystem {
 
         physics.body.getWorldTransform(tempMat);
         tempMat.getTranslation(tempVec);
-
-        tempVec.sub(planetCenter).nor().scl(-gravity * physics.mass);
+        computeGravityForce(tempVec, physics.mass, tempVec);
         physics.body.applyCentralForce(tempVec);
         physics.body.activate();
     }
