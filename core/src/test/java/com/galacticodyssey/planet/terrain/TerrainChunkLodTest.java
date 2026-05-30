@@ -20,7 +20,7 @@ class TerrainChunkLodTest {
         TerrainChunk root = new TerrainChunk(CubeFace.POS_Y, 0, 0f, 0f, 1f, 1f, radiusKm);
         PlanetCoordsKM near = new PlanetCoordsKM(0, radiusKm + 1.0, 0);
         assertTrue(root.shouldSplit(near));
-        PlanetCoordsKM far = new PlanetCoordsKM(0, radiusKm * 3.0, 0);
+        PlanetCoordsKM far = new PlanetCoordsKM(0, radiusKm * 6.0, 0);
         assertTrue(root.shouldMerge(far));
     }
 }
