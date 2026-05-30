@@ -82,6 +82,12 @@ public class WeaponSystem extends IteratingSystem {
             return;
         }
 
+        // --- Decay heat spread every frame ---
+        if (ranged.currentHeatSpread > 0f) {
+            ranged.currentHeatSpread = Math.max(0f,
+                ranged.currentHeatSpread - ranged.heatSpreadDecayRate * deltaTime);
+        }
+
         // --- Decrement fire cooldown timer ---
         if (ranged.fireTimer > 0f) {
             ranged.fireTimer -= deltaTime;
@@ -171,6 +177,8 @@ public class WeaponSystem extends IteratingSystem {
     private void fireShot(Entity entity, RangedWeaponComponent ranged, CombatInputComponent input) {
         ranged.currentAmmo--;
         ranged.fireTimer = ranged.fireRate > 0f ? 1f / ranged.fireRate : 0f;
+        ranged.currentHeatSpread = Math.min(ranged.heatSpreadMax,
+            ranged.currentHeatSpread + ranged.recoil * 0.15f);
         Vector3 muzzle = computeMuzzlePosition(entity);
         eventBus.publish(new WeaponFiredEvent(entity, input.aimDirection, ranged.hitscan, muzzle));
         publishRecoil(entity, ranged);

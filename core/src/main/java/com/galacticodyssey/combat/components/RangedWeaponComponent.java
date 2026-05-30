@@ -16,6 +16,13 @@ public class RangedWeaponComponent implements Component, Snapshotable<RangedWeap
     public float recoil;
     public Vector2[] recoilPattern;
     public int recoilIndex;
+
+    /** Runtime accumulator: extra spread in degrees added by sustained fire. */
+    public float currentHeatSpread;
+    /** Maximum heat spread in degrees before further shots have no additional effect. */
+    public float heatSpreadMax = 3f;
+    /** Degrees per second that heat spread recovers when the trigger is released. */
+    public float heatSpreadDecayRate = 24f;
     public int currentAmmo;
     public int magSize;
     public float reloadTime;

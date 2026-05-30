@@ -132,11 +132,10 @@ public class CombatInputSystem extends IteratingSystem {
         CombatInputComponent input = INPUT_M.get(entity);
         FPSCameraComponent camera = CAMERA_M.get(entity);
 
-        // 1. Derive aim direction from camera yaw / pitch.
-        //    Convention: yaw=0, pitch=0 → looking down -Z (into the screen).
-        //    yaw rotates around Y; pitch rotates around X (local).
-        float yawRad   = camera.yawAngle   * MathUtils.degreesToRadians;
-        float pitchRad = camera.pitchAngle * MathUtils.degreesToRadians;
+        // 1. Derive aim direction from the effective (recoil-applied) camera angles so that
+        //    bullets always travel along the rendered crosshair direction.
+        float yawRad   = camera.effectiveYawAngle   * MathUtils.degreesToRadians;
+        float pitchRad = camera.effectivePitchAngle * MathUtils.degreesToRadians;
 
         float cosPitch = MathUtils.cos(pitchRad);
         input.aimDirection.set(

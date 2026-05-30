@@ -8,7 +8,12 @@ import com.badlogic.ashley.systems.IteratingSystem;
 import com.badlogic.ashley.utils.ImmutableArray;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.physics.bullet.collision.ClosestRayResultCallback;
+import com.badlogic.gdx.physics.bullet.collision.btCollisionObject;
+import com.badlogic.gdx.physics.bullet.dynamics.btDiscreteDynamicsWorld;
+import com.badlogic.gdx.physics.bullet.dynamics.btRigidBody;
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.Pools;
 import com.galacticodyssey.combat.CombatEnums.FuseType;
 import com.galacticodyssey.combat.CombatEnums.HitRegion;
@@ -26,8 +31,9 @@ import com.galacticodyssey.combat.events.ProjectileHitEvent;
 import com.galacticodyssey.combat.events.WeaponFiredEvent;
 import com.galacticodyssey.core.EventBus;
 import com.galacticodyssey.core.components.TransformComponent;
+import com.galacticodyssey.core.systems.BulletPhysicsSystem;
 
-public class ProjectileSystem extends IteratingSystem {
+public class ProjectileSystem extends IteratingSystem implements Disposable {
 
     public static final int PRIORITY = 7;
 
@@ -43,6 +49,10 @@ public class ProjectileSystem extends IteratingSystem {
     private final Array<Entity> toRemove = new Array<>();
     private GrenadeDataRegistry grenadeRegistry;
     private WeaponDataRegistry weaponDataRegistry;
+
+    private BulletPhysicsSystem bulletPhysicsSystem;
+    private ClosestRayResultCallback rayCallback;
+    private final Vector3 tempHitNormal = new Vector3();
 
     private static final Family TARGET_FAMILY =
         Family.all(TransformComponent.class, HitboxComponent.class, HealthComponent.class).get();
@@ -64,6 +74,25 @@ public class ProjectileSystem extends IteratingSystem {
 
     public void setWeaponDataRegistry(WeaponDataRegistry registry) {
         this.weaponDataRegistry = registry;
+    }
+
+    public void setBulletPhysicsSystem(BulletPhysicsSystem bps) {
+        this.bulletPhysicsSystem = bps;
+        if (rayCallback != null) {
+            rayCallback.dispose();
+            rayCallback = null;
+        }
+        if (bps != null) {
+            rayCallback = new ClosestRayResultCallback(new Vector3(), new Vector3());
+        }
+    }
+
+    @Override
+    public void dispose() {
+        if (rayCallback != null) {
+            rayCallback.dispose();
+            rayCallback = null;
+        }
     }
 
     public ProjectileSystem(EventBus eventBus) {
@@ -108,6 +137,8 @@ public class ProjectileSystem extends IteratingSystem {
         float lifetime = (speed > 0f && weaponComp.range > 0f) ? weaponComp.range / speed : 2f;
 
         Vector3 dir = Pools.obtain(Vector3.class).set(event.aimDirection).nor();
+        float totalSpread = weaponComp.spread + weaponComp.currentHeatSpread;
+        if (totalSpread > 0f) applySpread(dir, totalSpread);
 
         Entity projectile = engine.createEntity();
 
@@ -243,6 +274,60 @@ public class ProjectileSystem extends IteratingSystem {
             }
         }
 
+        // --- Bullet physics world collision (terrain, boxes, entity physics bodies) ---
+        if (bulletPhysicsSystem != null && rayCallback != null && gc == null) {
+            btDiscreteDynamicsWorld world = bulletPhysicsSystem.getDynamicsWorld();
+            if (world != null) {
+                rayCallback.setCollisionObject(null);
+                rayCallback.setClosestHitFraction(1f);
+                rayCallback.setRayFromWorld(proj.prevPosition);
+                rayCallback.setRayToWorld(transform.position);
+                world.rayTest(proj.prevPosition, transform.position, rayCallback);
+
+                if (rayCallback.hasHit()) {
+                    btCollisionObject hitObj = rayCallback.getCollisionObject();
+                    Entity hitEntity = (hitObj instanceof btRigidBody)
+                        ? bulletPhysicsSystem.getEntityForBody((btRigidBody) hitObj)
+                        : null;
+
+                    if (hitEntity != proj.owner) {
+                        float fraction = rayCallback.getClosestHitFraction();
+                        Vector3 hitPoint = new Vector3(proj.prevPosition)
+                            .lerp(transform.position, fraction);
+                        rayCallback.getHitNormalWorld(tempHitNormal);
+                        tempHitNormal.nor();
+
+                        HitRegion region = HitRegion.TORSO;
+                        if (hitEntity != null) {
+                            TransformComponent targetTransform = TRANSFORM_M.get(hitEntity);
+                            HitboxComponent hitbox = HITBOX_M.get(hitEntity);
+                            if (targetTransform != null) {
+                                float bodyHeight = hitbox != null ? hitbox.bodyHeight : 1.8f;
+                                float ratio = bodyHeight > 0f
+                                    ? MathUtils.clamp(
+                                        (hitPoint.y - targetTransform.position.y) / bodyHeight,
+                                        0f, 1f)
+                                    : 0.5f;
+                                if (hitbox != null) region = hitbox.getRegionForHeight(ratio);
+                                else if (ratio >= 0.85f) region = HitRegion.HEAD;
+                                else if (ratio >= 0.50f) region = HitRegion.TORSO;
+                                else if (ratio >= 0.25f) region = HitRegion.ARMS;
+                                else region = HitRegion.LEGS;
+                            }
+                        }
+
+                        eventBus.publish(new ProjectileHitEvent(
+                            proj.owner, hitEntity, hitPoint, new Vector3(tempHitNormal),
+                            proj.damage, proj.damageType, proj.areaOfEffect,
+                            proj.ammoTypeId, region
+                        ));
+                        toRemove.add(entity);
+                        return;
+                    }
+                }
+            }
+        }
+
         // --- Collision detection ---
         if (engine == null) return;
 
@@ -302,6 +387,22 @@ public class ProjectileSystem extends IteratingSystem {
                 }
             }
         }
+    }
+
+    private static void applySpread(Vector3 dir, float spreadDegrees) {
+        float spreadRad = spreadDegrees * MathUtils.degreesToRadians;
+        float angle = MathUtils.random(0f, MathUtils.PI2);
+        float magnitude = MathUtils.random(0f, spreadRad);
+        Vector3 perp = new Vector3();
+        if (Math.abs(dir.x) < 0.9f) {
+            perp.set(1f, 0f, 0f).crs(dir).nor();
+        } else {
+            perp.set(0f, 1f, 0f).crs(dir).nor();
+        }
+        Vector3 perp2 = new Vector3(dir).crs(perp).nor();
+        dir.mulAdd(perp,  MathUtils.cos(angle) * magnitude);
+        dir.mulAdd(perp2, MathUtils.sin(angle) * magnitude);
+        dir.nor();
     }
 
     /**

@@ -48,6 +48,7 @@ public class DebugHudSystem extends EntitySystem implements Disposable {
     private Label weaponLabel;
     private Label leanLabel;
     private Label promptLabel;
+    private Label terrainDebugLabel;
     private Table debugTable;
     private BitmapFont promptFont;
 
@@ -103,9 +104,11 @@ public class DebugHudSystem extends EntitySystem implements Disposable {
         debugTable.add(stateLabel).left().row();
         weaponLabel = new Label("Weapon: -", style);
         leanLabel = new Label("Lean: -", style);
+        terrainDebugLabel = new Label("Terrain: -", style);
         debugTable.add(staminaLabel).left().row();
         debugTable.add(weaponLabel).left().row();
         debugTable.add(leanLabel).left().row();
+        debugTable.add(terrainDebugLabel).left().row();
 
         stage.addActor(debugTable);
 
@@ -191,6 +194,10 @@ public class DebugHudSystem extends EntitySystem implements Disposable {
         }
 
         fpsLabel.setText("FPS: " + Gdx.graphics.getFramesPerSecond());
+    }
+
+    public void setTerrainDebug(String text) {
+        if (terrainDebugLabel != null) terrainDebugLabel.setText(text);
     }
 
     public void render(float delta) {

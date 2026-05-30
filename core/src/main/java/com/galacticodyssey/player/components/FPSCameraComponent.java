@@ -15,6 +15,10 @@ public class FPSCameraComponent implements Component, Snapshotable<FPSCameraSnap
     public float headBobPhase;
     public float pitchAngle;
     public float yawAngle;
+    /** Pitch / yaw after recoil is applied — written by CameraSystem, read by CombatInputSystem.
+     *  Bullets fire along this direction so they always track the rendered crosshair. */
+    public float effectivePitchAngle;
+    public float effectiveYawAngle;
     public float mouseSensitivity = 0.15f;
     public float landingDipAmount;
 

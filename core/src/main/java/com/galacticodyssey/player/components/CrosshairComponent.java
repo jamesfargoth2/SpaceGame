@@ -5,8 +5,8 @@ import com.badlogic.ashley.core.Component;
 public class CrosshairComponent implements Component {
     public float baseSize = 8f;
     public float currentBloom;
-    public float bloomPerShot = 2f;
-    public float bloomDecayRate = 5f;
+    public float bloomPerShot = 1f;
+    public float bloomDecayRate = 12.5f;
     public float hitMarkerTimer;
     public float hitMarkerDuration = 0.2f;
     public float killConfirmTimer;

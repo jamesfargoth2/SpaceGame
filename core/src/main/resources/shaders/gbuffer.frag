@@ -44,6 +44,11 @@ uniform vec2 u_tiling;
 uniform bool u_darkBackfaces;
 uniform vec3 u_cameraWorldPos;
 
+#ifdef TERRAIN_FADE
+// 0=fully transparent, 1=fully opaque. Drives screen-door dither for altitude fade.
+uniform float u_terrainFade;
+#endif
+
 layout(location = 0) out vec4 rt0_albedoMetallic;
 layout(location = 1) out vec4 rt1_normalRoughnessAO;
 layout(location = 2) out vec4 rt2_emissive;
@@ -100,6 +105,25 @@ void main() {
     if (u_darkBackfaces && !gl_FrontFacing) {
         albedo = albedo * 0.05;
     }
+
+    // Altitude-based screen-door fade for sphere terrain
+#ifdef TERRAIN_FADE
+    {
+        // Write gl_FragDepth before any discard so drivers that apply early stencil
+        // optimisations cannot write stencil=1 for fragments we subsequently discard
+        // (which would cause the deferred lighting pass to shade empty G-buffer pixels black).
+        gl_FragDepth = gl_FragCoord.z;
+        const float bayer[16] = float[16](
+             0.0,  8.0,  2.0, 10.0,
+            12.0,  4.0, 14.0,  6.0,
+             3.0, 11.0,  1.0,  9.0,
+            15.0,  7.0, 13.0,  5.0
+        );
+        int bx = int(mod(gl_FragCoord.x, 4.0));
+        int by = int(mod(gl_FragCoord.y, 4.0));
+        if (u_terrainFade < bayer[by * 4 + bx] / 16.0) discard;
+    }
+#endif
 
     // Pack into G-Buffer
     rt0_albedoMetallic = vec4(albedo, metallic);

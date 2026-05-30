@@ -249,6 +249,7 @@ public class GameWorld implements Disposable {
     private CombatDataRegistry combatDataRegistry;
     private EquipmentSystem equipmentSystem;
     private LootGenerationSystem lootGenerationSystem;
+    private ProjectileSystem projectileSystem;
     private ShipWeaponSystem shipWeaponSystem;
     private TurretTrackingSystem turretTrackingSystem;
     private ShipProjectileSystem shipProjectileSystem;
@@ -467,8 +468,10 @@ public class GameWorld implements Disposable {
         WeaponSystem weaponSystem = new WeaponSystem(eventBus);
         MeleeSystem meleeSystem = new MeleeSystem(eventBus, combatData);
         HitscanSystem hitscanSystem = new HitscanSystem(eventBus);
-        ProjectileSystem projectileSystem = new ProjectileSystem(eventBus);
+        projectileSystem = new ProjectileSystem(eventBus);
         projectileSystem.setWeaponDataRegistry(weaponData);
+        projectileSystem.setBulletPhysicsSystem(bulletPhysicsSystem);
+        disposables.add(projectileSystem);
         DamageSystem damageSystem = new DamageSystem(eventBus, combatData, weaponData);
         StatusEffectSystem statusEffectSystem = new StatusEffectSystem(eventBus, combatData);
         CombatAISystem combatAISystem = new CombatAISystem(eventBus);
@@ -928,7 +931,7 @@ public class GameWorld implements Disposable {
         equipStarterWeapons(player);
 
         bulletPhysicsSystem.getDynamicsWorld().addRigidBody(physics.body);
-        bulletPhysicsSystem.addManagedBody(physics.body);
+        bulletPhysicsSystem.addManagedBody(physics.body, player);
 
         engine.addEntity(player);
         disposables.add(() -> {
@@ -952,14 +955,19 @@ public class GameWorld implements Disposable {
         inventory.slots[0] = assaultRifle;
         inventory.activeSlotIndex = 0;
 
-        WeaponAssembly sidearm = WeaponAssembly.ranged(
+        WeaponAssembly smg = WeaponAssembly.ranged(
+            "smg_standard", "standard_barrel", "standard_round", null,
+            com.galacticodyssey.combat.CombatEnums.QualityTier.COMMON);
+        inventory.slots[1] = smg;
+
+        WeaponAssembly handgun = WeaponAssembly.ranged(
             "pistol_standard", "standard_barrel", "standard_round", null,
             com.galacticodyssey.combat.CombatEnums.QualityTier.COMMON);
-        inventory.slots[1] = sidearm;
+        inventory.slots[2] = handgun;
 
         WeaponAssembly melee = WeaponAssembly.melee("combat_blade",
             com.galacticodyssey.combat.CombatEnums.QualityTier.COMMON);
-        inventory.slots[2] = melee;
+        inventory.slots[3] = melee;
 
         if (weaponDataRegistry != null && weaponDataRegistry.getFrame("assault_rifle") != null) {
             WeaponStatsResolver.RangedStats stats =
@@ -1060,7 +1068,7 @@ public class GameWorld implements Disposable {
         entity.add(physics);
 
         bulletPhysicsSystem.getDynamicsWorld().addRigidBody(physics.body);
-        bulletPhysicsSystem.addManagedBody(physics.body);
+        bulletPhysicsSystem.addManagedBody(physics.body, entity);
 
         engine.addEntity(entity);
         disposables.add(() -> {

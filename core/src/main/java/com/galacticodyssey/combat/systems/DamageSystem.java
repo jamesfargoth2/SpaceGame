@@ -76,6 +76,7 @@ public class DamageSystem extends EntitySystem {
     }
 
     private void onProjectileHit(ProjectileHitEvent event) {
+        if (event.target == null) return; // world geometry hit — visual effect only, no entity to damage
         processDamage(event.target, event.shooter, event.hitRegion,
             event.damage, event.damageType, event.ammoTypeId);
     }

@@ -161,6 +161,12 @@ public class PlayerInputSystem extends IteratingSystem {
                 }
                 return true;
             }
+            if (keycode == Input.Keys.NUM_4) {
+                if (combatInputSystem != null) {
+                    combatInputSystem.setSwitchSlotInput(3);
+                }
+                return true;
+            }
             if (keycode == Input.Keys.T) {
                 targetLockPressed = true;
                 nextTargetPressed = true;

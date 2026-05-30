@@ -244,7 +244,7 @@ public class ShipHullGenerator {
         short noseCap = (short)(ringCount * vertsPerRing);
         for (int v = 0; v < vertsPerRing; v++) {
             int v2 = (v + 1) % vertsPerRing;
-            indices[ii++] = noseCap; indices[ii++] = (short)v2; indices[ii++] = (short)v;
+            indices[ii++] = noseCap; indices[ii++] = (short)v; indices[ii++] = (short)v2;
         }
 
         short tailCap  = (short)(ringCount * vertsPerRing + 1);
@@ -252,8 +252,8 @@ public class ShipHullGenerator {
         for (int v = 0; v < vertsPerRing; v++) {
             int v2 = (v + 1) % vertsPerRing;
             indices[ii++] = tailCap;
-            indices[ii++] = (short)(lastRingStart + v);
             indices[ii++] = (short)(lastRingStart + v2);
+            indices[ii++] = (short)(lastRingStart + v);
         }
         return indices;
     }
@@ -348,13 +348,12 @@ public class ShipHullGenerator {
                 short b = (short)(vertBase + (wp * 2 + s) * 8);
 
                 // Top face verts: b=RI, b+1=TLE, b+2=TTE, b+3=RTE
-                // Both triangles consistent regardless of side (backface culling is off for ship mesh)
                 indices[ii++] = b;         indices[ii++] = (short)(b+1); indices[ii++] = (short)(b+3);
                 indices[ii++] = (short)(b+1); indices[ii++] = (short)(b+2); indices[ii++] = (short)(b+3);
 
                 // Bottom face verts: b+4=RI, b+5=RTE, b+6=TTE, b+7=TLE
-                indices[ii++] = (short)(b+4); indices[ii++] = (short)(b+7); indices[ii++] = (short)(b+5);
-                indices[ii++] = (short)(b+7); indices[ii++] = (short)(b+6); indices[ii++] = (short)(b+5);
+                indices[ii++] = (short)(b+4); indices[ii++] = (short)(b+5); indices[ii++] = (short)(b+7);
+                indices[ii++] = (short)(b+7); indices[ii++] = (short)(b+5); indices[ii++] = (short)(b+6);
             }
         }
         return indices;
@@ -494,8 +493,8 @@ public class ShipHullGenerator {
             for (int v = 0; v < rvc; v++) {
                 int v2 = (v + 1) % rvc;
                 indices[ii++] = noseCap;
-                indices[ii++] = (short)(base + v2);
                 indices[ii++] = (short)(base + v);
+                indices[ii++] = (short)(base + v2);
             }
 
             // Tail fan cap (emissive)
@@ -504,8 +503,8 @@ public class ShipHullGenerator {
             for (int v = 0; v < rvc; v++) {
                 int v2 = (v + 1) % rvc;
                 indices[ii++] = tailCap;
-                indices[ii++] = (short)(lastRing + v);
                 indices[ii++] = (short)(lastRing + v2);
+                indices[ii++] = (short)(lastRing + v);
             }
         }
         return indices;

@@ -161,11 +161,12 @@ public class WeaponSwitchSystem extends IteratingSystem {
             rangedComp.projectileSpeed     = stats.projectileSpeed;
             rangedComp.ammoTypeId          = stats.ammoTypeId;
             rangedComp.grenadeTypeId       = stats.grenadeTypeId;
-            // Reset timers and ammo for the newly drawn weapon
+            // Reset timers, ammo, and heat for the newly drawn weapon
             rangedComp.currentAmmo         = stats.magSize;
             rangedComp.fireTimer           = 0f;
             rangedComp.reloading           = false;
             rangedComp.reloadTimer         = 0f;
+            rangedComp.currentHeatSpread   = 0f;
         }
     }
 }

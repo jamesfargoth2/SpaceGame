@@ -14,6 +14,12 @@ uniform sampler2D u_gravelTex;
 
 uniform float u_texScale;
 uniform bool u_darkBackfaces;
+uniform mat3 u_normalMatrix;
+
+#ifdef TERRAIN_FADE
+// 0=fully transparent, 1=fully opaque. Drives screen-door dither for altitude fade.
+uniform float u_terrainFade;
+#endif
 
 layout(location = 0) out vec4 rt0_albedoMetallic;
 layout(location = 1) out vec4 rt1_normalRoughnessAO;
@@ -144,11 +150,37 @@ void main() {
              + dot(triplanar(u_dirtTex,  v_worldPos + vec3(0,0,eps), blend, s*0.7), vec3(0.3,0.6,0.1)) * wD
              + dot(triplanar(u_rockTex,  v_worldPos + vec3(0,0,eps), blend, s*0.5), vec3(0.3,0.6,0.1)) * wR;
 
-    vec3 perturbedNormal = normalize(v_viewNormal + vec3((hC - hR) * 0.4, 0.0, (hC - hU) * 0.4));
+    // Build bump in world-space tangent frame so perturbation direction is camera-independent.
+    // Mixing view-space normal with world-space offsets caused the bump to "swim" as the camera
+    // moved, producing SSAO hemisphere mismatches and popping dark patches at distance.
+    vec3 worldN = normalize(v_worldNormal);
+    vec3 up = abs(worldN.y) < 0.99 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
+    vec3 worldRight   = normalize(cross(up, worldN));
+    vec3 worldForward = cross(worldN, worldRight);
+    vec3 bumpedWorld = normalize(worldN + worldRight * (hC - hR) * 0.4 + worldForward * (hC - hU) * 0.4);
+    vec3 perturbedNormal = normalize(u_normalMatrix * bumpedWorld);
 
     if (u_darkBackfaces && !gl_FrontFacing) {
         albedo *= 0.05;
     }
+
+#ifdef TERRAIN_FADE
+    {
+        // Write gl_FragDepth before any discard so drivers that apply early stencil
+        // optimisations cannot write stencil=1 for fragments we subsequently discard
+        // (which would cause the deferred lighting pass to shade empty G-buffer pixels black).
+        gl_FragDepth = gl_FragCoord.z;
+        const float bayer[16] = float[16](
+             0.0,  8.0,  2.0, 10.0,
+            12.0,  4.0, 14.0,  6.0,
+             3.0, 11.0,  1.0,  9.0,
+            15.0,  7.0, 13.0,  5.0
+        );
+        int bx = int(mod(gl_FragCoord.x, 4.0));
+        int by = int(mod(gl_FragCoord.y, 4.0));
+        if (u_terrainFade < bayer[by * 4 + bx] / 16.0) discard;
+    }
+#endif
 
     rt0_albedoMetallic    = vec4(albedo, 0.0);
     rt1_normalRoughnessAO = vec4(octEncode(perturbedNormal), roughness, ao);

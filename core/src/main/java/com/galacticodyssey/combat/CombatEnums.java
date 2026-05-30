@@ -64,7 +64,8 @@ public final class CombatEnums {
     public enum WeaponSlot {
         PRIMARY(0, 0.6f),
         SECONDARY(1, 0.4f),
-        MELEE(2, 0.2f);
+        SIDEARM(2, 0.35f),
+        MELEE(3, 0.2f);
 
         public final int index;
         public final float switchTime;

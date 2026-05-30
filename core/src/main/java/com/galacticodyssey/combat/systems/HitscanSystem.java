@@ -103,9 +103,9 @@ public class HitscanSystem extends EntitySystem {
 
         Vector3 origin = event.muzzlePosition;
 
-        // 2. Apply weapon spread: small random offset perpendicular to aim direction
+        // 2. Apply weapon spread: static base + accumulated heat from sustained fire
         rayDir.set(event.aimDirection).nor();
-        applySpread(rayDir, weaponComp.spread);
+        applySpread(rayDir, weaponComp.spread + weaponComp.currentHeatSpread);
 
         // 3. (Recoil published by WeaponSystem.fireShot for all weapon types)
 

@@ -22,7 +22,7 @@ public class EquipmentSystem extends EntitySystem {
     private static final Map<EquipmentSlot, Integer> WEAPON_SLOT_MAP = Map.of(
         EquipmentSlot.PRIMARY_WEAPON, 0,
         EquipmentSlot.SECONDARY_WEAPON, 1,
-        EquipmentSlot.MELEE_WEAPON, 2
+        EquipmentSlot.MELEE_WEAPON, 3
     );
 
     private static final Map<EquipmentSlot, HitRegion> ARMOR_SLOT_MAP = Map.of(

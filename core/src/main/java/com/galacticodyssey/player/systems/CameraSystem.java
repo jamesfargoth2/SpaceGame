@@ -156,6 +156,10 @@ public class CameraSystem extends IteratingSystem {
         float effectivePitch = cam.pitchAngle + recoilPitch;
         float effectiveYaw = cam.yawAngle + recoilYaw;
 
+        // Persist effective angles so CombatInputSystem can aim along the rendered crosshair.
+        cam.effectivePitchAngle = effectivePitch;
+        cam.effectiveYawAngle   = effectiveYaw;
+
         float pitchRad = effectivePitch * MathUtils.degreesToRadians;
         float yawRad = effectiveYaw * MathUtils.degreesToRadians;
 

@@ -7,7 +7,7 @@ import com.galacticodyssey.persistence.Snapshotable;
 import com.galacticodyssey.persistence.snapshots.WeaponInventorySnapshot;
 
 public class WeaponInventoryComponent implements Component, Snapshotable<WeaponInventorySnapshot> {
-    public final WeaponAssembly[] slots = new WeaponAssembly[3];
+    public final WeaponAssembly[] slots = new WeaponAssembly[4];
     public int activeSlotIndex = 0;
     public int pendingSlotIndex = 0;
     public float switchTimer = 0f;

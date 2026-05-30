@@ -25,6 +25,8 @@ import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.galacticodyssey.combat.components.ProjectileComponent;
+import com.galacticodyssey.combat.events.ProjectileHitEvent;
 import com.galacticodyssey.combat.events.WeaponFiredEvent;
 import com.badlogic.gdx.math.Interpolation;
 import com.badlogic.gdx.math.Matrix3;
@@ -114,6 +116,7 @@ import com.galacticodyssey.fauna.components.CreatureRenderComponent;
 import com.galacticodyssey.fauna.geometry.ProceduralPartProvider;
 import com.galacticodyssey.fauna.geometry.AuthoredPartProvider;
 
+import com.galacticodyssey.player.components.CrosshairComponent;
 import java.util.Random;
 
 public class GameScreen implements Screen {
@@ -126,6 +129,13 @@ public class GameScreen implements Screen {
     private static final float TERRAIN_WIDTH = 5000f;
     private static final float TERRAIN_DEPTH = 5000f;
     private static final long TERRAIN_SEED = 42L;
+    // Sphere terrain: activates when flat terrain has fully faded, then fades IN over 1000 m.
+    // Fades OUT again at extreme altitude (fractions of planet radius above surface).
+    private static final float TERRAIN_FADE_START_FRAC = 0.15f; // fade-out start ~7 500 m (50 km planet)
+    private static final float TERRAIN_FADE_END_FRAC   = 0.30f; // fade-out end  ~15 000 m
+    // Flat terrain fades out between these absolute altitudes above surface (metres).
+    private static final float FLAT_TERRAIN_FADE_START_Y = 1000f;
+    private static final float FLAT_TERRAIN_FADE_END_Y   = 4000f;
     private static final float PAUSE_WORLD_WIDTH = 1280f;
     private static final float PAUSE_WORLD_HEIGHT = 720f;
 
@@ -193,6 +203,18 @@ public class GameScreen implements Screen {
     private ShapeRenderer debugRenderer;
     private final Vector3 barrelTipWorld = new Vector3();
     private float muzzleFlashTimer;
+
+    private static final class HitEffect {
+        final Vector3 position;
+        final Vector3 normal;
+        float age;
+        static final float LIFETIME = 0.22f;
+        HitEffect(Vector3 pos, Vector3 norm) {
+            position = new Vector3(pos);
+            normal = new Vector3(norm);
+        }
+    }
+    private final Array<HitEffect> hitEffects = new Array<>();
     private Texture particleTexture;
     private static final Vector3 SUN_COLOR = new Vector3(1f, 0.95f, 0.9f);
     // Sky-scatter ambient: enough to show unlit faces as their actual colour rather than black.
@@ -360,6 +382,10 @@ public class GameScreen implements Screen {
         debugRenderer = new ShapeRenderer();
         gameWorld.getEventBus().subscribe(WeaponFiredEvent.class, e -> {
             muzzleFlashTimer = MUZZLE_FLASH_DURATION;
+        });
+        gameWorld.getEventBus().subscribe(ProjectileHitEvent.class, e -> {
+            Vector3 norm = e.hitNormal != null ? e.hitNormal : new Vector3(0f, 1f, 0f);
+            hitEffects.add(new HitEffect(e.hitPoint, norm));
         });
 
         // Vehicle bay rendering hooks
@@ -670,6 +696,46 @@ public class GameScreen implements Screen {
         camera.update();
     }
 
+    /** Center dot plus an expanding bloom ring driven by sustained-fire heat spread. */
+    private void renderCrosshair() {
+        if (debugRenderer == null) return;
+        float cx = Gdx.graphics.getWidth() * 0.5f;
+        float cy = Gdx.graphics.getHeight() * 0.5f;
+
+        float bloom = 0f;
+        if (gameWorld != null) {
+            var players = gameWorld.getEngine().getEntitiesFor(
+                Family.all(PlayerTagComponent.class, CrosshairComponent.class,
+                           RangedWeaponComponent.class).get());
+            if (players.size() > 0) {
+                Entity player = players.first();
+                CrosshairComponent ch = player.getComponent(CrosshairComponent.class);
+                RangedWeaponComponent weapon = player.getComponent(RangedWeaponComponent.class);
+                if (ch != null && weapon != null) {
+                    bloom = ch.currentBloom + weapon.spread + weapon.currentHeatSpread;
+                }
+            }
+        }
+
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+        debugRenderer.setProjectionMatrix(
+            new Matrix4().setToOrtho2D(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()));
+        debugRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        debugRenderer.setColor(1f, 1f, 1f, 1f);
+        debugRenderer.circle(cx, cy, 3f, 12);
+        debugRenderer.end();
+
+        if (bloom > 0.5f) {
+            debugRenderer.begin(ShapeRenderer.ShapeType.Line);
+            debugRenderer.setColor(1f, 1f, 1f, 0.65f);
+            debugRenderer.circle(cx, cy, 6f + bloom * 2f, 24);
+            debugRenderer.end();
+        }
+
+        Gdx.gl.glDisable(GL20.GL_BLEND);
+    }
+
     /** Screen-space muzzle flash drawn after the FP weapon so it always appears in front of the gun. */
     private void renderMuzzleFlash(float delta) {
         if (debugRenderer == null || muzzleFlashTimer <= 0) return;
@@ -690,6 +756,110 @@ public class GameScreen implements Screen {
         debugRenderer.setColor(1f, 0.95f, 0.7f, t * 0.85f);
         debugRenderer.circle(screenPos.x, screenPos.y, 18f);
         debugRenderer.end();
+        Gdx.gl.glDisable(GL20.GL_BLEND);
+    }
+
+    /** Draws a short tracer line for every in-flight bullet projectile. */
+    private void renderProjectiles() {
+        if (gameWorld == null) return;
+        com.badlogic.ashley.utils.ImmutableArray<com.badlogic.ashley.core.Entity> projectiles =
+            gameWorld.getEngine().getEntitiesFor(
+                Family.all(ProjectileComponent.class, com.galacticodyssey.core.components.TransformComponent.class).get());
+        if (projectiles.size() == 0) return;
+
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE);
+        Gdx.gl.glDisable(GL20.GL_DEPTH_TEST);
+
+        debugRenderer.setProjectionMatrix(camera.combined);
+        debugRenderer.begin(ShapeRenderer.ShapeType.Line);
+        debugRenderer.setColor(1f, 0.85f, 0.5f, 0.9f);
+
+        for (int i = 0; i < projectiles.size(); i++) {
+            com.badlogic.ashley.core.Entity e = projectiles.get(i);
+            com.galacticodyssey.core.components.TransformComponent t =
+                e.getComponent(com.galacticodyssey.core.components.TransformComponent.class);
+            ProjectileComponent p = e.getComponent(ProjectileComponent.class);
+            if (t == null || p == null) continue;
+            // Draw streak from prev position to current position
+            debugRenderer.line(p.prevPosition, t.position);
+        }
+
+        debugRenderer.end();
+        Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
+        Gdx.gl.glDisable(GL20.GL_BLEND);
+    }
+
+    /** Draws spark lines and a screen-space flash at each recent bullet impact point. */
+    private void renderHitEffects(float delta) {
+        for (int i = hitEffects.size - 1; i >= 0; i--) {
+            hitEffects.get(i).age += delta;
+            if (hitEffects.get(i).age >= HitEffect.LIFETIME) hitEffects.removeIndex(i);
+        }
+        if (hitEffects.size == 0) return;
+
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE);
+        Gdx.gl.glDisable(GL20.GL_DEPTH_TEST);
+
+        // --- World-space sparks ---
+        Vector3 tangent = new Vector3();
+        Vector3 bitangent = new Vector3();
+        Vector3 sparkEnd = new Vector3();
+
+        debugRenderer.setProjectionMatrix(camera.combined);
+        debugRenderer.begin(ShapeRenderer.ShapeType.Line);
+
+        for (int i = 0; i < hitEffects.size; i++) {
+            HitEffect fx = hitEffects.get(i);
+            float t = 1f - fx.age / HitEffect.LIFETIME;
+            float sparkLen = t * 0.35f;
+
+            // Build tangent frame on the hit surface
+            Vector3 ref = Math.abs(fx.normal.y) > 0.85f ? Vector3.Z : Vector3.Y;
+            tangent.set(ref).crs(fx.normal).nor();
+            bitangent.set(fx.normal).crs(tangent).nor();
+
+            // 8 radial sparks in the surface plane
+            debugRenderer.setColor(1f, 0.72f, 0.2f, t * 0.85f);
+            for (int s = 0; s < 8; s++) {
+                float angle = (float)(s * Math.PI * 0.25);
+                float cs = (float) Math.cos(angle);
+                float sn = (float) Math.sin(angle);
+                sparkEnd.set(fx.position)
+                    .mulAdd(tangent, cs * sparkLen)
+                    .mulAdd(bitangent, sn * sparkLen);
+                debugRenderer.line(fx.position, sparkEnd);
+            }
+
+            // 2 sparks along the surface normal (ricochet / blowback)
+            debugRenderer.setColor(1f, 0.9f, 0.6f, t * 0.6f);
+            sparkEnd.set(fx.position).mulAdd(fx.normal, sparkLen * 0.8f);
+            debugRenderer.line(fx.position, sparkEnd);
+        }
+
+        debugRenderer.end();
+
+        // --- Screen-space impact flash ---
+        debugRenderer.setProjectionMatrix(
+            new Matrix4().setToOrtho2D(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()));
+        debugRenderer.begin(ShapeRenderer.ShapeType.Filled);
+
+        Vector3 screenPos = new Vector3();
+        for (int i = 0; i < hitEffects.size; i++) {
+            HitEffect fx = hitEffects.get(i);
+            float t = 1f - fx.age / HitEffect.LIFETIME;
+            camera.project(screenPos.set(fx.position));
+            if (screenPos.z <= 0f || screenPos.z >= 1f) continue; // behind camera or clipped
+            float cx = screenPos.x, cy = screenPos.y;
+            debugRenderer.setColor(1f, 0.65f, 0.15f, t * 0.4f);
+            debugRenderer.circle(cx, cy, 14f + 10f * (1f - t), 12);
+            debugRenderer.setColor(1f, 0.92f, 0.75f, t * 0.75f);
+            debugRenderer.circle(cx, cy, 5f, 8);
+        }
+
+        debugRenderer.end();
+        Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
         Gdx.gl.glDisable(GL20.GL_BLEND);
     }
 
@@ -1460,10 +1630,14 @@ public class GameScreen implements Screen {
             camera,
             () -> {
                 renderTerrain();
-                if (grassRenderer != null) grassRenderer.render(camera, gameTime);
+                // Vegetation is ground-level detail: cull when terrain itself starts to fade.
+                float vegAltitude = camera.position.y - 2f;
+                if (vegAltitude < FLAT_TERRAIN_FADE_START_Y) {
+                    if (grassRenderer != null) grassRenderer.render(camera, gameTime);
+                    renderWorldObjects();
+                    renderAlienPlants();
+                }
                 renderBoxes();
-                renderWorldObjects();
-                renderAlienPlants();
                 renderShips();
                 renderCreatures();
             },
@@ -1487,6 +1661,9 @@ public class GameScreen implements Screen {
 
         // Screen-space effects (after deferred pipeline outputs to screen)
         renderMuzzleFlash(delta);
+        renderProjectiles();
+        renderHitEffects(delta);
+        renderCrosshair();
 
         // HUD / UI (renders to screen directly)
         gameWorld.getCockpitHUDSystem().render(delta);
@@ -1531,12 +1708,13 @@ public class GameScreen implements Screen {
             (gameWorld != null) ? gameWorld.getPlanetTerrainSystem() : null;
         float sphereRadius = (pts != null) ? pts.getPlanetRadius() : 0f;
 
-        // Sphere terrain renders at orbital altitude only (> 100 m above the flat terrain surface).
-        // At ground level the flat terrain mesh handles both rendering and physics.
+        // Sphere terrain activates only after the flat terrain has fully faded out, then fades IN
+        // over 1000 m so there is never a hard pop. It fades OUT again at extreme (orbital) altitude.
         boolean useSphereTerrain = false;
+        float terrainFade = 1f;
         if (sphereRadius > 0f) {
             float altitudeAboveSurface = camera.position.y - 2f;
-            useSphereTerrain = altitudeAboveSurface > 100f;
+            useSphereTerrain = altitudeAboveSurface > FLAT_TERRAIN_FADE_END_Y;
             if (useSphereTerrain) {
                 float requiredFar = sphereRadius * 3f;
                 if (camera.far < requiredFar) {
@@ -1544,76 +1722,99 @@ public class GameScreen implements Screen {
                     camera.update();
                 }
                 pts.setCameraPositionWorld(camera.position);
+                // Fade IN: 0→1 over the 1000 m window above the activation threshold.
+                float fadeIn = Math.min(1f, (altitudeAboveSurface - FLAT_TERRAIN_FADE_END_Y) / 1000f);
+                // Fade OUT at extreme altitude (orbital / beyond-atmosphere view).
+                float distFromCenter = camera.position.dst(pts.getPlanetCenter());
+                float altAboveSphere = distFromCenter - sphereRadius;
+                float fadeOutFrac = (altAboveSphere - sphereRadius * TERRAIN_FADE_START_FRAC)
+                                  / (sphereRadius * (TERRAIN_FADE_END_FRAC - TERRAIN_FADE_START_FRAC));
+                float fadeOut = 1f - Math.min(1f, Math.max(0f, fadeOutFrac));
+                terrainFade = Math.min(fadeIn, fadeOut);
             }
         }
 
-        ShaderProgram shader = deferredRenderer.getShaderCache()
-            .get("gbuffer.vert", "gbuffer.frag", "HAS_VERTEX_COLOR");
-        shader.bind();
-        shader.setUniformMatrix("u_projViewTrans", camera.combined);
-
-        tmpMat4.idt();
-        shader.setUniformMatrix("u_worldTrans", tmpMat4);
-
-        tmpMat4.set(camera.view);
-        tmpNormalMat3.set(tmpMat4).inv().transpose();
-        shader.setUniformMatrix("u_normalMatrix", tmpNormalMat3);
-
-        shader.setUniformf("u_albedoTint", 1f, 1f, 1f, 1f);
-        shader.setUniformf("u_metallicScale", 0f);
-        shader.setUniformf("u_roughnessScale", 0.85f);
-        shader.setUniformf("u_emissiveIntensity", 0f);
-        shader.setUniformf("u_tiling", 1f, 1f);
+        // --- Terrain fade debug (remove when tuning is done) ---
+        {
+            float camY = camera.position.y;
+            float flatAlt = camY - 2f;
+            float flatFrac = Math.min(1f, Math.max(0f,
+                (flatAlt - FLAT_TERRAIN_FADE_START_Y) / (FLAT_TERRAIN_FADE_END_Y - FLAT_TERRAIN_FADE_START_Y)));
+            float flatFade = 1f - flatFrac;
+            String dbg = String.format(
+                "camY=%.1f flatAlt=%.1f flatFade=%.2f | sphereR=%.0f useSphereTerrain=%b sphereFade=%.2f | vegCull=%b",
+                camY, flatAlt, flatFade, sphereRadius, useSphereTerrain, terrainFade,
+                (camY - 2f) >= FLAT_TERRAIN_FADE_START_Y);
+            if (gameWorld != null) gameWorld.getDebugHudSystem().setTerrainDebug(dbg);
+        }
 
         if (useSphereTerrain) {
-            // Sphere-terrain chunks are in planet-local space; translate by planet centre.
-            com.badlogic.gdx.math.Vector3 pc = pts.getPlanetCenter();
-            tmpMat4.setToTranslation(pc);
-            shader.setUniformMatrix("u_worldTrans", tmpMat4);
-            // Normal matrix: rotation/scale only (no translation effect on normals).
-            tmpMat4.set(camera.view);
-            tmpNormalMat3.set(tmpMat4).inv().transpose();
-            shader.setUniformMatrix("u_normalMatrix", tmpNormalMat3);
+            if (terrainFade > 0f) {
+                ShaderProgram shader = deferredRenderer.getShaderCache()
+                    .get("gbuffer.vert", "gbuffer.frag", "HAS_VERTEX_COLOR", "TERRAIN_FADE");
+                shader.bind();
+                shader.setUniformMatrix("u_projViewTrans", camera.combined);
+                shader.setUniformf("u_albedoTint", 1f, 1f, 1f, 1f);
+                shader.setUniformf("u_metallicScale", 0f);
+                shader.setUniformf("u_roughnessScale", 0.85f);
+                shader.setUniformf("u_emissiveIntensity", 0f);
+                shader.setUniformf("u_tiling", 1f, 1f);
+                shader.setUniformf("u_terrainFade", terrainFade);
 
-            for (com.galacticodyssey.planet.terrain.TerrainChunk chunk : pts.getVisibleLeaves()) {
-                if (chunk.mesh != null) {
-                    chunk.mesh.render(shader, GL20.GL_TRIANGLES);
+                // Sphere-terrain chunks are in planet-local space; translate by planet centre.
+                com.badlogic.gdx.math.Vector3 pc = pts.getPlanetCenter();
+                tmpMat4.setToTranslation(pc);
+                shader.setUniformMatrix("u_worldTrans", tmpMat4);
+                // Normal matrix: rotation/scale only (no translation effect on normals).
+                tmpMat4.set(camera.view);
+                tmpNormalMat3.set(tmpMat4).inv().transpose();
+                shader.setUniformMatrix("u_normalMatrix", tmpNormalMat3);
+
+                for (com.galacticodyssey.planet.terrain.TerrainChunk chunk : pts.getVisibleLeaves()) {
+                    if (chunk.mesh != null) {
+                        chunk.mesh.render(shader, GL20.GL_TRIANGLES);
+                    }
                 }
             }
-
-            // Restore identity world transform for subsequent passes.
-            tmpMat4.idt();
-            shader.setUniformMatrix("u_worldTrans", tmpMat4);
-            tmpMat4.set(camera.view);
-            tmpNormalMat3.set(tmpMat4).inv().transpose();
-            shader.setUniformMatrix("u_normalMatrix", tmpNormalMat3);
+            // terrainFade == 0: fully transparent — skip GL work; LOD has merged to coarse chunks anyway.
         } else {
-            debugTerrainPenetration();
-            ShaderProgram tShader = deferredRenderer.getShaderCache()
-                .get("gbuffer_terrain.vert", "gbuffer_terrain.frag");
-            tShader.bind();
-            tShader.setUniformMatrix("u_projViewTrans", camera.combined);
-            tmpMat4.idt();
-            tShader.setUniformMatrix("u_worldTrans", tmpMat4);
-            tmpMat4.set(camera.view);
-            tmpNormalMat3.set(tmpMat4).inv().transpose();
-            tShader.setUniformMatrix("u_normalMatrix", tmpNormalMat3);
-            tShader.setUniformf("u_texScale", 0.15f);
-            tShader.setUniformi("u_darkBackfaces", 0);
+            // Flat terrain fades out with altitude so the rectangular mesh edge never pops
+            // visibly from above (whether or not sphere terrain is loaded).
+            float flatAltitude = camera.position.y - 2f;
+            float flatFadeFrac = (flatAltitude - FLAT_TERRAIN_FADE_START_Y)
+                               / (FLAT_TERRAIN_FADE_END_Y - FLAT_TERRAIN_FADE_START_Y);
+            float flatTerrainFade = 1f - Math.min(1f, Math.max(0f, flatFadeFrac));
 
-            if (terrainGrassTex != null) {
-                terrainGrassTex.bind(0);
-                tShader.setUniformi("u_grassTex", 0);
-                terrainDirtTex.bind(1);
-                tShader.setUniformi("u_dirtTex", 1);
-                terrainRockTex.bind(2);
-                tShader.setUniformi("u_rockTex", 2);
-                terrainGravelTex.bind(3);
-                tShader.setUniformi("u_gravelTex", 3);
+            if (flatTerrainFade > 0f) {
+                debugTerrainPenetration();
+                ShaderProgram tShader = deferredRenderer.getShaderCache()
+                    .get("gbuffer_terrain.vert", "gbuffer_terrain.frag", "TERRAIN_FADE");
+                tShader.bind();
+                tShader.setUniformMatrix("u_projViewTrans", camera.combined);
+                tmpMat4.idt();
+                tShader.setUniformMatrix("u_worldTrans", tmpMat4);
+                tmpMat4.set(camera.view);
+                tmpNormalMat3.set(tmpMat4).inv().transpose();
+                tShader.setUniformMatrix("u_normalMatrix", tmpNormalMat3);
+                tShader.setUniformf("u_texScale", 0.15f);
+                tShader.setUniformi("u_darkBackfaces", 0);
+                tShader.setUniformf("u_terrainFade", flatTerrainFade);
+
+                if (terrainGrassTex != null) {
+                    terrainGrassTex.bind(0);
+                    tShader.setUniformi("u_grassTex", 0);
+                    terrainDirtTex.bind(1);
+                    tShader.setUniformi("u_dirtTex", 1);
+                    terrainRockTex.bind(2);
+                    tShader.setUniformi("u_rockTex", 2);
+                    terrainGravelTex.bind(3);
+                    tShader.setUniformi("u_gravelTex", 3);
+                }
+
+                terrainMesh.render(tShader, GL20.GL_TRIANGLES);
+                Gdx.gl.glActiveTexture(GL20.GL_TEXTURE0);
             }
 
-            terrainMesh.render(tShader, GL20.GL_TRIANGLES);
-            Gdx.gl.glActiveTexture(GL20.GL_TEXTURE0);
             if (camera.far > 5000f) {
                 camera.far = 5000f;
                 camera.update();

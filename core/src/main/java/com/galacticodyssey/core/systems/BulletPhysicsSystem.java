@@ -1,5 +1,6 @@
 package com.galacticodyssey.core.systems;
 
+import com.badlogic.ashley.core.Entity;
 import com.badlogic.ashley.core.EntitySystem;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
@@ -10,6 +11,9 @@ import com.badlogic.gdx.utils.Disposable;
 import com.galacticodyssey.core.EventBus;
 import com.galacticodyssey.core.events.OriginRebasedEvent;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class BulletPhysicsSystem extends EntitySystem implements Disposable {
 
     private static final float FIXED_TIMESTEP = 1f / 60f;
@@ -17,6 +21,7 @@ public class BulletPhysicsSystem extends EntitySystem implements Disposable {
 
     private final EventBus eventBus;
     private final Array<btRigidBody> managedBodies = new Array<>();
+    private final Map<btRigidBody, Entity> bodyEntityMap = new HashMap<>();
     private final EventBus.EventListener<OriginRebasedEvent> rebaseListener = this::onOriginRebased;
 
     private btCollisionConfiguration collisionConfig;
@@ -64,12 +69,25 @@ public class BulletPhysicsSystem extends EntitySystem implements Disposable {
         }
     }
 
+    /** Tracks a body for origin rebasing; no entity association (terrain, world geometry). */
     public void addManagedBody(btRigidBody body) {
+        addManagedBody(body, null);
+    }
+
+    /** Tracks a body for origin rebasing and maps it back to its owning entity for raycast hits. */
+    public void addManagedBody(btRigidBody body, Entity owner) {
         managedBodies.add(body);
+        if (owner != null) bodyEntityMap.put(body, owner);
     }
 
     public void removeManagedBody(btRigidBody body) {
         managedBodies.removeValue(body, true);
+        bodyEntityMap.remove(body);
+    }
+
+    /** Returns the entity that owns {@code body}, or null for world geometry. */
+    public Entity getEntityForBody(btRigidBody body) {
+        return bodyEntityMap.get(body);
     }
 
     public btDiscreteDynamicsWorld getDynamicsWorld() {
