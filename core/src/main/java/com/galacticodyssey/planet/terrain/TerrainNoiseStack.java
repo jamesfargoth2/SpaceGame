@@ -84,6 +84,49 @@ public final class TerrainNoiseStack {
             height += fine * amplitude * 0.02f;
         }
 
+        // SP2: progressive high-frequency octaves so deep chunks carry real meter-scale
+        // relief instead of re-tessellating a smooth surface. Each step roughly doubles
+        // frequency and halves contribution; amplitudes stay well inside the height
+        // envelope so slopes remain walkable.
+        if (lod >= 7) {
+            float n = detailNoise.fbm(dir.x * 512f, dir.y * 512f, dir.z * 512f, 3, 0.5f, 2.0f);
+            height += n * amplitude * 0.010f;
+        }
+        if (lod >= 9) {
+            float n = detailNoise.fbm(dir.x * 1024f, dir.y * 1024f, dir.z * 1024f, 3, 0.5f, 2.0f);
+            height += n * amplitude * 0.005f;
+        }
+        if (lod >= 11) {
+            float n = detailNoise.fbm(dir.x * 2048f, dir.y * 2048f, dir.z * 2048f, 2, 0.5f, 2.0f);
+            height += n * amplitude * 0.0025f;
+        }
+        if (lod >= 13) {
+            float n = detailNoise.fbm(dir.x * 4096f, dir.y * 4096f, dir.z * 4096f, 2, 0.5f, 2.0f);
+            height += n * amplitude * 0.0012f;
+        }
+        // SP2 (Task 11 tuning): extend the geometric octave series down toward the depth-14
+        // mesh resolution (~19 m vertex spacing). On a 6371 km planet, unit-sphere frequency f
+        // gives surface wavelength ~R/f, so f=4096→~1.5 km (too coarse to see when walking) and
+        // f=65536→~97 m (resolved by the depth-14 mesh, above its ~38 m Nyquist limit). Keeping
+        // the freq×2 / amplitude×0.5 ratio holds each octave's slope constant (~walkable), so
+        // this adds self-similar walkable relief without cliffs. Gated to the deepest chunks only.
+        if (lod >= 12) {
+            float n = detailNoise.fbm(dir.x * 8192f, dir.y * 8192f, dir.z * 8192f, 2, 0.5f, 2.0f);
+            height += n * amplitude * 0.0006f;
+        }
+        if (lod >= 13) {
+            float n = detailNoise.fbm(dir.x * 16384f, dir.y * 16384f, dir.z * 16384f, 2, 0.5f, 2.0f);
+            height += n * amplitude * 0.0003f;
+        }
+        if (lod >= 13) {
+            float n = detailNoise.fbm(dir.x * 32768f, dir.y * 32768f, dir.z * 32768f, 2, 0.5f, 2.0f);
+            height += n * amplitude * 0.00015f;
+        }
+        if (lod >= 14) {
+            float n = detailNoise.fbm(dir.x * 65536f, dir.y * 65536f, dir.z * 65536f, 2, 0.5f, 2.0f);
+            height += n * amplitude * 0.000075f;
+        }
+
         Sample s = new Sample();
         s.height = height;
         s.biome = biome;

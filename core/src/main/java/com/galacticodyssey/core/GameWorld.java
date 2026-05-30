@@ -1114,10 +1114,12 @@ public class GameWorld implements Disposable {
             saveCoordinator.update(delta);
         }
 
-        if (planetTerrainSystem == null || planetTerrainSystem.getRadiusKm() <= 0) {
-            Entity player = engine.getEntitiesFor(
-                com.badlogic.ashley.core.Family.all(PlayerTagComponent.class, TransformComponent.class).get()).first();
-            TransformComponent t = player.getComponent(TransformComponent.class);
+        // SP2: floating-origin rebase must run while walking on a planet too, or local
+        // coordinates grow unbounded as the player crosses the globe.
+        com.badlogic.ashley.utils.ImmutableArray<Entity> players = engine.getEntitiesFor(
+            com.badlogic.ashley.core.Family.all(PlayerTagComponent.class, TransformComponent.class).get());
+        if (players.size() > 0) {
+            TransformComponent t = players.first().getComponent(TransformComponent.class);
             coordinateManager.checkRebase(t.position);
         }
     }
@@ -1181,6 +1183,20 @@ public class GameWorld implements Disposable {
         com.badlogic.gdx.math.Vector3 centerLocal = planetTerrainSystem.getPlanetCenterLocal(); // shared read-only; (0,-radiusKm*1000,0)
         radialGravitySystem.setPlanetCenterLocal(centerLocal);
         playerMovementSystem.setPlanetCenter(centerLocal);
+    }
+
+    /**
+     * Spawn the player capsule on the sphere surface along {@code unitDir} from the planet centre.
+     * Pre-warms terrain under the spawn so collision exists at frame 1. Returns the local spawn point.
+     */
+    public Vector3 spawnPlayerOnSphere(com.badlogic.gdx.math.Vector3 unitDir, float eyeOffsetM) {
+        planetTerrainSystem.prewarmAround(unitDir);
+        com.galacticodyssey.core.coords.LocalCoordsM surface = planetTerrainSystem.surfacePointLocal(unitDir);
+        Vector3 up = com.galacticodyssey.core.coords.CoordConvert.surfaceUpLocal(
+            new com.galacticodyssey.core.coords.PlanetCoordsKM(unitDir.x, unitDir.y, unitDir.z));
+        Vector3 pos = surface.toVector3().mulAdd(up, eyeOffsetM);
+        createPlayerEntity(pos.x, pos.y, pos.z);
+        return pos;
     }
 
     /** Wire up the audio system. Call after GameWorld construction, before the first update(). */
