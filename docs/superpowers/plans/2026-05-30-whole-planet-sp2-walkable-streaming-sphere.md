@@ -577,6 +577,8 @@ git commit -m "feat(terrain): async TerrainStreamer worker pool for chunk genera
 
 Replace the inline `generateMesh` path with: enqueue on demand, drain results on the main thread (GL upload + `addRigidBody`), discard stale-token results, and gate collision to a bounded shell.
 
+> **Keystone fix discovered during implementation (LOD split metric).** `TerrainChunk.shouldSplit/shouldMerge` originally used distance from the camera to the chunk **centroid**. On a cube-sphere, a face-quadrant's centroid is pulled ~45° toward the equator, so a camera standing on the pole is ~3859 km from the under-camera cell's centroid and `screenSize = arc/dist` never exceeds `SPLIT_THRESHOLD` — the quadtree stalls at depth 1, producing no walkable terrain, no deep leaves, and zero collision. **Fix:** make `shouldSplit/shouldMerge` measure distance to the **nearest point of the chunk** (min distance over the chunk's four corner directions + centre, each projected to the sphere at `radiusKm`), so the cell under the camera shrinks its distance toward 0 and subdivides to `MAX_DEPTH`. This is a `TerrainChunk` change (Task 2 scope) but was found here because it blocks Task 5's verification; it ships as its own commit alongside Task 5. Consequence: the old `TerrainChunkCollisionTest` assertions ("every visible leaf has a collision body") are incompatible with the new bounded-shell collision gate and are adapted to assert that `wantsCollision` leaves get bodies (bounded, non-zero) and that dispose removes them.
+
 **Files:**
 - Modify: `core/src/main/java/com/galacticodyssey/planet/terrain/TerrainQuadtree.java`
 - Test: `core/src/test/java/com/galacticodyssey/planet/terrain/TerrainQuadtreeStreamingTest.java` *(new)*
@@ -1260,6 +1262,8 @@ Use the `run-galactic-odyssey` skill to build, launch, and screenshot a new game
 - Flying straight up still transitions smoothly toward the orbital backdrop (the high-altitude fade is intact).
 
 - [ ] **Step 3: Capture a before/after screenshot** and report observations. If terrain feel needs tuning, adjust the Task 1 octave amplitudes and/or `MAX_DEPTH` (Task 2) and re-run; record the chosen values.
+
+> **Known tuning item carried from Task 1:** the detail-octave frequencies as shipped (512–4096 on the unit sphere) only produce ~1.5 km-wavelength relief on an Earth-radius planet — far coarser than the ~19 m mesh at depth 14 can show, so the ground looks smooth between km-scale bumps. To deliver genuinely walkable relief, raise the finest octaves toward the mesh-Nyquist scale (~40–50 m wavelength ⇒ unit-sphere frequency ≈ R/wavelength ≈ 130k–160k) **and drop their amplitudes proportionally** so slope ≈ amplitude_m / (wavelength/4) stays walkable (target ≲ 0.2 ⇒ a few metres of amplitude at the finest octave). Validate visually here — this is why it was deferred from Task 1.
 
 ---
 
