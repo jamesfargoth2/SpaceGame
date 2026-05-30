@@ -1,5 +1,6 @@
 package com.galacticodyssey.planet;
 
+import com.galacticodyssey.core.coords.PlanetCoordsKM;
 import com.galacticodyssey.galaxy.*;
 import com.galacticodyssey.planet.terrain.*;
 import org.junit.jupiter.api.Test;
@@ -62,9 +63,11 @@ class PipelineIntegrationTest {
         long terrainSeed = SeedDeriver.forId(
             SeedDeriver.domain(planet.seed, SeedDeriver.TERRAIN_DOMAIN), 0);
         TerrainNoiseStack noise = new TerrainNoiseStack(terrainSeed);
+        double radiusKmPipeline = planet.radius * 6371.0;
+        PlanetCoordsKM stubCenterPipeline = new PlanetCoordsKM(0, 0, radiusKmPipeline);
         TerrainMeshBuilder.MeshData mesh = TerrainMeshBuilder.build(
             CubeFace.POS_Z, 0f, 0f, 1f, 1f, noise, biomeMap,
-            planet.radius * 6371f, 2, null);
+            radiusKmPipeline, stubCenterPipeline, 2, null);
 
         assertEquals(TerrainMeshBuilder.GRID_SIZE * TerrainMeshBuilder.GRID_SIZE *
                      TerrainMeshBuilder.VERTEX_STRIDE, mesh.vertices.length);
@@ -109,9 +112,10 @@ class PipelineIntegrationTest {
             EnumSet.allOf(BiomeType.class));
 
         long start = System.nanoTime();
+        PlanetCoordsKM stubCenterPerf = new PlanetCoordsKM(0, 0, 6371.0);
         for (int i = 0; i < 20; i++) {
             TerrainMeshBuilder.build(CubeFace.POS_Z, 0f, 0f, 1f, 1f,
-                noise, biomeMap, 6371f, 2, null);
+                noise, biomeMap, 6371.0, stubCenterPerf, 2, null);
         }
         long elapsed = (System.nanoTime() - start) / 1_000_000;
         float perChunk = elapsed / 20f;

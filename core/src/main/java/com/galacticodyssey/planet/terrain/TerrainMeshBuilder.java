@@ -1,6 +1,8 @@
 package com.galacticodyssey.planet.terrain;
 
 import com.badlogic.gdx.math.Vector3;
+import com.galacticodyssey.core.coords.CoordConvert;
+import com.galacticodyssey.core.coords.PlanetCoordsKM;
 import com.galacticodyssey.planet.BiomeMap;
 import com.galacticodyssey.planet.BiomeType;
 
@@ -19,7 +21,8 @@ public final class TerrainMeshBuilder {
 
     public static MeshData build(CubeFace face, float u0, float v0, float u1, float v1,
                                   TerrainNoiseStack noise, BiomeMap biomeMap,
-                                  float planetRadius, int lod, int[] neighborLods) {
+                                  double radiusKm, PlanetCoordsKM chunkCenterKm,
+                                  int lod, int[] neighborLods) {
         float[] vertices = new float[GRID_SIZE * GRID_SIZE * VERTEX_STRIDE];
         BiomeType[] biomes = new BiomeType[GRID_SIZE * GRID_SIZE];
         Vector3[] positions = new Vector3[GRID_SIZE * GRID_SIZE];
@@ -31,7 +34,13 @@ public final class TerrainMeshBuilder {
                 Vector3 dir = CubeSphere.toSphere(face, u, v);
                 TerrainNoiseStack.Sample sample = noise.sampleAt(dir, biomeMap, lod);
                 biomes[gy * GRID_SIZE + gx] = sample.biome;
-                positions[gy * GRID_SIZE + gx] = dir.scl(planetRadius + sample.height * planetRadius * 0.002f);
+                // Planet-space radius at this vertex (km), including terrain height.
+                double rKm = radiusKm + sample.height * radiusKm * 0.002;
+                // Chunk-local position in METRES: subtract chunk centre in double, then scale.
+                float lx = (float) ((dir.x * rKm - chunkCenterKm.x()) * CoordConvert.KM_TO_M);
+                float ly = (float) ((dir.y * rKm - chunkCenterKm.y()) * CoordConvert.KM_TO_M);
+                float lz = (float) ((dir.z * rKm - chunkCenterKm.z()) * CoordConvert.KM_TO_M);
+                positions[gy * GRID_SIZE + gx] = new Vector3(lx, ly, lz);
             }
         }
 

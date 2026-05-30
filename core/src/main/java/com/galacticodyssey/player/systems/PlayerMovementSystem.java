@@ -90,6 +90,12 @@ public class PlayerMovementSystem extends IteratingSystem {
         planetCenter.set(center);
     }
 
+    /** Shift the cached planet centre by a floating-origin rebase (metre deltas) so the
+     *  gravity-up direction stays consistent with the world shift. */
+    public void onOriginRebased(float dxM, float dyM, float dzM) {
+        planetCenter.sub(dxM, dyM, dzM);
+    }
+
     @Override
     protected void processEntity(Entity entity, float deltaTime) {
         PlayerStateComponent playerState = entity.getComponent(PlayerStateComponent.class);
