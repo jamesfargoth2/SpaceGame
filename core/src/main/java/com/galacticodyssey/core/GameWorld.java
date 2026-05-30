@@ -1183,6 +1183,20 @@ public class GameWorld implements Disposable {
         playerMovementSystem.setPlanetCenter(centerLocal);
     }
 
+    /**
+     * Spawn the player capsule on the sphere surface along {@code unitDir} from the planet centre.
+     * Pre-warms terrain under the spawn so collision exists at frame 1. Returns the local spawn point.
+     */
+    public Vector3 spawnPlayerOnSphere(com.badlogic.gdx.math.Vector3 unitDir, float eyeOffsetM) {
+        planetTerrainSystem.prewarmAround(unitDir);
+        com.galacticodyssey.core.coords.LocalCoordsM surface = planetTerrainSystem.surfacePointLocal(unitDir);
+        Vector3 up = com.galacticodyssey.core.coords.CoordConvert.surfaceUpLocal(
+            new com.galacticodyssey.core.coords.PlanetCoordsKM(unitDir.x, unitDir.y, unitDir.z));
+        Vector3 pos = surface.toVector3().mulAdd(up, eyeOffsetM);
+        createPlayerEntity(pos.x, pos.y, pos.z);
+        return pos;
+    }
+
     /** Wire up the audio system. Call after GameWorld construction, before the first update(). */
     public void initAudio(AudioManager audioManager) {
         audioSystem = new AudioSystem(eventBus, audioManager);

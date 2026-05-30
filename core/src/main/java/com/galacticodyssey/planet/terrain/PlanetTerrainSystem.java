@@ -128,6 +128,33 @@ public final class PlanetTerrainSystem extends EntitySystem implements Disposabl
         return quadtree.getVisibleLeaves();
     }
 
+    /**
+     * Synchronously subdivide and build the chunk chain under a spawn direction down to near-max
+     * depth, draining the streamer until those leaves are READY, so a collision body exists
+     * before the player is placed (prevents fall-through while async streaming catches up).
+     *
+     * <p>This is a SETTLE LOOP, not a fixed number of passes: {@code quadtree.pump()} is
+     * non-blocking (it drains queued results but does not wait on still-running workers), so a
+     * single update+pump does not guarantee the just-submitted chunks are built. We repeatedly
+     * feed the synthetic spawn camera and pump until a deep READY leaf exists under it, bounded
+     * by {@code maxPasses} so a stalled streamer cannot hang the caller.
+     */
+    public void prewarmAround(Vector3 unitDir) {
+        if (quadtree == null) return;
+        double rKm = surfaceRadiusKmAt(unitDir);
+        PlanetCoordsKM camKm = new PlanetCoordsKM(unitDir.x * rKm, unitDir.y * rKm, unitDir.z * rKm);
+        final int maxPasses = 400;
+        for (int pass = 0; pass < maxPasses; pass++) {
+            quadtree.update(camKm);
+            quadtree.pump();
+            boolean ready = getVisibleLeaves().stream().anyMatch(c ->
+                !c.hasChildren() && c.depth >= TerrainChunk.MAX_DEPTH - 2
+                && c.state == TerrainChunk.State.READY);
+            if (ready) return;
+            try { Thread.sleep(2); } catch (InterruptedException e) { Thread.currentThread().interrupt(); return; }
+        }
+    }
+
     @Override
     public void update(float deltaTime) {
         if (quadtree != null) quadtree.update(getCameraPlanetKm());
