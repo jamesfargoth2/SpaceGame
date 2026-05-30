@@ -47,7 +47,7 @@ class TerrainChunkCollisionTest {
         TerrainNoiseStack noise = new TerrainNoiseStack(42L);
         BiomeMap biomeMap = new BiomeMap(42L, 0.2f, 0.8f, 0.5f, 288f,
             EnumSet.allOf(BiomeType.class));
-        TerrainQuadtree quadtree = new TerrainQuadtree(6371f, noise, biomeMap, dynamicsWorld);
+        TerrainQuadtree quadtree = new TerrainQuadtree(6371f, new Vector3(0, 0, 0), noise, biomeMap, dynamicsWorld);
 
         quadtree.update(new Vector3(0, 0, 6371f));
 
@@ -67,7 +67,7 @@ class TerrainChunkCollisionTest {
         TerrainNoiseStack noise = new TerrainNoiseStack(42L);
         BiomeMap biomeMap = new BiomeMap(42L, 0.2f, 0.8f, 0.5f, 288f,
             EnumSet.allOf(BiomeType.class));
-        TerrainQuadtree quadtree = new TerrainQuadtree(6371f, noise, biomeMap, dynamicsWorld);
+        TerrainQuadtree quadtree = new TerrainQuadtree(6371f, new Vector3(0, 0, 0), noise, biomeMap, dynamicsWorld);
 
         quadtree.update(new Vector3(0, 0, 6371f));
         int bodyCount = dynamicsWorld.getNumCollisionObjects();
