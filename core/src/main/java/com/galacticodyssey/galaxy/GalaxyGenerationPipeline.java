@@ -18,8 +18,8 @@ import java.util.Random;
 
 public final class GalaxyGenerationPipeline {
 
-    private static final int TERRAIN_VERTS = 257;
-    private static final float TERRAIN_SIZE = 500f;
+    private static final int TERRAIN_VERTS = 255;
+    private static final float TERRAIN_SIZE = 5000f;
 
     private GalaxyGenerationPipeline() {}
 
@@ -98,7 +98,8 @@ public final class GalaxyGenerationPipeline {
         session.startingBiomeMap = buildBiomeMap(planet);
         session.log.add("Surveying surface of " + planetName + "…");
 
-        // Phase 5 — spawn coordinates from the seeded heightmap
+        // Phase 5 — spawn coordinates sampled from the flat terrain heightmap.
+        // The flat terrain is the ground at world level; spawn just above the surface.
         float[] hmap = TerrainGenerator.generateHeightmap(
             TERRAIN_VERTS, TERRAIN_VERTS, TERRAIN_SIZE, TERRAIN_SIZE, session.terrainSeed);
         float groundH = TerrainGenerator.getHeightAt(
@@ -165,7 +166,7 @@ public final class GalaxyGenerationPipeline {
         switch (planet.type) {
             case TERRAN:
                 seaLevel     = -0.05f;
-                snowLine     = 0.55f;
+                snowLine     = 0.82f;
                 baseMoisture = 0.5f;
                 surfaceTemp  = (planet.atmosphere != null) ? planet.atmosphere.surfaceTemp : 290f;
                 allowed = EnumSet.allOf(BiomeType.class);

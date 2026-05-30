@@ -120,7 +120,7 @@ public final class FloraGenerator {
         }
         List<FloraPlacement> placements = planPlacements(
             registry, world.biomeGrid, heightmap, vertsX, vertsZ, worldWidth, worldDepth,
-            seaLevel, planetSeed, 300);
+            seaLevel, planetSeed, 800);
 
         for (FloraPlacement pl : placements) {
             Model[] variants = prototypes.get(pl.speciesId);

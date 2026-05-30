@@ -52,7 +52,7 @@ public final class PlanetTerrainSystem extends EntitySystem implements Disposabl
         TerrainNoiseStack noise = new TerrainNoiseStack(terrainSeed, tectonic);
         planetRadius = (gameWorldRadius > 0f) ? gameWorldRadius : planet.radius * 6371f;
         planetCenter.set(gameWorldCenter);
-        quadtree = new TerrainQuadtree(planetRadius, noise, biomeMap, dynamicsWorld);
+        quadtree = new TerrainQuadtree(planetRadius, planetCenter, noise, biomeMap, dynamicsWorld);
     }
 
     public void unloadPlanet() {

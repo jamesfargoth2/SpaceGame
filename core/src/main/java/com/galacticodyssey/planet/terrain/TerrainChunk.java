@@ -9,7 +9,7 @@ import com.badlogic.gdx.physics.bullet.dynamics.btRigidBody;
 import com.badlogic.gdx.utils.Disposable;
 
 public final class TerrainChunk implements Disposable {
-    public static final int MAX_DEPTH = 5;
+    public static final int MAX_DEPTH = 8;
     public static final float SPLIT_THRESHOLD = 1.5f;
     public static final float MERGE_THRESHOLD = 0.75f;
 

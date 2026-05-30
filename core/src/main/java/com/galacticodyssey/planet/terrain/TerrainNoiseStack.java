@@ -52,9 +52,17 @@ public final class TerrainNoiseStack {
         float rz = dir.z * 8f;
         float ridge = ridgeNoise.ridgedFbm(rx, ry, rz, 6, 2.0f, 2.0f);
 
-        float lat = CubeSphere.latitudeOf(dir);
+        // The sphere terrain's top face sits at geographic lat=90° (north pole), but the player
+        // spawns there on foot.  Passing the raw latitude produces polar ice over the whole
+        // visible surface.  Scale latitude down so biome temperature stays above freezing across
+        // the player-facing hemisphere; the remaining variation still drives coastal vs. inland
+        // biome differences via the moisture/elevation terms.
+        float lat = CubeSphere.latitudeOf(dir) * 0.15f;
         float lon = CubeSphere.longitudeOf(dir);
-        BiomeType biome = biomeMap.getBiome(lat, lon, continent);
+        // Clamp continent to [-0.5, 0.75] so unnormalized tectonic values above 1.0 don't
+        // accidentally trip the snowLine check and render whole mountain ranges as ice.
+        float clampedContinent = Math.max(-0.5f, Math.min(0.75f, continent));
+        BiomeType biome = biomeMap.getBiome(lat, lon, clampedContinent);
         float amplitude = biome.amplitude;
         float ridgeMix = biome.ridgeMix;
 
