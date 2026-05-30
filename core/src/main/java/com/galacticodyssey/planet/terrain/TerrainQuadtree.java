@@ -27,7 +27,6 @@ public final class TerrainQuadtree implements Disposable {
     private static final int COLLISION_MIN_DEPTH = TerrainChunk.MAX_DEPTH - 2;
     private static final double COLLISION_RADIUS_KM = 2.0; // wide / vehicle-friendly, inside float-safe band
     private static final int MAX_UPLOADS_PER_FRAME = 8;
-    private PlanetCoordsKM lastCameraKm = PlanetCoordsKM.ORIGIN;
 
     public TerrainQuadtree(double radiusKm, PlanetCoordsKM originPlanetKm, TerrainNoiseStack noise,
                            BiomeMap biomeMap, btDiscreteDynamicsWorld dynamicsWorld) {
@@ -43,7 +42,6 @@ public final class TerrainQuadtree implements Disposable {
     }
 
     public void update(PlanetCoordsKM cameraKm) {
-        this.lastCameraKm = cameraKm;
         for (TerrainChunk root : roots) recursiveUpdate(root, cameraKm);
         streamer.drain(MAX_UPLOADS_PER_FRAME, this::applyResult);
     }
@@ -95,10 +93,10 @@ public final class TerrainQuadtree implements Disposable {
             chunk.mesh = null; // headless / no GL
         }
         if (g.collisionShape != null) {
+            btRigidBody body = null;
             try {
                 btRigidBody.btRigidBodyConstructionInfo info =
                     new btRigidBody.btRigidBodyConstructionInfo(0f, null, g.collisionShape);
-                btRigidBody body;
                 try { body = new btRigidBody(info); } finally { info.dispose(); }
                 body.setFriction(0.9f);
                 if (dynamicsWorld != null) dynamicsWorld.addRigidBody(body);
@@ -106,6 +104,7 @@ public final class TerrainQuadtree implements Disposable {
                 chunk.collisionShape = g.collisionShape;
                 chunk.collisionBody = body;
             } catch (Exception e) {
+                if (body != null) body.dispose();
                 g.disposeNative();
             }
         }
