@@ -1114,10 +1114,12 @@ public class GameWorld implements Disposable {
             saveCoordinator.update(delta);
         }
 
-        if (planetTerrainSystem == null || planetTerrainSystem.getRadiusKm() <= 0) {
-            Entity player = engine.getEntitiesFor(
-                com.badlogic.ashley.core.Family.all(PlayerTagComponent.class, TransformComponent.class).get()).first();
-            TransformComponent t = player.getComponent(TransformComponent.class);
+        // SP2: floating-origin rebase must run while walking on a planet too, or local
+        // coordinates grow unbounded as the player crosses the globe.
+        com.badlogic.ashley.utils.ImmutableArray<Entity> players = engine.getEntitiesFor(
+            com.badlogic.ashley.core.Family.all(PlayerTagComponent.class, TransformComponent.class).get());
+        if (players.size() > 0) {
+            TransformComponent t = players.first().getComponent(TransformComponent.class);
             coordinateManager.checkRebase(t.position);
         }
     }
