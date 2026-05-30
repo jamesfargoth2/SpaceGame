@@ -1706,7 +1706,7 @@ public class GameScreen implements Screen {
 
         com.galacticodyssey.planet.terrain.PlanetTerrainSystem pts =
             (gameWorld != null) ? gameWorld.getPlanetTerrainSystem() : null;
-        float sphereRadius = (pts != null) ? pts.getPlanetRadius() : 0f;
+        float sphereRadius = (pts != null) ? pts.getRadiusLocalMetres() : 0f;
 
         // Sphere terrain activates only after the flat terrain has fully faded out, then fades IN
         // over 1000 m so there is never a hard pop. It fades OUT again at extreme (orbital) altitude.
@@ -1721,11 +1721,11 @@ public class GameScreen implements Screen {
                     camera.far = requiredFar;
                     camera.update();
                 }
-                pts.setCameraPositionWorld(camera.position);
+                pts.setCameraPositionLocal(camera.position);
                 // Fade IN: 0→1 over the 1000 m window above the activation threshold.
                 float fadeIn = Math.min(1f, (altitudeAboveSurface - FLAT_TERRAIN_FADE_END_Y) / 1000f);
                 // Fade OUT at extreme altitude (orbital / beyond-atmosphere view).
-                float distFromCenter = camera.position.dst(pts.getPlanetCenter());
+                float distFromCenter = camera.position.dst(pts.getPlanetCenterLocal());
                 float altAboveSphere = distFromCenter - sphereRadius;
                 float fadeOutFrac = (altAboveSphere - sphereRadius * TERRAIN_FADE_START_FRAC)
                                   / (sphereRadius * (TERRAIN_FADE_END_FRAC - TERRAIN_FADE_START_FRAC));
@@ -1761,17 +1761,17 @@ public class GameScreen implements Screen {
                 shader.setUniformf("u_tiling", 1f, 1f);
                 shader.setUniformf("u_terrainFade", terrainFade);
 
-                // Sphere-terrain chunks are in planet-local space; translate by planet centre.
-                com.badlogic.gdx.math.Vector3 pc = pts.getPlanetCenter();
-                tmpMat4.setToTranslation(pc);
-                shader.setUniformMatrix("u_worldTrans", tmpMat4);
-                // Normal matrix: rotation/scale only (no translation effect on normals).
+                // Sphere-terrain chunk meshes are chunk-local metres; placed per chunk via
+                // its floating-origin placement. The normal matrix (rotation/scale only,
+                // no translation effect on normals) is set once before the loop.
                 tmpMat4.set(camera.view);
                 tmpNormalMat3.set(tmpMat4).inv().transpose();
                 shader.setUniformMatrix("u_normalMatrix", tmpNormalMat3);
-
                 for (com.galacticodyssey.planet.terrain.TerrainChunk chunk : pts.getVisibleLeaves()) {
                     if (chunk.mesh != null) {
+                        tmpMat4.idt().setTranslation(
+                            chunk.placementLocal.x(), chunk.placementLocal.y(), chunk.placementLocal.z());
+                        shader.setUniformMatrix("u_worldTrans", tmpMat4);
                         chunk.mesh.render(shader, GL20.GL_TRIANGLES);
                     }
                 }
