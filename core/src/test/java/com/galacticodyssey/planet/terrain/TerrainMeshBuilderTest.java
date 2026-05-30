@@ -29,16 +29,28 @@ class TerrainMeshBuilderTest {
 
     @Test
     void normalsPointOutward() {
+        // chunkCenterKm and radiusKm must match buildTestMesh() exactly.
+        final double centerX = 0.0, centerY = 0.0, centerZ = 1.0; // PlanetCoordsKM(0,0,1)
         TerrainMeshBuilder.MeshData data = buildTestMesh();
         for (int i = 0; i < data.vertices.length; i += VERTEX_STRIDE) {
-            float px = data.vertices[i];
-            float py = data.vertices[i + 1];
-            float pz = data.vertices[i + 2];
+            // Vertex is chunk-local metres. Reconstruct planet-space position (km).
+            double vx = data.vertices[i];
+            double vy = data.vertices[i + 1];
+            double vz = data.vertices[i + 2];
             float nx = data.vertices[i + 3];
             float ny = data.vertices[i + 4];
             float nz = data.vertices[i + 5];
-            float dot = px * nx + py * ny + pz * nz;
-            assertTrue(dot > 0f, "Normal at vertex " + (i / VERTEX_STRIDE) +
+            // planetPos (km) = chunkCenterKm + localMetres * 0.001
+            double px = centerX + vx * 0.001;
+            double py = centerY + vy * 0.001;
+            double pz = centerZ + vz * 0.001;
+            // Normalize to get the outward radial direction.
+            double len = Math.sqrt(px * px + py * py + pz * pz);
+            double rx = px / len;
+            double ry = py / len;
+            double rz = pz / len;
+            double dot = rx * nx + ry * ny + rz * nz;
+            assertTrue(dot > 0.0, "Normal at vertex " + (i / VERTEX_STRIDE) +
                 " points inward (dot=" + dot + ")");
         }
     }
