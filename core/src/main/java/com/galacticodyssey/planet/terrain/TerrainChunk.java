@@ -10,7 +10,7 @@ import com.galacticodyssey.core.coords.LocalCoordsM;
 import com.galacticodyssey.core.coords.PlanetCoordsKM;
 
 public final class TerrainChunk implements Disposable {
-    public static final int MAX_DEPTH = 8;
+    public static final int MAX_DEPTH = 14;
     public static final float SPLIT_THRESHOLD = 1.5f;
     public static final float MERGE_THRESHOLD = 0.75f;
 
@@ -29,6 +29,18 @@ public final class TerrainChunk implements Disposable {
     public btRigidBody collisionBody;
     public btTriangleMesh triangleMesh;
     public btBvhTriangleMeshShape collisionShape;
+
+    /** Lifecycle of this chunk's geometry. */
+    public enum State { EMPTY, PENDING, GENERATING, READY }
+    public State state = State.EMPTY;
+    /** True when this chunk should carry a Bullet collision body (set by the collision gate). */
+    public boolean wantsCollision;
+
+    /** Bumped whenever this chunk's geometry is invalidated (split/merge), so async results
+     *  generated against an older token can be detected and discarded. */
+    private int generationToken;
+    public int generationToken() { return generationToken; }
+    public void invalidate() { generationToken++; state = State.EMPTY; }
 
     public TerrainChunk(CubeFace face, int depth, float u0, float v0, float u1, float v1, double radiusKm) {
         this.face = face;
