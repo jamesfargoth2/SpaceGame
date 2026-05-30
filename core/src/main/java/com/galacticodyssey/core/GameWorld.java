@@ -363,6 +363,14 @@ public class GameWorld implements Disposable {
         engine.addSystem(radialGravitySystem);
         playerMovementSystem.setPlanetCenter(defaultPlanetCenter);
 
+        // Route floating-origin rebases into terrain + gravity + player movement so their
+        // planet-centre / planet-space origin state stays consistent with the world shift.
+        eventBus.subscribe(com.galacticodyssey.core.events.OriginRebasedEvent.class, e -> {
+            planetTerrainSystem.onOriginRebased(e.deltaX, e.deltaY, e.deltaZ);
+            radialGravitySystem.onOriginRebased(e.deltaX, e.deltaY, e.deltaZ);
+            playerMovementSystem.onOriginRebased(e.deltaX, e.deltaY, e.deltaZ);
+        });
+
         // Surface vehicle physics — pass null for GravitySystem: RadialGravitySystem
         // already applies gravity forces directly; SurfaceVehicleSystem falls back to 9.81 m/s².
         surfaceVehicleSystem = new SurfaceVehicleSystem(null, eventBus);
@@ -1103,7 +1111,7 @@ public class GameWorld implements Disposable {
             saveCoordinator.update(delta);
         }
 
-        if (planetTerrainSystem == null || planetTerrainSystem.getPlanetRadius() <= 0) {
+        if (planetTerrainSystem == null || planetTerrainSystem.getRadiusKm() <= 0) {
             Entity player = engine.getEntitiesFor(
                 com.badlogic.ashley.core.Family.all(PlayerTagComponent.class, TransformComponent.class).get()).first();
             TransformComponent t = player.getComponent(TransformComponent.class);
@@ -1160,10 +1168,15 @@ public class GameWorld implements Disposable {
      */
     public void loadPlanetTerrain(com.galacticodyssey.planet.Planet planet,
                                    com.galacticodyssey.planet.BiomeMap biomeMap) {
-        // Surface radius = distance from defaultPlanetCenter to the flat terrain origin
-        // (approx. 50 000 m). Add a small surface offset so the sphere just pokes above y=0.
-        float surfaceRadius = defaultPlanetCenter.len();
-        planetTerrainSystem.loadPlanet(planet, biomeMap, defaultPlanetCenter, surfaceRadius);
+        double radiusKm = planet.radius * com.galacticodyssey.planet.terrain.PlanetTerrainSystem.EARTH_RADIUS_KM;
+        // Player spawns at the +Y pole; the floating origin sits at the surface there.
+        com.galacticodyssey.core.coords.PlanetCoordsKM origin =
+            new com.galacticodyssey.core.coords.PlanetCoordsKM(0, radiusKm, 0);
+        planetTerrainSystem.loadPlanet(planet, biomeMap, origin);
+        // Re-centre radial gravity: planet centre is radiusKm*1000 m straight down in local space.
+        com.badlogic.gdx.math.Vector3 centerLocal = planetTerrainSystem.getPlanetCenterLocal(); // (0,-radiusKm*1000,0)
+        radialGravitySystem.setPlanetCenterLocal(centerLocal);
+        playerMovementSystem.setPlanetCenter(centerLocal);
     }
 
     /** Wire up the audio system. Call after GameWorld construction, before the first update(). */
