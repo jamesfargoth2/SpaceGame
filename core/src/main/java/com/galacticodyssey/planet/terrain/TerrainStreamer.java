@@ -44,6 +44,7 @@ public final class TerrainStreamer implements Disposable {
     }
 
     public void submit(TerrainChunk chunk) {
+        // submit() is expected to be called only from the main thread (same thread as dispose()).
         if (shutdown) return;
         final int token = chunk.generationToken();
         final boolean wantsCollision = chunk.wantsCollision;
@@ -60,7 +61,13 @@ public final class TerrainStreamer implements Disposable {
                     triMesh = buildTriangleMesh(data);
                     shape = new btBvhTriangleMeshShape(triMesh, true);
                 }
-                results.add(new GeneratedChunkData(chunk, token, data.vertices, data.indices, shape, triMesh));
+                GeneratedChunkData result = new GeneratedChunkData(
+                    chunk, token, data.vertices, data.indices, shape, triMesh);
+                results.add(result);
+                if (shutdown && results.remove(result)) {
+                    // dispose() drained before we enqueued — reclaim native objects so they don't leak.
+                    result.disposeNative();
+                }
             } catch (Throwable t) {
                 results.add(new GeneratedChunkData(chunk, token, null, null, null, null));
             }
