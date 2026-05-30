@@ -61,6 +61,7 @@ public final class PlanetTerrainSystem extends EntitySystem implements Disposabl
         if (quadtree != null) { quadtree.dispose(); quadtree = null; }
         noise = null;
         loadedBiomeMap = null;
+        radiusKm = 0; // no planet loaded → surfaceRadiusKmAt returns 0, matching the null-guard contract
     }
 
     /** Player/camera position in the current LOCAL_SCENE (metres). */
