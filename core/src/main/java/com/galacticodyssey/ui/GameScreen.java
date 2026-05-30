@@ -1751,7 +1751,7 @@ public class GameScreen implements Screen {
                 tmpMat4.set(camera.view);
                 tmpNormalMat3.set(tmpMat4).inv().transpose();
                 shader.setUniformMatrix("u_normalMatrix", tmpNormalMat3);
-                for (com.galacticodyssey.planet.terrain.TerrainChunk chunk : pts.getVisibleLeaves()) {
+                for (com.galacticodyssey.planet.terrain.TerrainChunk chunk : pts.getRenderableLeaves()) {
                     if (chunk.mesh != null) {
                         tmpMat4.idt().setTranslation(
                             chunk.placementLocal.x(), chunk.placementLocal.y(), chunk.placementLocal.z());

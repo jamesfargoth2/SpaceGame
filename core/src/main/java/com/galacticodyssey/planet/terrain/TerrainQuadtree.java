@@ -28,6 +28,10 @@ public final class TerrainQuadtree implements Disposable {
     private static final double COLLISION_RADIUS_KM = 2.0; // wide / vehicle-friendly, inside float-safe band
     private static final int MAX_UPLOADS_PER_FRAME = 8;
 
+    /** Chunks whose local placement exceeds this are beyond the horizon / float-safe band and are
+     *  not rendered (SP2). The far hemisphere is the orbital backdrop's job until SP3. */
+    public static final float RENDER_BAND_M = 200_000f; // 200 km local
+
     public TerrainQuadtree(double radiusKm, PlanetCoordsKM originPlanetKm, TerrainNoiseStack noise,
                            BiomeMap biomeMap, btDiscreteDynamicsWorld dynamicsWorld) {
         this.radiusKm = radiusKm;
@@ -38,7 +42,10 @@ public final class TerrainQuadtree implements Disposable {
         this.streamer = new TerrainStreamer(noise, biomeMap, radiusKm, TerrainStreamer.defaultThreadCount());
         this.roots = new TerrainChunk[6];
         CubeFace[] faces = CubeFace.values();
-        for (int i = 0; i < 6; i++) roots[i] = new TerrainChunk(faces[i], 0, 0f, 0f, 1f, 1f, radiusKm);
+        for (int i = 0; i < 6; i++) {
+            roots[i] = new TerrainChunk(faces[i], 0, 0f, 0f, 1f, 1f, radiusKm);
+            applyPlacement(roots[i]);
+        }
     }
 
     public void update(PlanetCoordsKM cameraKm) {
@@ -128,6 +135,7 @@ public final class TerrainQuadtree implements Disposable {
             new TerrainChunk(chunk.face, d, chunk.u0, mv, mu, chunk.v1, radiusKm),
             new TerrainChunk(chunk.face, d, mu, mv, chunk.u1, chunk.v1, radiusKm),
         };
+        for (TerrainChunk child : chunk.children) applyPlacement(child);
     }
 
     private void merge(TerrainChunk chunk) {
@@ -163,11 +171,20 @@ public final class TerrainQuadtree implements Disposable {
     }
 
     private final List<TerrainChunk> leafCache = new ArrayList<>();
+    private final List<TerrainChunk> renderCache = new ArrayList<>();
 
     public List<TerrainChunk> getVisibleLeaves() {
         leafCache.clear();
         for (TerrainChunk root : roots) collectLeaves(root, leafCache);
         return leafCache;
+    }
+
+    public List<TerrainChunk> getRenderableLeaves() {
+        renderCache.clear();
+        for (TerrainChunk leaf : getVisibleLeaves()) {
+            if (leaf.placementLocal.toVector3().len() <= RENDER_BAND_M) renderCache.add(leaf);
+        }
+        return renderCache;
     }
 
     private void collectLeaves(TerrainChunk chunk, List<TerrainChunk> out) {

@@ -41,4 +41,25 @@ class TerrainQuadtreeStreamingTest {
         assertTrue(collisionWanted > 0 && collisionWanted < 256,
             "collision-wanting leaves should be a bounded shell, was " + collisionWanted);
     }
+
+    @Test
+    void renderableLeavesExcludeFarSideChunks() {
+        TerrainQuadtree tree = tree();
+        PlanetCoordsKM cam = new PlanetCoordsKM(0, 6371.0 + 0.01, 0); // +Y pole
+        for (int frame = 0; frame < 400; frame++) { tree.update(cam); tree.pump(); }
+        // Rebase the floating origin to the player position (as the real game does via onOriginRebased),
+        // so that near chunks have small local magnitude and far-hemisphere chunks have large magnitude.
+        tree.setOrigin(cam);
+
+        java.util.List<TerrainChunk> all = new java.util.ArrayList<>(tree.getVisibleLeaves());
+        java.util.List<TerrainChunk> renderable = new java.util.ArrayList<>(tree.getRenderableLeaves());
+        assertTrue(renderable.size() <= all.size());
+        assertTrue(renderable.size() > 0, "near-field chunks must remain renderable");
+        for (var c : renderable) {
+            float mag = c.placementLocal.toVector3().len();
+            assertTrue(mag <= TerrainQuadtree.RENDER_BAND_M, "renderable chunk beyond band: " + mag);
+        }
+        boolean someFarExcluded = all.size() > renderable.size();
+        assertTrue(someFarExcluded, "far-side chunks should be culled from rendering");
+    }
 }

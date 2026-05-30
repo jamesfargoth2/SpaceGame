@@ -128,6 +128,11 @@ public final class PlanetTerrainSystem extends EntitySystem implements Disposabl
         return quadtree.getVisibleLeaves();
     }
 
+    public java.util.List<TerrainChunk> getRenderableLeaves() {
+        if (quadtree == null) return java.util.Collections.emptyList();
+        return quadtree.getRenderableLeaves();
+    }
+
     /**
      * Synchronously subdivide and build the chunk chain under a spawn direction down to near-max
      * depth, draining the streamer until those leaves are READY, so a collision body exists
