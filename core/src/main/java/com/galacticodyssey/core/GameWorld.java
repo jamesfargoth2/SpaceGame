@@ -332,8 +332,10 @@ public class GameWorld implements Disposable {
 
     private final Array<Disposable> disposables = new Array<>();
 
-    /** Planet centre in game-world units (metres). 50 km below spawn keeps radial gravity
-     *  effectively straight-down over the 500 m flat terrain patch (< 0.5° divergence). */
+    /** Planet centre in game-world units (metres) — PRE-PLANET-LOAD FALLBACK ONLY.
+     *  50 km below spawn keeps radial gravity effectively straight-down over the 500 m flat
+     *  terrain patch (< 0.5° divergence). Once {@link #loadPlanetTerrain} runs, gravity and
+     *  player-movement re-centre to the real planet scale ((0, -radiusKm*1000, 0)). */
     private final Vector3 defaultPlanetCenter = new Vector3(0, -50000f, 0);
 
     public GameWorld(EventBus eventBus, CoordinateManager coordinateManager) {
@@ -354,8 +356,9 @@ public class GameWorld implements Disposable {
         planetTerrainSystem = new PlanetTerrainSystem(bulletPhysicsSystem.getDynamicsWorld());
         engine.addSystem(planetTerrainSystem);
 
-        // Planet center placed 50 km below terrain so radial gravity is effectively
-        // straight-down everywhere on the 500m×500m flat test map (<0.5° tilt at corners).
+        // Pre-planet-load fallback: planet center 50 km below terrain so radial gravity is
+        // effectively straight-down on the 500m×500m flat test map (<0.5° tilt at corners).
+        // loadPlanetTerrain() re-centres this to real planet scale once a planet is loaded.
         // Both systems must share the same center or movement/gravity will diverge.
         radialGravitySystem = new RadialGravitySystem(
             bulletPhysicsSystem.getDynamicsWorld(),

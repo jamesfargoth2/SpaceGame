@@ -131,8 +131,8 @@ public class GameScreen implements Screen {
     private static final long TERRAIN_SEED = 42L;
     // Sphere terrain: activates when flat terrain has fully faded, then fades IN over 1000 m.
     // Fades OUT again at extreme altitude (fractions of planet radius above surface).
-    private static final float TERRAIN_FADE_START_FRAC = 0.15f; // fade-out start ~7 500 m (50 km planet)
-    private static final float TERRAIN_FADE_END_FRAC   = 0.30f; // fade-out end  ~15 000 m
+    private static final float TERRAIN_FADE_START_FRAC = 0.15f; // fade-out start at 0.15× planet radius (radius-relative; scale-independent)
+    private static final float TERRAIN_FADE_END_FRAC   = 0.30f; // fade-out end   at 0.30× planet radius
     // Flat terrain fades out between these absolute altitudes above surface (metres).
     private static final float FLAT_TERRAIN_FADE_START_Y = 1000f;
     private static final float FLAT_TERRAIN_FADE_END_Y   = 4000f;
