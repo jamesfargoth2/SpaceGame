@@ -1,9 +1,9 @@
 package com.galacticodyssey.planet.terrain;
 
-import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.bullet.Bullet;
 import com.badlogic.gdx.physics.bullet.collision.*;
 import com.badlogic.gdx.physics.bullet.dynamics.*;
+import com.galacticodyssey.core.coords.PlanetCoordsKM;
 import com.galacticodyssey.planet.BiomeMap;
 import com.galacticodyssey.planet.BiomeType;
 import org.junit.jupiter.api.*;
@@ -47,9 +47,11 @@ class TerrainChunkCollisionTest {
         TerrainNoiseStack noise = new TerrainNoiseStack(42L);
         BiomeMap biomeMap = new BiomeMap(42L, 0.2f, 0.8f, 0.5f, 288f,
             EnumSet.allOf(BiomeType.class));
-        TerrainQuadtree quadtree = new TerrainQuadtree(6371f, new Vector3(0, 0, 0), noise, biomeMap, dynamicsWorld);
+        // Origin on the +Z surface; camera just above it on the +Z axis
+        PlanetCoordsKM origin = new PlanetCoordsKM(0, 0, 6371.0);
+        TerrainQuadtree quadtree = new TerrainQuadtree(6371.0, origin, noise, biomeMap, dynamicsWorld);
 
-        quadtree.update(new Vector3(0, 0, 6371f));
+        quadtree.update(new PlanetCoordsKM(0, 0, 6371.001));
 
         List<TerrainChunk> leaves = quadtree.getVisibleLeaves();
         assertFalse(leaves.isEmpty(), "Should have visible leaf chunks");
@@ -67,9 +69,10 @@ class TerrainChunkCollisionTest {
         TerrainNoiseStack noise = new TerrainNoiseStack(42L);
         BiomeMap biomeMap = new BiomeMap(42L, 0.2f, 0.8f, 0.5f, 288f,
             EnumSet.allOf(BiomeType.class));
-        TerrainQuadtree quadtree = new TerrainQuadtree(6371f, new Vector3(0, 0, 0), noise, biomeMap, dynamicsWorld);
+        PlanetCoordsKM origin = new PlanetCoordsKM(0, 0, 6371.0);
+        TerrainQuadtree quadtree = new TerrainQuadtree(6371.0, origin, noise, biomeMap, dynamicsWorld);
 
-        quadtree.update(new Vector3(0, 0, 6371f));
+        quadtree.update(new PlanetCoordsKM(0, 0, 6371.001));
         int bodyCount = dynamicsWorld.getNumCollisionObjects();
         assertTrue(bodyCount > 0, "Should have collision bodies in world");
 

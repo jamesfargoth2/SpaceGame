@@ -3,59 +3,58 @@ package com.galacticodyssey.planet.terrain;
 import com.badlogic.gdx.graphics.Mesh;
 import com.badlogic.gdx.graphics.VertexAttribute;
 import com.badlogic.gdx.graphics.VertexAttributes;
+import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.bullet.collision.btBvhTriangleMeshShape;
 import com.badlogic.gdx.physics.bullet.collision.btTriangleMesh;
 import com.badlogic.gdx.physics.bullet.dynamics.btDiscreteDynamicsWorld;
 import com.badlogic.gdx.physics.bullet.dynamics.btRigidBody;
 import com.badlogic.gdx.utils.Disposable;
+import com.galacticodyssey.core.coords.CoordConvert;
+import com.galacticodyssey.core.coords.LocalCoordsM;
+import com.galacticodyssey.core.coords.PlanetCoordsKM;
 import com.galacticodyssey.planet.BiomeMap;
 import java.util.ArrayList;
 import java.util.List;
 
 public final class TerrainQuadtree implements Disposable {
     private final TerrainChunk[] roots;
-    private final float planetRadius;
-    private final Vector3 planetCenter;
+    private final double radiusKm;
+    private PlanetCoordsKM originPlanetKm;
     private final TerrainNoiseStack noise;
     private final BiomeMap biomeMap;
     private final btDiscreteDynamicsWorld dynamicsWorld;
+    private final Matrix4 tmpMat = new Matrix4();
 
-    public TerrainQuadtree(float planetRadius, Vector3 planetCenter, TerrainNoiseStack noise,
+    public TerrainQuadtree(double radiusKm, PlanetCoordsKM originPlanetKm, TerrainNoiseStack noise,
                            BiomeMap biomeMap, btDiscreteDynamicsWorld dynamicsWorld) {
-        this.planetRadius = planetRadius;
-        this.planetCenter = new Vector3(planetCenter);
+        this.radiusKm = radiusKm;
+        this.originPlanetKm = originPlanetKm;
         this.noise = noise;
         this.biomeMap = biomeMap;
         this.dynamicsWorld = dynamicsWorld;
         this.roots = new TerrainChunk[6];
         CubeFace[] faces = CubeFace.values();
-        for (int i = 0; i < 6; i++) {
-            roots[i] = new TerrainChunk(faces[i], 0, 0f, 0f, 1f, 1f, planetRadius);
-        }
+        for (int i = 0; i < 6; i++) roots[i] = new TerrainChunk(faces[i], 0, 0f, 0f, 1f, 1f, radiusKm);
     }
 
-    public void update(Vector3 cameraPos) {
-        for (TerrainChunk root : roots) {
-            recursiveUpdate(root, cameraPos);
-        }
+    public void update(PlanetCoordsKM cameraKm) {
+        for (TerrainChunk root : roots) recursiveUpdate(root, cameraKm);
     }
 
-    private void recursiveUpdate(TerrainChunk chunk, Vector3 cameraPos) {
+    private void recursiveUpdate(TerrainChunk chunk, PlanetCoordsKM cameraKm) {
         if (!chunk.meshReady) {
             generateMesh(chunk);
         }
 
-        if (chunk.shouldSplit(cameraPos) && !chunk.hasChildren()) {
+        if (chunk.shouldSplit(cameraKm) && !chunk.hasChildren()) {
             split(chunk);
-        } else if (chunk.hasChildren() && chunk.shouldMerge(cameraPos)) {
+        } else if (chunk.hasChildren() && chunk.shouldMerge(cameraKm)) {
             merge(chunk);
         }
 
         if (chunk.hasChildren()) {
-            for (TerrainChunk child : chunk.children) {
-                recursiveUpdate(child, cameraPos);
-            }
+            for (TerrainChunk child : chunk.children) recursiveUpdate(child, cameraKm);
         }
     }
 
@@ -68,10 +67,10 @@ public final class TerrainQuadtree implements Disposable {
         float mv = (chunk.v0 + chunk.v1) * 0.5f;
         int d = chunk.depth + 1;
         chunk.children = new TerrainChunk[] {
-            new TerrainChunk(chunk.face, d, chunk.u0, chunk.v0, mu, mv, planetRadius),
-            new TerrainChunk(chunk.face, d, mu, chunk.v0, chunk.u1, mv, planetRadius),
-            new TerrainChunk(chunk.face, d, chunk.u0, mv, mu, chunk.v1, planetRadius),
-            new TerrainChunk(chunk.face, d, mu, mv, chunk.u1, chunk.v1, planetRadius),
+            new TerrainChunk(chunk.face, d, chunk.u0, chunk.v0, mu, mv, radiusKm),
+            new TerrainChunk(chunk.face, d, mu, chunk.v0, chunk.u1, mv, radiusKm),
+            new TerrainChunk(chunk.face, d, chunk.u0, mv, mu, chunk.v1, radiusKm),
+            new TerrainChunk(chunk.face, d, mu, mv, chunk.u1, chunk.v1, radiusKm),
         };
     }
 
@@ -86,17 +85,29 @@ public final class TerrainQuadtree implements Disposable {
         chunk.meshReady = false;
     }
 
+    /** Recompute every live chunk's local placement after a floating-origin rebase. */
+    public void setOrigin(PlanetCoordsKM newOrigin) {
+        this.originPlanetKm = newOrigin;
+        for (TerrainChunk root : roots) replaceRecursive(root);
+    }
+
+    private void replaceRecursive(TerrainChunk chunk) {
+        applyPlacement(chunk);
+        if (chunk.hasChildren()) for (TerrainChunk child : chunk.children) replaceRecursive(child);
+    }
+
+    private void applyPlacement(TerrainChunk chunk) {
+        chunk.placementLocal = CoordConvert.planetToLocal(chunk.centerPlanetKm, originPlanetKm);
+        if (chunk.collisionBody != null) {
+            tmpMat.idt().setTranslation(chunk.placementLocal.x(), chunk.placementLocal.y(), chunk.placementLocal.z());
+            chunk.collisionBody.setWorldTransform(tmpMat);
+        }
+    }
+
     private void generateMesh(TerrainChunk chunk) {
-        // TODO(Task-6): replace stub chunkCenterKm with real planet-km centre once
-        // TerrainChunk carries a PlanetCoordsKM field.
-        com.badlogic.gdx.math.Vector3 dir = CubeSphere.toSphere(
-            chunk.face, (chunk.u0 + chunk.u1) * 0.5f, (chunk.v0 + chunk.v1) * 0.5f);
-        com.galacticodyssey.core.coords.PlanetCoordsKM stubCenter =
-            new com.galacticodyssey.core.coords.PlanetCoordsKM(
-                dir.x * planetRadius, dir.y * planetRadius, dir.z * planetRadius);
         TerrainMeshBuilder.MeshData data = TerrainMeshBuilder.build(
             chunk.face, chunk.u0, chunk.v0, chunk.u1, chunk.v1,
-            noise, biomeMap, (double) planetRadius, stubCenter, chunk.depth, null);
+            noise, biomeMap, radiusKm, chunk.centerPlanetKm, chunk.depth, null);
 
         try {
             chunk.mesh = new Mesh(true,
@@ -108,12 +119,11 @@ public final class TerrainQuadtree implements Disposable {
             chunk.mesh.setVertices(data.vertices);
             chunk.mesh.setIndices(data.indices);
         } catch (Exception e) {
-            // Mesh creation requires a GL context; in headless/test environments
-            // the render mesh will be null but collision is still built below.
-            chunk.mesh = null;
+            chunk.mesh = null; // headless / no GL
         }
 
         buildCollision(chunk, data);
+        applyPlacement(chunk);
         chunk.meshReady = true;
     }
 
@@ -127,11 +137,10 @@ public final class TerrainQuadtree implements Disposable {
             int i1 = (data.indices[i + 1] & 0xFFFF) * stride;
             int i2 = (data.indices[i + 2] & 0xFFFF) * stride;
 
-            // Chunk vertices are in planet-local space; translate to world space so
-            // the physics bodies land in the same coordinate system as the player capsule.
-            v0.set(data.vertices[i0], data.vertices[i0 + 1], data.vertices[i0 + 2]).add(planetCenter);
-            v1.set(data.vertices[i1], data.vertices[i1 + 1], data.vertices[i1 + 2]).add(planetCenter);
-            v2.set(data.vertices[i2], data.vertices[i2 + 1], data.vertices[i2 + 2]).add(planetCenter);
+            // Chunk vertices are already chunk-local metres; placement is set via setWorldTransform.
+            v0.set(data.vertices[i0], data.vertices[i0 + 1], data.vertices[i0 + 2]);
+            v1.set(data.vertices[i1], data.vertices[i1 + 1], data.vertices[i1 + 2]);
+            v2.set(data.vertices[i2], data.vertices[i2 + 1], data.vertices[i2 + 2]);
 
             triMesh.addTriangle(v0, v1, v2);
         }
