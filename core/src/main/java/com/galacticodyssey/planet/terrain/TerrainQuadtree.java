@@ -87,9 +87,16 @@ public final class TerrainQuadtree implements Disposable {
     }
 
     private void generateMesh(TerrainChunk chunk) {
+        // TODO(Task-6): replace stub chunkCenterKm with real planet-km centre once
+        // TerrainChunk carries a PlanetCoordsKM field.
+        com.badlogic.gdx.math.Vector3 dir = CubeSphere.toSphere(
+            chunk.face, (chunk.u0 + chunk.u1) * 0.5f, (chunk.v0 + chunk.v1) * 0.5f);
+        com.galacticodyssey.core.coords.PlanetCoordsKM stubCenter =
+            new com.galacticodyssey.core.coords.PlanetCoordsKM(
+                dir.x * planetRadius, dir.y * planetRadius, dir.z * planetRadius);
         TerrainMeshBuilder.MeshData data = TerrainMeshBuilder.build(
             chunk.face, chunk.u0, chunk.v0, chunk.u1, chunk.v1,
-            noise, biomeMap, planetRadius, chunk.depth, null);
+            noise, biomeMap, (double) planetRadius, stubCenter, chunk.depth, null);
 
         try {
             chunk.mesh = new Mesh(true,

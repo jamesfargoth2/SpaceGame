@@ -1,5 +1,6 @@
 package com.galacticodyssey.planet.terrain;
 
+import com.galacticodyssey.core.coords.PlanetCoordsKM;
 import com.galacticodyssey.planet.BiomeMap;
 import com.galacticodyssey.planet.BiomeType;
 import org.junit.jupiter.api.Test;
@@ -55,7 +56,9 @@ class TerrainMeshBuilderTest {
         TerrainNoiseStack noise = new TerrainNoiseStack(42L);
         BiomeMap biomeMap = new BiomeMap(42L, 0.2f, 0.8f, 0.5f, 288f,
             EnumSet.allOf(BiomeType.class));
+        // Use a stub chunk centre at the POS_Z face midpoint (0,0,1) * 1km.
+        PlanetCoordsKM stubCenter = new PlanetCoordsKM(0.0, 0.0, 1.0);
         return TerrainMeshBuilder.build(CubeFace.POS_Z, 0f, 0f, 1f, 1f,
-            noise, biomeMap, 1.0f, 2, null);
+            noise, biomeMap, 1.0, stubCenter, 2, null);
     }
 }
