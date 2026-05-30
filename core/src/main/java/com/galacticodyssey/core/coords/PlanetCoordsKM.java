@@ -9,5 +9,6 @@ public record PlanetCoordsKM(double x, double y, double z) {
     public PlanetCoordsKM scl(double s)         { return new PlanetCoordsKM(x * s, y * s, z * s); }
     public double len()  { return Math.sqrt(x * x + y * y + z * z); }
     public double dst(PlanetCoordsKM o) { double dx = x - o.x, dy = y - o.y, dz = z - o.z; return Math.sqrt(dx*dx + dy*dy + dz*dz); }
+    /** @return unit vector, or the zero vector if {@code len() == 0}. */
     public PlanetCoordsKM nor() { double l = len(); return l == 0 ? this : new PlanetCoordsKM(x / l, y / l, z / l); }
 }

@@ -18,7 +18,9 @@ public final class CoordConvert {
             (float) ((world.z() - originKm.z()) * KM_TO_M));
     }
 
-    /** Local-scene metres -> planet-space km, given the floating origin's planet-space position. */
+    /** Local-scene metres -> planet-space km, given the floating origin's planet-space position.
+     *  The float local values are widened to double before the multiply (intentional: precision is
+     *  already limited by the original float, but the add with originKm stays in double-precision). */
     public static PlanetCoordsKM localToPlanet(LocalCoordsM local, PlanetCoordsKM originKm) {
         return new PlanetCoordsKM(
             originKm.x() + local.x() * M_TO_KM,

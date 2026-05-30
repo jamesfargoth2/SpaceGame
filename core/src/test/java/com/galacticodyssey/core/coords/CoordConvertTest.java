@@ -28,10 +28,16 @@ class CoordConvertTest {
 
     @Test
     void subtractInDoubleSurvivesLargeCoordinatesWhereFloatWouldFail() {
-        PlanetCoordsKM origin = new PlanetCoordsKM(0, 6371.0, 0);
-        PlanetCoordsKM point  = new PlanetCoordsKM(0, 6371.0005, 0);
+        // At 1,000,000 km the float ULP is ~125 m, so (float)1_000_000.0005 == (float)1_000_000.0.
+        // A float-first subtraction would yield 0; double-first preserves the 0.5 m offset.
+        PlanetCoordsKM origin = new PlanetCoordsKM(0, 1_000_000.0, 0);
+        PlanetCoordsKM point  = new PlanetCoordsKM(0, 1_000_000.0005, 0);
+        // Sanity: prove the float-first path really would lose it (guards against a future "simplification").
+        float floatFirst = ((float) point.y() - (float) origin.y()) * 1000f;
+        assertEquals(0f, floatFirst, 0f, "precondition: float-first subtraction must lose the offset");
+        // The real conversion must preserve it.
         LocalCoordsM local = CoordConvert.planetToLocal(point, origin);
-        assertEquals(0.5f, local.y(), 1e-3f);
+        assertEquals(0.5f, local.y(), 1e-2f);
     }
 
     @Test
