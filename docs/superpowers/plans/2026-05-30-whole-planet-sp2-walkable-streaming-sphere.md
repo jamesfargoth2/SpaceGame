@@ -1042,7 +1042,207 @@ git commit -m "feat(terrain): spawn player/ship on sphere; disable flat-pad dres
 
 ---
 
-## Task 9: Manual verification (run the game)
+## Task 9: Enable floating-origin rebase while on a planet
+
+SP1 left rebase **dormant during planet walking**: `GameWorld.update` only calls `coordinateManager.checkRebase(...)` when no planet is loaded (`getRadiusKm() <= 0`, line ~1117). Without this, the player's local position grows without bound as they walk the globe → float-precision failure. The `OriginRebasedEvent` plumbing already routes to `planetTerrainSystem.onOriginRebased` + gravity + player movement (GameWorld lines 371-375), so enabling the call is the fix; the risk is regressions, so it gets an integration test.
+
+**Files:**
+- Modify: `core/src/main/java/com/galacticodyssey/core/GameWorld.java`
+- Test: `core/src/test/java/com/galacticodyssey/core/PlanetRebaseIntegrationTest.java` *(new)*
+
+- [ ] **Step 1: Write the failing test**
+
+Create `PlanetRebaseIntegrationTest` — wires `CoordinateManager` + `PlanetTerrainSystem` the way `GameWorld` does and asserts that crossing the rebase threshold on a loaded planet shifts the planet-space origin while preserving the player's height above the surface:
+
+```java
+package com.galacticodyssey.core;
+
+import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.physics.bullet.Bullet;
+import com.galacticodyssey.core.coords.PlanetCoordsKM;
+import com.galacticodyssey.core.events.EventBus;
+import com.galacticodyssey.core.events.OriginRebasedEvent;
+import com.galacticodyssey.planet.BiomeMap;
+import com.galacticodyssey.planet.BiomeType;
+import com.galacticodyssey.planet.terrain.PlanetTerrainSystem;
+import com.galacticodyssey.planet.terrain.PlanetTestSupport;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+import java.util.EnumSet;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+class PlanetRebaseIntegrationTest {
+    @BeforeAll static void initBullet() { Bullet.init(); }
+
+    @Test
+    void walkingPastThresholdRebasesPlanetOrigin() {
+        EventBus bus = new EventBus();
+        CoordinateManager coords = new CoordinateManager(bus);
+        PlanetTerrainSystem terrain = new PlanetTerrainSystem(null);
+        // Wire the same routing GameWorld does.
+        bus.subscribe(OriginRebasedEvent.class, e -> terrain.onOriginRebased(e.deltaX, e.deltaY, e.deltaZ));
+        AtomicInteger rebases = new AtomicInteger();
+        bus.subscribe(OriginRebasedEvent.class, e -> rebases.incrementAndGet());
+
+        double radiusKm = PlanetTestSupport.earthLike().radius * PlanetTerrainSystem.EARTH_RADIUS_KM;
+        BiomeMap biome = new BiomeMap(0L, 0f, 6000f, 0.5f, 293f, EnumSet.allOf(BiomeType.class));
+        terrain.loadPlanet(PlanetTestSupport.earthLike(), biome, new PlanetCoordsKM(0, radiusKm, 0));
+
+        PlanetCoordsKM originBefore = terrain.getOriginPlanetKm();
+        // Player walks 2 km along local +X — well past the 1000 m rebase threshold.
+        coords.checkRebase(new Vector3(2000f, 0f, 0f));
+
+        assertTrue(rebases.get() >= 1, "crossing the threshold should fire a rebase on a planet");
+        PlanetCoordsKM originAfter = terrain.getOriginPlanetKm();
+        assertNotEquals(originBefore.x(), originAfter.x(), 1e-9,
+            "planet-space origin should shift with the rebase");
+    }
+}
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `./gradlew :core:test --tests "com.galacticodyssey.core.PlanetRebaseIntegrationTest"`
+Expected: PASS already at the `CoordinateManager` level (this test exercises the wiring directly, not the gated `GameWorld.update`). If it passes, it documents the contract; the gate fix below is what makes it true *in-game*. If `CoordinateManager.checkRebase` itself has a planet gate, the test FAILS — fix it in Step 3.
+
+- [ ] **Step 3: Remove the planet gate in `GameWorld.update`**
+
+Replace the gated block (lines 1117-1122):
+
+```java
+        if (planetTerrainSystem == null || planetTerrainSystem.getRadiusKm() <= 0) {
+            Entity player = engine.getEntitiesFor(
+                com.badlogic.ashley.core.Family.all(PlayerTagComponent.class, TransformComponent.class).get()).first();
+            TransformComponent t = player.getComponent(TransformComponent.class);
+            coordinateManager.checkRebase(t.position);
+        }
+```
+
+with (rebase always active, planet or not — SP2 needs it while walking the sphere):
+
+```java
+        // SP2: floating-origin rebase must run while walking on a planet too, or local
+        // coordinates grow unbounded as the player crosses the globe.
+        com.badlogic.ashley.utils.ImmutableArray<Entity> players = engine.getEntitiesFor(
+            com.badlogic.ashley.core.Family.all(PlayerTagComponent.class, TransformComponent.class).get());
+        if (players.size() > 0) {
+            TransformComponent t = players.first().getComponent(TransformComponent.class);
+            coordinateManager.checkRebase(t.position);
+        }
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `./gradlew :core:test --tests "com.galacticodyssey.core.PlanetRebaseIntegrationTest"`
+Then the SP1 rebase suite (must stay green):
+Run: `./gradlew :core:test --tests "com.galacticodyssey.planet.terrain.TerrainQuadtreeRebaseTest"`
+Expected: PASS.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add core/src/main/java/com/galacticodyssey/core/GameWorld.java core/src/test/java/com/galacticodyssey/core/PlanetRebaseIntegrationTest.java
+git commit -m "fix(terrain): activate floating-origin rebase while walking on a planet"
+```
+
+---
+
+## Task 10: Far-chunk render cull (float-precision guard)
+
+With the lower altitude gate removed (Task 7), the sphere's coarse far-side/below-horizon chunks are placed in float metres at magnitudes up to ±planet-diameter (~1e10 m) — far outside the float-safe band, causing jitter/z-fighting if drawn. They're beyond the horizon and invisible anyway. Cull them from rendering by placement magnitude. (Collision is already bounded by the Task 5 gate; this is the render-side guard.)
+
+**Files:**
+- Modify: `core/src/main/java/com/galacticodyssey/planet/terrain/TerrainQuadtree.java`
+- Modify: `core/src/main/java/com/galacticodyssey/ui/GameScreen.java`
+- Test: `core/src/test/java/com/galacticodyssey/planet/terrain/TerrainQuadtreeStreamingTest.java` *(extend)*
+
+- [ ] **Step 1: Write the failing test**
+
+Add to `TerrainQuadtreeStreamingTest`:
+
+```java
+@Test
+void renderableLeavesExcludeFarSideChunks() {
+    TerrainQuadtree tree = tree();
+    PlanetCoordsKM cam = new PlanetCoordsKM(0, 6371.0 + 0.01, 0); // +Y pole
+    for (int frame = 0; frame < 400; frame++) { tree.update(cam); tree.pump(); }
+
+    var all = tree.getVisibleLeaves();
+    var renderable = tree.getRenderableLeaves();
+    assertTrue(renderable.size() <= all.size());
+    assertTrue(renderable.size() > 0, "near-field chunks must remain renderable");
+    // Every renderable chunk is within the float-safe render band.
+    for (var c : renderable) {
+        float mag = c.placementLocal.toVector3().len();
+        assertTrue(mag <= TerrainQuadtree.RENDER_BAND_M,
+            "renderable chunk beyond band: " + mag);
+    }
+    // The far-side root (−Y) is in the full set but not renderable (placement ~ planet diameter).
+    boolean someFarExcluded = all.size() > renderable.size();
+    assertTrue(someFarExcluded, "far-side chunks should be culled from rendering");
+}
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `./gradlew :core:test --tests "com.galacticodyssey.planet.terrain.TerrainQuadtreeStreamingTest"`
+Expected: FAIL — `getRenderableLeaves()` / `RENDER_BAND_M` don't exist.
+
+- [ ] **Step 3: Add the render band + filter to `TerrainQuadtree`**
+
+Add the constant near the collision constants (Task 5):
+
+```java
+    /** Chunks whose local placement exceeds this are beyond the horizon / float-safe band and are
+     *  not rendered (SP2). The far hemisphere is the orbital backdrop's job until SP3. */
+    public static final float RENDER_BAND_M = 200_000f; // 200 km local
+```
+
+Add the filtered accessor next to `getVisibleLeaves` (line 179):
+
+```java
+    private final List<TerrainChunk> renderCache = new ArrayList<>();
+
+    public List<TerrainChunk> getRenderableLeaves() {
+        renderCache.clear();
+        for (TerrainChunk leaf : getVisibleLeaves()) {
+            if (leaf.placementLocal.toVector3().len() <= RENDER_BAND_M) renderCache.add(leaf);
+        }
+        return renderCache;
+    }
+```
+
+> Implementer note: `getVisibleLeaves` reuses `leafCache`; copy into `renderCache` (separate list) so the two accessors don't alias. The `toVector3()` allocation per leaf is acceptable at the bounded renderable count; if profiling flags it, add a `placementMagnitudeM()` to `TerrainChunk` computed at placement time.
+
+- [ ] **Step 4: Use it in `GameScreen`**
+
+In `renderTerrain` (the sphere draw loop added/kept in Task 7), change the iteration from `pts.getVisibleLeaves()` to `pts.getRenderableLeaves()`. Add the pass-through on `PlanetTerrainSystem`:
+
+```java
+    public java.util.List<TerrainChunk> getRenderableLeaves() {
+        if (quadtree == null) return java.util.Collections.emptyList();
+        return quadtree.getRenderableLeaves();
+    }
+```
+
+- [ ] **Step 5: Run tests to verify they pass**
+
+Run: `./gradlew :core:test --tests "com.galacticodyssey.planet.terrain.TerrainQuadtreeStreamingTest"`
+Expected: PASS.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add core/src/main/java/com/galacticodyssey/planet/terrain/TerrainQuadtree.java core/src/main/java/com/galacticodyssey/planet/terrain/PlanetTerrainSystem.java core/src/main/java/com/galacticodyssey/ui/GameScreen.java core/src/test/java/com/galacticodyssey/planet/terrain/TerrainQuadtreeStreamingTest.java
+git commit -m "feat(terrain): cull far-side chunks beyond float-safe render band"
+```
+
+---
+
+## Task 11: Manual verification (run the game)
 
 **Files:** none (verification only).
 
@@ -1055,6 +1255,7 @@ Use the `run-galactic-odyssey` skill to build, launch, and screenshot a new game
 - Player stands on terrain (does not fall through) at spawn.
 - Terrain extends to the horizon in every direction — no 5 km flat-pad edge / void.
 - Walking in any direction streams new terrain without a hard edge; no multi-second freeze (async streaming).
+- Walking a long distance (past several rebase thresholds) shows no position jitter or terrain shimmer — floating-origin rebase stays active on the planet (Task 9).
 - Looking down shows curved/lumpy ground with meter-to-tens-of-meters relief, not a flat plane.
 - Flying straight up still transitions smoothly toward the orbital backdrop (the high-altitude fade is intact).
 
@@ -1065,7 +1266,7 @@ Use the `run-galactic-odyssey` skill to build, launch, and screenshot a new game
 ## Self-Review
 
 **Spec coverage:**
-- Deeper LOD → Task 2. High-freq detail → Task 1. Async streamer → Task 4. Quadtree wiring + collision gating + stale discard → Task 5. Drain in `update` + spawn pre-warm → Task 6. `surfaceHeightAt` seam → Task 3. Retire flat pad / remove lower gate / keep orbital fade → Task 7. Spawn on sphere + dressing disabled → Task 8. Acceptance → Task 9. All spec §3 items mapped.
+- Deeper LOD → Task 2. High-freq detail → Task 1. Async streamer → Task 4. Quadtree wiring + collision gating + stale discard → Task 5. Drain in `update` + spawn pre-warm → Task 6. `surfaceHeightAt` seam → Task 3. Retire flat pad / remove lower gate / keep orbital fade → Task 7. Spawn on sphere + dressing disabled → Task 8. **SP1 carry-overs:** activate floating-origin rebase while walking a planet → Task 9; far-chunk float-precision render cull → Task 10. Acceptance → Task 11. All spec §3 items + SP1 carry-overs mapped.
 - Out-of-scope items (grass/veg/water/NPC re-anchor, splatting, SP3 frame unification) are explicitly deferred via the `SP2_FLAT_DRESSING` guard + TODO markers — not silently dropped.
 
 **Type consistency:** `surfaceRadiusKmAt(Vector3)`, `surfacePointLocal(Vector3)`, `prewarmAround(Vector3)`, `spawnPlayerOnSphere(Vector3,float)`, `TerrainStreamer.submit(TerrainChunk)/drain(int,Consumer)/dispose()`, `GeneratedChunkData(chunk,token,vertices,indices,shape,triMesh)/disposeNative()`, `TerrainChunk.State`, `generationToken()/invalidate()`, `wantsCollision`, `TerrainQuadtree.pump()` — used consistently across tasks.
