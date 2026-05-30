@@ -16,13 +16,15 @@ import java.util.List;
 public final class TerrainQuadtree implements Disposable {
     private final TerrainChunk[] roots;
     private final float planetRadius;
+    private final Vector3 planetCenter;
     private final TerrainNoiseStack noise;
     private final BiomeMap biomeMap;
     private final btDiscreteDynamicsWorld dynamicsWorld;
 
-    public TerrainQuadtree(float planetRadius, TerrainNoiseStack noise, BiomeMap biomeMap,
-                           btDiscreteDynamicsWorld dynamicsWorld) {
+    public TerrainQuadtree(float planetRadius, Vector3 planetCenter, TerrainNoiseStack noise,
+                           BiomeMap biomeMap, btDiscreteDynamicsWorld dynamicsWorld) {
         this.planetRadius = planetRadius;
+        this.planetCenter = new Vector3(planetCenter);
         this.noise = noise;
         this.biomeMap = biomeMap;
         this.dynamicsWorld = dynamicsWorld;
@@ -118,9 +120,11 @@ public final class TerrainQuadtree implements Disposable {
             int i1 = (data.indices[i + 1] & 0xFFFF) * stride;
             int i2 = (data.indices[i + 2] & 0xFFFF) * stride;
 
-            v0.set(data.vertices[i0], data.vertices[i0 + 1], data.vertices[i0 + 2]);
-            v1.set(data.vertices[i1], data.vertices[i1 + 1], data.vertices[i1 + 2]);
-            v2.set(data.vertices[i2], data.vertices[i2 + 1], data.vertices[i2 + 2]);
+            // Chunk vertices are in planet-local space; translate to world space so
+            // the physics bodies land in the same coordinate system as the player capsule.
+            v0.set(data.vertices[i0], data.vertices[i0 + 1], data.vertices[i0 + 2]).add(planetCenter);
+            v1.set(data.vertices[i1], data.vertices[i1 + 1], data.vertices[i1 + 2]).add(planetCenter);
+            v2.set(data.vertices[i2], data.vertices[i2 + 1], data.vertices[i2 + 2]).add(planetCenter);
 
             triMesh.addTriangle(v0, v1, v2);
         }

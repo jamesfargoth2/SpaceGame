@@ -48,6 +48,12 @@ public final class AtmosphericSkyRenderer implements Disposable {
         "uniform vec2 u_windDirection;\n" +
         "uniform vec3 u_cameraPos;\n" +
         "\n" +
+        "const int MAX_SKY_STARS = 128;\n" +
+        "uniform int u_starCount;\n" +
+        "uniform vec3 u_starDirs[MAX_SKY_STARS];\n" +
+        "uniform vec3 u_starColors[MAX_SKY_STARS];\n" +
+        "uniform float u_starBrights[MAX_SKY_STARS];\n" +
+        "\n" +
         "const float PI = 3.14159265;\n" +
         "\n" +
         "float rayleighPhase(float cosTheta) {\n" +
@@ -168,6 +174,24 @@ public final class AtmosphericSkyRenderer implements Disposable {
         "        }\n" +
         "    }\n" +
         "    \n" +
+        "    // Galaxy stars — visible at night, faded by atmosphere near horizon\n" +
+        "    float nightFade = smoothstep(0.1, -0.1, u_sunDirection.y);\n" +
+        "    if (nightFade > 0.01 && elevation > 0.0) {\n" +
+        "        float starExtinction = exp(-viewAM * 0.15);\n" +
+        "        for (int i = 0; i < MAX_SKY_STARS; i++) {\n" +
+        "            if (i >= u_starCount) break;\n" +
+        "            float cosA = dot(ray, u_starDirs[i]);\n" +
+        "            if (cosA < 0.995) continue;\n" +
+        "            float angle = acos(clamp(cosA, -1.0, 1.0));\n" +
+        "            float b = max(u_starBrights[i], 0.15);\n" +
+        "            float coreRadius = 0.001 + 0.003 * b;\n" +
+        "            float point = smoothstep(coreRadius * 2.0, coreRadius * 0.3, angle);\n" +
+        "            float glow = exp(-angle * angle / (0.00002 + 0.00008 * b)) * 0.25 * b;\n" +
+        "            float intensity = (point + glow) * nightFade * starExtinction;\n" +
+        "            sky += u_starColors[i] * intensity * 5.0;\n" +
+        "        }\n" +
+        "    }\n" +
+        "    \n" +
         "    sky = vec3(1.0) - exp(-sky);\n" +
         "    sky = pow(sky, vec3(1.0 / 2.2));\n" +
         "    \n" +
@@ -185,6 +209,11 @@ public final class AtmosphericSkyRenderer implements Disposable {
     private final Vector3 cachedHorizonColor = new Vector3(0.6f, 0.55f, 0.45f);
     private float cachedFogDensity = 0.004f;
     private float cachedAmbientIntensity = 0.35f;
+
+    private int starCount;
+    private float[] starDirs;
+    private float[] starColors;
+    private float[] starBrights;
 
     public AtmosphericSkyRenderer() {
         quad = buildFullscreenQuad();
@@ -206,6 +235,17 @@ public final class AtmosphericSkyRenderer implements Disposable {
 
     public void setTime(float elapsedSeconds) {
         this.time = elapsedSeconds;
+    }
+
+    public void setStarField(SkyStarField field) {
+        if (field == null || field.getCount() == 0) {
+            starCount = 0;
+            return;
+        }
+        starCount = field.getCount();
+        starDirs = field.getDirections();
+        starColors = field.getColors();
+        starBrights = field.getBrightnesses();
     }
 
     public void render(PerspectiveCamera camera) {
@@ -237,6 +277,13 @@ public final class AtmosphericSkyRenderer implements Disposable {
         shader.setUniformf("u_cloudCoverage", params.cloudCoverage);
         shader.setUniformf("u_time", time);
         shader.setUniformf("u_windDirection", 1f, 0.3f);
+
+        shader.setUniformi("u_starCount", starCount);
+        if (starCount > 0 && starDirs != null) {
+            shader.setUniform3fv("u_starDirs[0]", starDirs, 0, starCount * 3);
+            shader.setUniform3fv("u_starColors[0]", starColors, 0, starCount * 3);
+            shader.setUniform1fv("u_starBrights[0]", starBrights, 0, starCount);
+        }
 
         quad.render(shader, GL20.GL_TRIANGLES);
 

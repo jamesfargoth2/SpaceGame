@@ -123,8 +123,8 @@ public class GameScreen implements Screen {
     // and produce giant phantom triangles across the sky.
     private static final int TERRAIN_VERTS_X = 255;
     private static final int TERRAIN_VERTS_Z = 255;
-    private static final float TERRAIN_WIDTH = 500f;
-    private static final float TERRAIN_DEPTH = 500f;
+    private static final float TERRAIN_WIDTH = 5000f;
+    private static final float TERRAIN_DEPTH = 5000f;
     private static final long TERRAIN_SEED = 42L;
     private static final float PAUSE_WORLD_WIDTH = 1280f;
     private static final float PAUSE_WORLD_HEIGHT = 720f;
@@ -139,7 +139,13 @@ public class GameScreen implements Screen {
     private final Array<Entity> shipEntities = new Array<>();
     private ShaderProgram shipShader;
 
+    private static final float DETAIL_TILE_SIZE = 8f; // detail texture tiles every 8 world metres
     private Mesh terrainMesh;
+    private Texture terrainDetailTexture;
+    private Texture terrainGrassTex;
+    private Texture terrainDirtTex;
+    private Texture terrainRockTex;
+    private Texture terrainGravelTex;
     private ShaderProgram terrainShader;
     private ModelBatch modelBatch;
     private ModelBatch gbufferBatch;
@@ -288,6 +294,8 @@ public class GameScreen implements Screen {
         gameWorld.getOceanSpawner().spawnSeawater(populatedWorld.seaLevel, terrainSeed);
 
         createTerrainMesh();
+        terrainDetailTexture = createDetailTexture(terrainSeed);
+        createTerrainMaterialTextures(terrainSeed);
         createTerrainPhysics();
         createScatterBoxes();
 
@@ -374,6 +382,11 @@ public class GameScreen implements Screen {
         buildScreenTabManager();
 
         atmosphericSkyRenderer = new AtmosphericSkyRenderer();
+        if (session != null && session.galaxy != null && session.startingStarPosition != null) {
+            SkyStarField starField = new SkyStarField();
+            starField.collect(session.galaxy, session.startingStarPosition, session.seed);
+            atmosphericSkyRenderer.setStarField(starField);
+        }
         dayNightCycle = new DayNightCycle(600f, 23.5f, false);
 
         Entity sunEntity = new Entity();
@@ -920,7 +933,7 @@ public class GameScreen implements Screen {
             heightmap, TERRAIN_VERTS_X, TERRAIN_VERTS_Z, TERRAIN_WIDTH, TERRAIN_DEPTH);
 
         int vertCount = TERRAIN_VERTS_X * TERRAIN_VERTS_Z;
-        float[] vertices = new float[vertCount * 10];
+        float[] vertices = new float[vertCount * 12]; // pos(3)+normal(3)+color(4)+uv(2)
 
         float cellW = TERRAIN_WIDTH / (TERRAIN_VERTS_X - 1);
         float cellD = TERRAIN_DEPTH / (TERRAIN_VERTS_Z - 1);
@@ -936,7 +949,7 @@ public class GameScreen implements Screen {
         for (int z = 0; z < TERRAIN_VERTS_Z; z++) {
             for (int x = 0; x < TERRAIN_VERTS_X; x++) {
                 int idx = z * TERRAIN_VERTS_X + x;
-                int vi = idx * 10;
+                int vi = idx * 12;
                 float h = heightmap[idx];
 
                 float wx = x * cellW - halfW;
@@ -962,6 +975,10 @@ public class GameScreen implements Screen {
                 vertices[vi + 7] = biomeCol.g;
                 vertices[vi + 8] = biomeCol.b;
                 vertices[vi + 9] = 1f;
+
+                // UV: tile a detail texture every DETAIL_TILE_SIZE metres in world space
+                vertices[vi + 10] = wx / DETAIL_TILE_SIZE;
+                vertices[vi + 11] = wz / DETAIL_TILE_SIZE;
             }
         }
 
@@ -987,10 +1004,140 @@ public class GameScreen implements Screen {
         terrainMesh = new Mesh(true, vertCount, indices.length,
             new VertexAttribute(VertexAttributes.Usage.Position, 3, "a_position"),
             new VertexAttribute(VertexAttributes.Usage.Normal, 3, "a_normal"),
-            new VertexAttribute(VertexAttributes.Usage.ColorUnpacked, 4, "a_color"));
+            new VertexAttribute(VertexAttributes.Usage.ColorUnpacked, 4, "a_color"),
+            new VertexAttribute(VertexAttributes.Usage.TextureCoordinates, 2, "a_texCoord0"));
 
         terrainMesh.setVertices(vertices);
         terrainMesh.setIndices(indices);
+    }
+
+    /**
+     * Generates a 256×256 tiling detail texture that multiplies the biome vertex colour
+     * to add close-range surface grain (grass blades, dirt patches, pebbles).
+     * The texture is neutral (values ~0.65–1.0) so biome colours are preserved.
+     */
+    private Texture createDetailTexture(long seed) {
+        int size = 256;
+        com.badlogic.gdx.graphics.Pixmap pix =
+            new com.badlogic.gdx.graphics.Pixmap(size, size, com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);
+        com.galacticodyssey.galaxy.GalaxyNoise detailNoise =
+            new com.galacticodyssey.galaxy.GalaxyNoise(seed ^ 0xD37A11CAFEL);
+
+        for (int py = 0; py < size; py++) {
+            for (int px = 0; px < size; px++) {
+                float fx = px / (float) size;
+                float fy = py / (float) size;
+                // Coarse: dirt / grass clump patches (~1 m scale at DETAIL_TILE_SIZE=8 m)
+                float coarse = detailNoise.fbm(fx * 5f, fy * 5f, 3, 0.55f, 2.0f);
+                // Fine: grass-blade / pebble scale detail
+                float fine   = detailNoise.fbm(fx * 18f + 3.7f, fy * 18f + 2.1f, 2, 0.5f, 2.0f);
+                // Combine and remap to [0.55, 1.0] — dark = compacted dirt, bright = sun-lit tip
+                float v = com.badlogic.gdx.math.MathUtils.clamp(
+                    0.55f + (coarse * 0.65f + fine * 0.35f) * 0.225f + 0.225f, 0f, 1f);
+                // Slight hue shift: warmer in coarse-dark areas (dirt), cooler in bright (dew)
+                float r = com.badlogic.gdx.math.MathUtils.clamp(v + coarse * 0.04f,  0f, 1f);
+                float g = com.badlogic.gdx.math.MathUtils.clamp(v + fine   * 0.02f,  0f, 1f);
+                float b = com.badlogic.gdx.math.MathUtils.clamp(v - fine   * 0.03f,  0f, 1f);
+                pix.setColor(r, g, b, 1f);
+                pix.drawPixel(px, py);
+            }
+        }
+
+        com.badlogic.gdx.graphics.Texture tex = new com.badlogic.gdx.graphics.Texture(pix, true);
+        tex.setFilter(com.badlogic.gdx.graphics.Texture.TextureFilter.MipMapLinearLinear,
+                      com.badlogic.gdx.graphics.Texture.TextureFilter.Linear);
+        tex.setWrap(com.badlogic.gdx.graphics.Texture.TextureWrap.Repeat,
+                    com.badlogic.gdx.graphics.Texture.TextureWrap.Repeat);
+        pix.dispose();
+        return tex;
+    }
+
+    private void createTerrainMaterialTextures(long seed) {
+        com.galacticodyssey.galaxy.GalaxyNoise n =
+            new com.galacticodyssey.galaxy.GalaxyNoise(seed ^ 0x7E88A1FE5CL);
+
+        terrainGrassTex  = generateMaterialTexture(n, 512, MaterialType.GRASS);
+        terrainDirtTex   = generateMaterialTexture(n, 512, MaterialType.DIRT);
+        terrainRockTex   = generateMaterialTexture(n, 512, MaterialType.ROCK);
+        terrainGravelTex = generateMaterialTexture(n, 512, MaterialType.GRAVEL);
+    }
+
+    private enum MaterialType { GRASS, DIRT, ROCK, GRAVEL }
+
+    private Texture generateMaterialTexture(com.galacticodyssey.galaxy.GalaxyNoise noise,
+                                             int size, MaterialType type) {
+        com.badlogic.gdx.graphics.Pixmap pix =
+            new com.badlogic.gdx.graphics.Pixmap(size, size, com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);
+
+        float offset = type.ordinal() * 137.5f;
+
+        for (int py = 0; py < size; py++) {
+            for (int px = 0; px < size; px++) {
+                float fx = px / (float) size;
+                float fy = py / (float) size;
+                float r, g, b;
+
+                switch (type) {
+                    case GRASS: {
+                        float blades = noise.fbm(fx * 16f + offset, fy * 16f, 4, 0.55f, 2.0f);
+                        float clumps = noise.fbm(fx * 3.5f + offset, fy * 3.5f + 50f, 3, 0.6f, 2.0f);
+                        float micro  = noise.fbm(fx * 32f + offset, fy * 32f + 80f, 2, 0.4f, 2.0f);
+                        float v = blades * 0.4f + clumps * 0.35f + micro * 0.25f;
+                        v = v * 0.5f + 0.5f;
+                        float shadow = clumps < -0.1f ? 0.65f : 1f;
+                        r = (0.06f + v * 0.18f) * shadow;
+                        g = (0.14f + v * 0.38f) * shadow;
+                        b = (0.02f + v * 0.06f) * shadow;
+                        break;
+                    }
+                    case DIRT: {
+                        float coarse = noise.fbm(fx * 5f + offset, fy * 5f + 200f, 3, 0.5f, 2.0f);
+                        float fine   = noise.fbm(fx * 22f + offset, fy * 22f + 230f, 3, 0.45f, 2.0f);
+                        float pebble = noise.billowFbm(fx * 14f + offset, fy * 14f + 260f, 3, 0.5f, 2.0f);
+                        float v = coarse * 0.35f + fine * 0.3f + pebble * 0.35f;
+                        v = v * 0.5f + 0.5f;
+                        r = 0.25f + v * 0.22f + fine * 0.04f;
+                        g = 0.16f + v * 0.14f;
+                        b = 0.08f + v * 0.07f;
+                        break;
+                    }
+                    case ROCK: {
+                        float base   = noise.fbm(fx * 4f + offset, fy * 4f + 400f, 3, 0.5f, 2.0f);
+                        float cracks = noise.ridgedFbm(fx * 10f + offset, fy * 10f + 430f, 5, 2.0f, 2.0f);
+                        float detail = noise.fbm(fx * 20f + offset, fy * 20f + 460f, 2, 0.5f, 2.0f);
+                        float v = base * 0.3f + (1f - cracks) * 0.4f + detail * 0.3f;
+                        v = v * 0.5f + 0.5f;
+                        float crackDark = cracks > 0.7f ? 0.55f : 1f;
+                        r = (0.22f + v * 0.22f) * crackDark;
+                        g = (0.20f + v * 0.18f) * crackDark;
+                        b = (0.17f + v * 0.15f) * crackDark;
+                        break;
+                    }
+                    default: /* GRAVEL */ {
+                        float stones = noise.billowFbm(fx * 12f + offset, fy * 12f + 600f, 3, 0.5f, 2.0f);
+                        float fine   = noise.fbm(fx * 28f + offset, fy * 28f + 630f, 2, 0.45f, 2.0f);
+                        float v = stones * 0.5f + fine * 0.5f;
+                        v = v * 0.5f + 0.5f;
+                        r = 0.30f + v * 0.22f;
+                        g = 0.24f + v * 0.16f;
+                        b = 0.15f + v * 0.10f;
+                        break;
+                    }
+                }
+
+                r = com.badlogic.gdx.math.MathUtils.clamp(r, 0f, 1f);
+                g = com.badlogic.gdx.math.MathUtils.clamp(g, 0f, 1f);
+                b = com.badlogic.gdx.math.MathUtils.clamp(b, 0f, 1f);
+                pix.setColor(r, g, b, 1f);
+                pix.drawPixel(px, py);
+            }
+        }
+
+        Texture tex = new Texture(pix, true);
+        tex.setFilter(Texture.TextureFilter.MipMapLinearLinear, Texture.TextureFilter.Linear);
+        tex.setWrap(Texture.TextureWrap.Repeat, Texture.TextureWrap.Repeat);
+        pix.dispose();
+        return tex;
     }
 
     private void createTerrainPhysics() {
@@ -1384,11 +1531,10 @@ public class GameScreen implements Screen {
             (gameWorld != null) ? gameWorld.getPlanetTerrainSystem() : null;
         float sphereRadius = (pts != null) ? pts.getPlanetRadius() : 0f;
 
-        // At orbital altitude (> 100 m above the flat spawn area) widen the far clip so
-        // the full planet sphere is visible, then update the combined projection matrix.
+        // Sphere terrain renders at orbital altitude only (> 100 m above the flat terrain surface).
+        // At ground level the flat terrain mesh handles both rendering and physics.
         boolean useSphereTerrain = false;
         if (sphereRadius > 0f) {
-            // Surface sits at y ≈ 0 in the flat terrain; spawn is ~2 m above it.
             float altitudeAboveSurface = camera.position.y - 2f;
             useSphereTerrain = altitudeAboveSurface > 100f;
             if (useSphereTerrain) {
@@ -1397,7 +1543,6 @@ public class GameScreen implements Screen {
                     camera.far = requiredFar;
                     camera.update();
                 }
-                // Keep the LOD quadtree in sync with the camera in planet-local space.
                 pts.setCameraPositionWorld(camera.position);
             }
         }
@@ -1443,10 +1588,32 @@ public class GameScreen implements Screen {
             tmpNormalMat3.set(tmpMat4).inv().transpose();
             shader.setUniformMatrix("u_normalMatrix", tmpNormalMat3);
         } else {
-            // Ground-level view: use the seeded flat terrain mesh.
             debugTerrainPenetration();
-            terrainMesh.render(shader, GL20.GL_TRIANGLES);
-            // Restore camera.far to game-world default after any sphere pass.
+            ShaderProgram tShader = deferredRenderer.getShaderCache()
+                .get("gbuffer_terrain.vert", "gbuffer_terrain.frag");
+            tShader.bind();
+            tShader.setUniformMatrix("u_projViewTrans", camera.combined);
+            tmpMat4.idt();
+            tShader.setUniformMatrix("u_worldTrans", tmpMat4);
+            tmpMat4.set(camera.view);
+            tmpNormalMat3.set(tmpMat4).inv().transpose();
+            tShader.setUniformMatrix("u_normalMatrix", tmpNormalMat3);
+            tShader.setUniformf("u_texScale", 0.15f);
+            tShader.setUniformi("u_darkBackfaces", 0);
+
+            if (terrainGrassTex != null) {
+                terrainGrassTex.bind(0);
+                tShader.setUniformi("u_grassTex", 0);
+                terrainDirtTex.bind(1);
+                tShader.setUniformi("u_dirtTex", 1);
+                terrainRockTex.bind(2);
+                tShader.setUniformi("u_rockTex", 2);
+                terrainGravelTex.bind(3);
+                tShader.setUniformi("u_gravelTex", 3);
+            }
+
+            terrainMesh.render(tShader, GL20.GL_TRIANGLES);
+            Gdx.gl.glActiveTexture(GL20.GL_TEXTURE0);
             if (camera.far > 5000f) {
                 camera.far = 5000f;
                 camera.update();
@@ -1616,6 +1783,14 @@ public class GameScreen implements Screen {
             terrainMesh.dispose();
             terrainMesh = null;
         }
+        if (terrainDetailTexture != null) {
+            terrainDetailTexture.dispose();
+            terrainDetailTexture = null;
+        }
+        if (terrainGrassTex != null) { terrainGrassTex.dispose(); terrainGrassTex = null; }
+        if (terrainDirtTex != null) { terrainDirtTex.dispose(); terrainDirtTex = null; }
+        if (terrainRockTex != null) { terrainRockTex.dispose(); terrainRockTex = null; }
+        if (terrainGravelTex != null) { terrainGravelTex.dispose(); terrainGravelTex = null; }
         if (terrainShader != null) {
             terrainShader.dispose();
             terrainShader = null;
