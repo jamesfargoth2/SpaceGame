@@ -65,16 +65,18 @@ public final class ScatteringParams {
     }
 
     public static ScatteringParams earthLike() {
-        float pR = 6371f;
-        float scaleH = 8.5f;
+        // Lockstep with real-scale terrain frame (SP1): all geometry in metres.
+        // Full sky/density retuning (optical-path coefficients) deferred to SP3.
+        float pR = 6_371_000f;              // metres (6 371 km × 1 000)
+        float scaleH = 8_500f;              // metres (8.5 km × 1 000)
         return new ScatteringParams(
             5.5e-3f, 13.0e-3f, 22.4e-3f,   // Rayleigh RGB per-km (blue > red)
             21e-3f, 0.76f,                   // Mie coeff per-km + asymmetry
             2.1e-3f, 0.0f, 0.0f,            // Absorption per-km (ozone-like, mostly red channel)
-            scaleH, 1.2f,                    // Scale heights (km)
-            pR, pR + scaleH * 6f,            // Planet + atmosphere radius (km)
+            scaleH, 1_200f,                  // Scale heights (m)
+            pR, pR + scaleH * 6f,            // Planet + atmosphere radius (m)
             22.0f, 0.00465f,                 // Sun intensity + angular radius (radians)
-            1.5f, 4.0f, 0.45f,              // Cloud base, top, coverage (km)
+            1_500f, 4_000f, 0.45f,          // Cloud base, top (m), coverage
             0.004f                           // Fog density
         );
     }
@@ -142,9 +144,11 @@ public final class ScatteringParams {
         float absG = so2Frac > 0.05f ? 1.5e-3f * pressure : 0f;
         float absB = 0f;
 
-        // Planet geometry — radius is in Earth-radii, convert to km for render-space
-        float pR   = planet.radius * 6371f;
-        float atmoR = pR + scaleH * 6f;
+        // Lockstep with real-scale terrain frame (SP1): geometry in metres.
+        // Full sky/density retuning (optical-path coefficients) deferred to SP3.
+        float pR   = planet.radius * 6371f * 1000f; // metres (Earth-radii → km → m)
+        float scaleHm = scaleH * 1000f;             // scale height in metres
+        float atmoR = pR + scaleHm * 6f;
 
         // Sun intensity from equilibrium temperature
         float sunIntensity = Math.max(0f, 22.0f * (atmo.equilibriumTemp / 255f));
@@ -160,10 +164,11 @@ public final class ScatteringParams {
         }
         cloudCoverage = Math.max(0f, Math.min(1f, cloudCoverage));
 
-        float cloudBase = 1.5f + (1f / Math.max(0.1f, pressure));
-        float cloudTop  = cloudBase + 2f + pressure * 0.5f;
-        cloudBase = Math.max(1f, Math.min(4f, cloudBase));
-        cloudTop  = Math.max(cloudBase + 1f, Math.min(8f, cloudTop));
+        // Cloud layers in metres (were km; lockstep with real-scale terrain frame SP1)
+        float cloudBase = (1.5f + (1f / Math.max(0.1f, pressure))) * 1000f;
+        float cloudTop  = cloudBase + (2f + pressure * 0.5f) * 1000f;
+        cloudBase = Math.max(1_000f, Math.min(4_000f, cloudBase));
+        cloudTop  = Math.max(cloudBase + 1_000f, Math.min(8_000f, cloudTop));
 
         // Fog density from pressure
         float fogDensity;
@@ -173,13 +178,14 @@ public final class ScatteringParams {
         else                       fogDensity = 0.02f  + (pressure - 10f) * 0.002f;
         fogDensity = Math.min(0.05f, fogDensity);
 
-        float scaleHeightMie = 1.2f / (float) Math.sqrt(Math.max(0.1f, pressure));
+        // Mie scale height in metres (was km)
+        float scaleHeightMie = (1.2f / (float) Math.sqrt(Math.max(0.1f, pressure))) * 1000f;
 
         return new ScatteringParams(
             rayleighR, rayleighG, rayleighB,
             mieCoeff, mieG,
             absR, absG, absB,
-            scaleH, scaleHeightMie,
+            scaleHm, scaleHeightMie,
             pR, atmoR,
             sunIntensity, 0.00465f,
             cloudBase, cloudTop, cloudCoverage,
@@ -188,13 +194,15 @@ public final class ScatteringParams {
     }
 
     private static ScatteringParams vacuum(float radiusEarthRadii) {
-        float pR = radiusEarthRadii * 6371f;
+        // Lockstep with real-scale terrain frame (SP1): geometry in metres.
+        // Full sky/density retuning (optical-path coefficients) deferred to SP3.
+        float pR = radiusEarthRadii * 6371f * 1000f; // metres (Earth-radii → km → m)
         return new ScatteringParams(
             0f, 0f, 0f,
             0f, 0.76f,
             0f, 0f, 0f,
-            8.5f, 1.2f,
-            pR, pR + 50f,
+            8_500f, 1_200f,             // scale heights in metres
+            pR, pR + 50_000f,           // atmosphere shell: 50 km above surface (metres)
             22.0f, 0.00465f,
             0f, 0f, 0f,
             0f
