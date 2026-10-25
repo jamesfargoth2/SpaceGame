@@ -8,7 +8,9 @@ What it does (idempotent):
   1. Creates /Game/GalacticOdyssey/Materials/M_Greybox (tintable "Color" parameter, ISM-ready) and
      M_PlanetSurface (vertex colour -> base colour, lit), the materials the settings point at.
   2. Imports every legacy libGDX model referenced by a kit row's LegacySourcePath
-     (e.g. models/props/interior/chair_crew.glb) from <repo>/core/src/main/resources into
+     (e.g. models/props/interior/chair_crew.glb) from <repo>/core/src/main/resources (or any
+     folder given with --legacy-root, e.g. "D:/Big Space Game": the manifest path is tried first,
+     then a file of the same name, .glb/.gltf/.fbx/.obj, anywhere below it) into
      /Game/GalacticOdyssey/Kit/<Category>/<AssetId>, and writes the imported mesh path back into
      Plugins/GalacticProcGen/Data/AssetKit.json so the JSON stays the reviewable source of truth.
   3. Creates the DataTables listed in Project Settings > Galactic Universe from the JSON files
@@ -28,6 +30,10 @@ GAME_ROOT = "/Game/GalacticOdyssey"
 MATERIAL_DIR = GAME_ROOT + "/Materials"
 DATA_DIR = GAME_ROOT + "/Data"
 KIT_DIR = GAME_ROOT + "/Kit"
+
+# Formats the editor imports, most preferred first (glTF keeps PBR materials best).
+MODEL_EXTENSIONS = (".glb", ".gltf", ".fbx", ".obj")
+SKIPPED_DIRS = {"node_modules", "build", "Binaries", "Intermediate", "Saved", "DerivedDataCache", "__pycache__"}
 
 TABLES = [
     # (asset name, json file, row struct name in Python)
@@ -58,8 +64,12 @@ def parse_args(argv):
     while index < len(argv):
         arg = argv[index]
         if arg == "--legacy-root" and index + 1 < len(argv):
-            options["legacy_root"] = argv[index + 1]
-            index += 1
+            # Re-join a path with spaces ("Big Space Game") in case the console split it.
+            parts = []
+            while index + 1 < len(argv) and not argv[index + 1].startswith("--"):
+                parts.append(argv[index + 1])
+                index += 1
+            options["legacy_root"] = " ".join(parts).strip("\"'")
         elif arg == "--refresh-tables":
             options["refresh_tables"] = True
         elif arg == "--force-materials":
@@ -120,18 +130,68 @@ def mesh_volume(mesh):
     return abs(size.x * size.y * size.z)
 
 
+def index_model_files(legacy_root):
+    """Maps lower-case file stem -> paths of importable models anywhere under legacy_root."""
+    index = {}
+    for directory, subdirs, files in os.walk(legacy_root):
+        subdirs[:] = [name for name in subdirs if name not in SKIPPED_DIRS and not name.startswith(".")]
+        for name in files:
+            stem, extension = os.path.splitext(name)
+            if extension.lower() in MODEL_EXTENSIONS + (".g3db", ".g3dj"):
+                index.setdefault(stem.lower(), []).append(os.path.join(directory, name))
+    return index
+
+
+def find_legacy_file(legacy_root, source, index_cache):
+    """Finds a kit row's legacy model under legacy_root, whatever the folder layout.
+
+    Tries the manifest path relative to the root, to a libGDX project copy at the root, then any
+    file with the same name (.glb, .gltf, .fbx or .obj) anywhere under the root.
+    """
+    relative = source.replace("\\", "/")
+    for prefix in ("", "core/src/main/resources", "assets", "core/assets"):
+        candidate = os.path.join(legacy_root, prefix, relative)
+        if os.path.isfile(candidate):
+            return candidate, None
+
+    if "index" not in index_cache:
+        index_cache["index"] = index_model_files(legacy_root)
+    stem = os.path.splitext(os.path.basename(relative))[0].lower()
+    matches = index_cache["index"].get(stem, [])
+    importable = [path for path in matches if os.path.splitext(path)[1].lower() in MODEL_EXTENSIONS]
+    if not importable:
+        if matches:
+            return None, "only libGDX .g3db/.g3dj files found ({}); Unreal imports .glb, .gltf, .fbx or " \
+                         ".obj, so re-export the model from its source file".format(", ".join(matches))
+        return None, "not found under " + legacy_root
+
+    def rank(path):
+        # Prefer the manifest's folder structure, then the preferred format, then the shortest path.
+        normalised = path.replace("\\", "/").lower()
+        extension = os.path.splitext(path)[1].lower()
+        same_dirs = normalised.endswith(os.path.splitext(relative)[0].lower() + extension)
+        return (not same_dirs, MODEL_EXTENSIONS.index(extension), len(path))
+
+    importable.sort(key=rank)
+    if len(importable) > 1:
+        log("several files match {}; using {}".format(relative, importable[0]))
+    return importable[0], None
+
+
 def import_legacy_models(kit_rows, legacy_root):
-    """Imports .glb/.gltf files referenced by kit rows; returns {asset id: static mesh path}."""
+    """Imports the models referenced by kit rows; returns {asset id: static mesh path}."""
     imported = {}
     tasks = []
+    index_cache = {}
     for row in kit_rows:
         source = row.get("LegacySourcePath")
         if not source:
             continue
-        file_path = os.path.join(legacy_root, source)
-        if not os.path.isfile(file_path):
-            warn("legacy model not found for {}: {}".format(row["Name"], file_path))
+        file_path, problem = find_legacy_file(legacy_root, source, index_cache)
+        if not file_path:
+            warn("legacy model for {} ({}): {}".format(row["Name"], source, problem))
             continue
+        log("found {} at {}".format(row["Name"], file_path))
         task = unreal.AssetImportTask()
         task.set_editor_property("filename", file_path)
         task.set_editor_property("destination_path", "{}/{}".format(KIT_DIR, row.get("Category", "Prop")))

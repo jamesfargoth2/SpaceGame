@@ -63,7 +63,11 @@ spawns use `human_npc_generic` and the player is `human_player`.
 How a model gets into the procedural scenes:
 
 1. Put the `.glb` files where the libGDX manifests expect them
-   (`core/src/main/resources/models/...`), or pass `--legacy-root <dir>` to the script.
+   (`core/src/main/resources/models/...`), or point the script at the folder that holds them,
+   in any layout. Run it from the editor's Output Log console (Cmd: Python), for example:
+   `py "<repo>/Unreal/Tools/SetupGalacticOdyssey.py" --legacy-root "D:/Big Space Game"`.
+   The script tries the manifest path first, then any `.glb`/`.gltf`/`.fbx`/`.obj` with the same
+   name below that folder. libGDX-only `.g3db` files are reported, since Unreal can't import them.
 2. Run `Tools/SetupGalacticOdyssey.py` in the editor. It imports each file via Interchange into
    `/Game/GalacticOdyssey/Kit/<Category>/<id>`, writes the mesh path into `AssetKit.json`
    (a one-line diff per asset), and rebuilds `DT_AssetKit`.
