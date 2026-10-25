@@ -1,0 +1,9 @@
+[
+	{ "Name": "O", "Class": "O", "Frequency": 0.01, "TempMinK": 30000, "TempMaxK": 50000, "MassMin": 16.0, "MassMax": 50.0, "PlanetCountMin": 1, "PlanetCountMax": 3 },
+	{ "Name": "B", "Class": "B", "Frequency": 0.02, "TempMinK": 10000, "TempMaxK": 30000, "MassMin": 2.1, "MassMax": 16.0, "PlanetCountMin": 1, "PlanetCountMax": 4 },
+	{ "Name": "A", "Class": "A", "Frequency": 0.05, "TempMinK": 7500, "TempMaxK": 10000, "MassMin": 1.4, "MassMax": 2.1, "PlanetCountMin": 2, "PlanetCountMax": 5 },
+	{ "Name": "F", "Class": "F", "Frequency": 0.08, "TempMinK": 6000, "TempMaxK": 7500, "MassMin": 1.04, "MassMax": 1.4, "PlanetCountMin": 2, "PlanetCountMax": 6 },
+	{ "Name": "G", "Class": "G", "Frequency": 0.12, "TempMinK": 5200, "TempMaxK": 6000, "MassMin": 0.8, "MassMax": 1.04, "PlanetCountMin": 3, "PlanetCountMax": 6 },
+	{ "Name": "K", "Class": "K", "Frequency": 0.22, "TempMinK": 3700, "TempMaxK": 5200, "MassMin": 0.45, "MassMax": 0.8, "PlanetCountMin": 2, "PlanetCountMax": 6 },
+	{ "Name": "M", "Class": "M", "Frequency": 0.50, "TempMinK": 2400, "TempMaxK": 3700, "MassMin": 0.08, "MassMax": 0.45, "PlanetCountMin": 2, "PlanetCountMax": 4 }
+]

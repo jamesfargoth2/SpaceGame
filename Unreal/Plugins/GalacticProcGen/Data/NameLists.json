@@ -1,0 +1,21 @@
+[
+	{ "Name": "starOnsets", "Values": ["Al", "Be", "Cen", "Del", "Ep", "Fo", "Gal", "Hy", "Ion", "Kep", "Lyr", "Mir", "Neb", "Or", "Pol", "Rig", "Sir", "Tau", "Vel", "Zet"] },
+	{ "Name": "starCodas", "Values": ["pha", "ri", "tus", "nar", "ion", "ux", "ari", "eon", "is", "os", "um", "ax", "el", "on", "us"] },
+	{ "Name": "greekLetters", "Values": ["Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta", "Eta", "Theta", "Iota", "Kappa", "Lambda", "Mu", "Nu", "Xi", "Omicron", "Pi", "Rho", "Sigma", "Tau", "Upsilon"] },
+	{ "Name": "planetRoots", "Values": ["Tera", "Nova", "Kry", "Val", "Sol", "Zeph", "Ard", "Cael", "Dra", "Fen", "Gol", "Hex", "Ith", "Jor", "Lum", "Myr", "Nyx", "Obl", "Pyr", "Qua", "Rex", "Syl", "Tor", "Umb", "Vor", "Wyr", "Xan", "Yth", "Zel"] },
+	{ "Name": "planetSuffixes", "Values": ["is", "us", "on", "ar", "ix", "a", "um", "os", "ium", "eas"] },
+	{ "Name": "stationAdjectives", "Values": ["Outer", "Deep", "High", "Far", "New", "Old", "Prime", "Grand", "Iron", "Silver"] },
+	{ "Name": "stationNouns", "Values": ["Haven", "Gate", "Reach", "Point", "Harbor", "Watch", "Forge", "Spire", "Ring", "Dock"] },
+	{ "Name": "academyNouns", "Values": ["Academy", "Naval Academy", "Flight Academy", "Institute", "War College", "Cadet School"] },
+	{ "Name": "factionAdjectives", "Values": ["Iron", "Crimson", "Solar", "Void", "Crystal", "Shadow", "Golden", "Silver", "Obsidian", "Azure"] },
+	{ "Name": "factionNouns", "Values": ["Collective", "Dominion", "Republic", "Alliance", "Syndicate", "Consortium", "Empire", "Federation", "Covenant", "Order"] },
+	{ "Name": "factionPrefixes", "Values": ["The", "United", "Free", "Sovereign"] },
+	{ "Name": "shipPrefixes", "Values": ["ISV", "UNSS", "FCS", "RSV", "TMS", "DSV", "MCS", "ACS"] },
+	{ "Name": "shipClasses", "Values": ["Vanguard", "Tempest", "Falcon", "Sentinel", "Wraith", "Corsair", "Nomad", "Harbinger", "Eclipse", "Zenith"] },
+	{ "Name": "shipNames", "Values": ["Defiance", "Horizon", "Resolve", "Fortune", "Perseverance", "Wanderer", "Valiant", "Serenity", "Reckoning", "Providence", "Vigilance", "Endurance", "Prometheus", "Pioneer"] },
+	{ "Name": "personOnsets", "Values": ["Kal", "Zar", "Ven", "Tai", "Kor", "Mira", "Dex", "Syl", "Ren", "Nyx", "Ash", "Bri", "Cae", "Dri", "Eli", "Fen", "Gri", "Hel", "Isa", "Jax"] },
+	{ "Name": "personCodas", "Values": ["en", "ax", "is", "or", "an", "el", "ia", "us", "ra", "on", "ik", "os", "ara", "ius", "ene"] },
+	{ "Name": "galaxyRoots", "Values": ["Velar", "Andr", "Cygn", "Orib", "Tessar", "Kael", "Luth", "Myrr", "Sere", "Vaun", "Hesper", "Ithar"] },
+	{ "Name": "galaxySuffixes", "Values": ["ion", "ara", "eth", "is", "os", "ine", "ax"] },
+	{ "Name": "galaxyNouns", "Values": ["Expanse", "Reach", "Cluster", "Spiral", "Drift", "Crown", "Maelstrom", "Veil"] }
+]
