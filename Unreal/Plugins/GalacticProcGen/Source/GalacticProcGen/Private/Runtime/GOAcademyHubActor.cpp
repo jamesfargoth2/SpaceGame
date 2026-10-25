@@ -75,7 +75,7 @@ UInstancedStaticMeshComponent* AGOAcademyHubActor::MakeInstanceComponent(UStatic
 	Component->SetVisibility(bVisible);
 	if (CullDistanceCm > 0.f)
 	{
-		Component->SetCullDistances(FMath::RoundToInt(CullDistanceCm * 0.8f), FMath::RoundToInt(CullDistanceCm));
+		Component->SetCullDistances(FMath::RoundToInt32(CullDistanceCm * 0.8f), FMath::RoundToInt32(CullDistanceCm));
 	}
 	Component->RegisterComponent();
 	AddInstanceComponent(Component);
@@ -292,9 +292,9 @@ void AGOAcademyHubActor::BuildFromLayout(const FGOHubLayout& InLayout, const FGO
 		*Layout.AcademyName, Layout.Rooms.Num(), InstanceCount, Batches.Num(), ActorCount, LightCount);
 }
 
-FTransform AGOAcademyHubActor::GetSpawnWorldTransform(EGOHubSpawnRole Role) const
+FTransform AGOAcademyHubActor::GetSpawnWorldTransform(EGOHubSpawnRole SpawnRole) const
 {
-	if (const FGOHubSpawnPoint* Spawn = Layout.FindSpawn(Role))
+	if (const FGOHubSpawnPoint* Spawn = Layout.FindSpawn(SpawnRole))
 	{
 		return Spawn->Transform * GetActorTransform();
 	}

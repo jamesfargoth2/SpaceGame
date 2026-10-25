@@ -645,7 +645,7 @@ namespace GOProcGenTestsPrivate
 				continue;
 			}
 			const FVector P = Player->Transform.GetLocation();
-			const FIntPoint StartCell(FMath::RoundToInt(P.X / Hub.Params.CellSizeCm), FMath::RoundToInt(P.Y / Hub.Params.CellSizeCm));
+			const FIntPoint StartCell(FMath::RoundToInt32(P.X / Hub.Params.CellSizeCm), FMath::RoundToInt32(P.Y / Hub.Params.CellSizeCm));
 
 			TSet<FIntPoint> Visited;
 			TArray<FIntPoint> Frontier = { StartCell };
@@ -696,7 +696,7 @@ namespace GOProcGenTestsPrivate
 				const FVector L = Piece.Transform.GetLocation();
 				if (FMath::Abs(L.Z - WallZ) < 1.0)
 				{
-					Edges.Add(FIntPoint(FMath::RoundToInt(L.X * 2.0 / C), FMath::RoundToInt(L.Y * 2.0 / C)));
+					Edges.Add(FIntPoint(FMath::RoundToInt32(L.X * 2.0 / C), FMath::RoundToInt32(L.Y * 2.0 / C)));
 				}
 			}
 

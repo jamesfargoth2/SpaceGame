@@ -147,6 +147,10 @@ Tools/
   shows the biomes but no lighting. The script creates a lit `M_PlanetSurface`.
 - Skinned character `.glb` files import as skeletal meshes. Wrap them in a Blueprint actor and
   set the kit row's `ActorClass`.
+- Run the setup script before packaging. Kit meshes are instanced, and cooked builds only draw
+  instances whose materials are flagged for instancing. The script creates `M_Greybox` with that
+  flag and sets it on imported models' materials. The editor sets the flag on its own, so PIE
+  looks right either way.
 - Only the home system is realised in the world; other planets, moons and stars exist as data
   (`UGOUniverseSubsystem::GetStarsNear/GetStarSystem/GetPlanets`) for maps and travel.
 - Natural extensions: a PCG node wrapping `BuildScatter`/hub props; porting the Java ship-hull,

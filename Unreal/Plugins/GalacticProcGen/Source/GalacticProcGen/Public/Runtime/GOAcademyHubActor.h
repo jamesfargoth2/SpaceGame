@@ -29,7 +29,7 @@ public:
 
 	/** World transform (feet, facing) of the first spawn point with the given role. */
 	UFUNCTION(BlueprintPure, Category = "Galactic|Academy")
-	FTransform GetSpawnWorldTransform(EGOHubSpawnRole Role) const;
+	FTransform GetSpawnWorldTransform(EGOHubSpawnRole SpawnRole) const;
 
 	UFUNCTION(BlueprintPure, Category = "Galactic|Academy")
 	bool IsInsideHub(FVector WorldLocation) const;

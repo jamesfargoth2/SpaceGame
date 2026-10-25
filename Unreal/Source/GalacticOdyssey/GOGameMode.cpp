@@ -1,6 +1,7 @@
 #include "GOGameMode.h"
 
 #include "Core/GOContentDefs.h"
+#include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "GameFramework/PlayerStart.h"
 #include "GameFramework/WorldSettings.h"
@@ -11,6 +12,8 @@
 #include "Runtime/GOPlanetActor.h"
 #include "Runtime/GOUniverseSettings.h"
 #include "Runtime/GOUniverseSubsystem.h"
+
+DEFINE_LOG_CATEGORY_STATIC(LogGOGameMode, Log, All);
 
 namespace GOGameModePrivate
 {
@@ -84,6 +87,11 @@ void AGOGameMode::BuildUniverse(const FGOStartScenario& Scenario, bool bStartOnS
 
 	UClass* PlanetType = PlanetClass ? PlanetClass.Get() : AGOPlanetActor::StaticClass();
 	Planet = World->SpawnActor<AGOPlanetActor>(PlanetType, FTransform(PlanetRotation, PlanetLocation), Params);
+	if (!Planet)
+	{
+		UE_LOG(LogGOGameMode, Error, TEXT("Could not spawn the planet actor (%s)."), *GetNameSafe(PlanetType));
+		return;
+	}
 	Planet->SurfaceMaterial = Settings->PlanetSurfaceMaterial;
 	Planet->GreyboxMaterial = Settings->GreyboxMaterial;
 	Planet->bSpawnAtmosphere = Settings->bSpawnAtmosphere;
@@ -98,12 +106,18 @@ void AGOGameMode::BuildUniverse(const FGOStartScenario& Scenario, bool bStartOnS
 	Planet->MeshSettings.ScatterMinDepth = Settings->ScatterMinDepth;
 	Planet->MeshSettings.ScatterDensityFalloff = Settings->ScatterDensityFalloff;
 	Planet->MeshSettings.MaxScatterPerChunk = Settings->MaxScatterPerChunk;
-	Planet->InitializePlanet(Universe->GetContent(), Home, Scenario.Universe.HomeSystem, Landing, Scenario.TerrainMaxDepth);
+	Planet->InitializePlanet(Universe->GetContent(), Home, Scenario.Universe.HomeSystem, Landing, Scenario.TerrainMaxDepth,
+		Scenario.TerrainHeightScale);
 
 	// The academy orbits directly above the landing site, so its floor faces the planet.
 	const FVector HubLocation = PlanetLocation + PlanetRotation.RotateVector(Landing * Scenario.HubOrbitRadiusKm * CmPerKm);
 	UClass* AcademyType = AcademyClass ? AcademyClass.Get() : AGOAcademyHubActor::StaticClass();
 	Academy = World->SpawnActor<AGOAcademyHubActor>(AcademyType, FTransform(FQuat::Identity, HubLocation), Params);
+	if (!Academy)
+	{
+		UE_LOG(LogGOGameMode, Error, TEXT("Could not spawn the academy actor (%s)."), *GetNameSafe(AcademyType));
+		return;
+	}
 	Academy->GreyboxMaterial = Settings->GreyboxMaterial;
 	Academy->bSpawnNpcStandIns = Settings->bSpawnNpcStandIns;
 	Academy->MaxLights = Settings->MaxHubLights;

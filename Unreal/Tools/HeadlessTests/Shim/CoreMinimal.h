@@ -106,12 +106,19 @@ struct FMath
 	static float Atan2(float Y, float X) { return std::atan2(Y, X); }
 	static double Atan2(double Y, double X) { return std::atan2(Y, X); }
 
+	// As in UE5: the double overloads return int64; the *32 variants always return int32.
 	static int32 FloorToInt(float X) { return static_cast<int32>(std::floor(X)); }
-	static int32 FloorToInt(double X) { return static_cast<int32>(std::floor(X)); }
+	static int64 FloorToInt(double X) { return static_cast<int64>(std::floor(X)); }
 	static int32 CeilToInt(float X) { return static_cast<int32>(std::ceil(X)); }
-	static int32 CeilToInt(double X) { return static_cast<int32>(std::ceil(X)); }
+	static int64 CeilToInt(double X) { return static_cast<int64>(std::ceil(X)); }
 	static int32 RoundToInt(float X) { return FloorToInt(X + 0.5f); }
-	static int32 RoundToInt(double X) { return FloorToInt(X + 0.5); }
+	static int64 RoundToInt(double X) { return FloorToInt(X + 0.5); }
+	static int32 FloorToInt32(float X) { return static_cast<int32>(std::floor(X)); }
+	static int32 FloorToInt32(double X) { return static_cast<int32>(std::floor(X)); }
+	static int32 CeilToInt32(float X) { return static_cast<int32>(std::ceil(X)); }
+	static int32 CeilToInt32(double X) { return static_cast<int32>(std::ceil(X)); }
+	static int32 RoundToInt32(float X) { return FloorToInt32(X + 0.5f); }
+	static int32 RoundToInt32(double X) { return FloorToInt32(X + 0.5); }
 
 	template <typename T> static T DegreesToRadians(T Deg) { return Deg * static_cast<T>(UE_DOUBLE_PI / 180.0); }
 	template <typename T> static T RadiansToDegrees(T Rad) { return Rad * static_cast<T>(180.0 / UE_DOUBLE_PI); }

@@ -220,7 +220,7 @@ void GOTerrainMesh::BuildScatter(const FGOPlanetTerrain& Terrain, const FGOConte
 	{
 		FGORandom Rng(GOSeed::ForId(CellSeed, GOSeed::FromText(Row->AssetId.ToString())));
 		const double Expected = Row->DensityPerKm2 * CellAreaKm2;
-		const int32 Whole = FMath::FloorToInt(Expected);
+		const int32 Whole = FMath::FloorToInt32(Expected);
 		const int32 Count = Whole + (Rng.DRand() < Expected - Whole ? 1 : 0);
 
 		for (int32 K = 0; K < Count; ++K)

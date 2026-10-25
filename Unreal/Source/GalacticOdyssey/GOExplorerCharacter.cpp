@@ -66,17 +66,23 @@ void AGOExplorerCharacter::EnsureInputObjects()
 	Map(MoveAction, EKeys::S, true, true);
 	Map(MoveAction, EKeys::D, false, false);
 	Map(MoveAction, EKeys::A, false, true);
-	Map(MoveAction, EKeys::Gamepad_Left2D, false, false);
 
-	Map(LookAction, EKeys::Gamepad_Right2D, false, false);
+	// Sticks get a dead zone (no drift); up on the mouse or right stick looks up.
+	auto NegateY = [this]()
 	{
-		FEnhancedActionKeyMapping& Mouse = MappingContext->MapKey(LookAction, EKeys::Mouse2D);
-		UInputModifierNegate* InvertY = NewObject<UInputModifierNegate>(this);
-		InvertY->bX = false;
-		InvertY->bY = true;
-		InvertY->bZ = false;
-		Mouse.Modifiers.Add(InvertY);
+		UInputModifierNegate* Negate = NewObject<UInputModifierNegate>(this);
+		Negate->bX = false;
+		Negate->bY = true;
+		Negate->bZ = false;
+		return Negate;
+	};
+	MappingContext->MapKey(MoveAction, EKeys::Gamepad_Left2D).Modifiers.Add(NewObject<UInputModifierDeadZone>(this));
+	{
+		FEnhancedActionKeyMapping& Stick = MappingContext->MapKey(LookAction, EKeys::Gamepad_Right2D);
+		Stick.Modifiers.Add(NewObject<UInputModifierDeadZone>(this));
+		Stick.Modifiers.Add(NegateY());
 	}
+	MappingContext->MapKey(LookAction, EKeys::Mouse2D).Modifiers.Add(NegateY());
 
 	Map(VerticalAction, EKeys::E, false, false);
 	Map(VerticalAction, EKeys::Q, false, true);

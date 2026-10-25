@@ -124,8 +124,8 @@ EGOGalaxyRegion FGOGalaxyGenerator::ClassifyRegion(const FVector& PositionLY) co
 FIntPoint FGOGalaxyGenerator::ChunkOf(const FVector& PositionLY) const
 {
 	return FIntPoint(
-		FMath::FloorToInt(PositionLY.X / Config.ChunkSizeLY),
-		FMath::FloorToInt(PositionLY.Y / Config.ChunkSizeLY));
+		FMath::FloorToInt32(PositionLY.X / Config.ChunkSizeLY),
+		FMath::FloorToInt32(PositionLY.Y / Config.ChunkSizeLY));
 }
 
 void FGOGalaxyGenerator::GenerateChunk(const FIntPoint& Chunk, TArray<FGOStarRecord>& OutStars) const
@@ -163,7 +163,7 @@ void FGOGalaxyGenerator::GenerateChunk(const FIntPoint& Chunk, TArray<FGOStarRec
 	const double ChunkArea = ChunkSize * ChunkSize;
 	const double GalaxyArea = UE_DOUBLE_PI * Radius * Radius;
 	const double Expected = Config.TargetStarCount * (ChunkArea / GalaxyArea) * (DensitySum / 9.0) / MeanDensity;
-	const int32 WholeStars = FMath::FloorToInt(Expected);
+	const int32 WholeStars = FMath::FloorToInt32(Expected);
 	const int32 TargetCount = WholeStars + (Rng.DRand() < Expected - WholeStars ? 1 : 0);
 	if (TargetCount <= 0)
 	{
@@ -206,10 +206,10 @@ void FGOGalaxyGenerator::GatherStars(const FVector& CenterLY, double RadiusLY, T
 	OutStars.Reset();
 
 	const double ChunkSize = Config.ChunkSizeLY;
-	const int32 MinX = FMath::FloorToInt((CenterLY.X - RadiusLY) / ChunkSize);
-	const int32 MaxX = FMath::FloorToInt((CenterLY.X + RadiusLY) / ChunkSize);
-	const int32 MinY = FMath::FloorToInt((CenterLY.Y - RadiusLY) / ChunkSize);
-	const int32 MaxY = FMath::FloorToInt((CenterLY.Y + RadiusLY) / ChunkSize);
+	const int32 MinX = FMath::FloorToInt32((CenterLY.X - RadiusLY) / ChunkSize);
+	const int32 MaxX = FMath::FloorToInt32((CenterLY.X + RadiusLY) / ChunkSize);
+	const int32 MinY = FMath::FloorToInt32((CenterLY.Y - RadiusLY) / ChunkSize);
+	const int32 MaxY = FMath::FloorToInt32((CenterLY.Y + RadiusLY) / ChunkSize);
 	const double RadiusSq = RadiusLY * RadiusLY;
 
 	TArray<FGOStarRecord> ChunkStars;

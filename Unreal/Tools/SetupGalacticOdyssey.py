@@ -223,6 +223,40 @@ def import_legacy_models(kit_rows, legacy_root):
     return imported
 
 
+def enable_instancing(imported):
+    """Kit meshes render through (H)ISM components, which need materials flagged for instancing.
+
+    The editor sets the flag on demand, but cooked builds fall back to the default material, so
+    flag the base materials of every imported mesh that live in the project.
+    """
+    done = set()
+    for asset_id, mesh_path in imported.items():
+        try:
+            flag_mesh_materials(asset_id, mesh_path, done)
+        except Exception as error:  # keep going: tables and other assets matter more than this flag
+            warn("could not check the materials of {}: {}".format(asset_id, error))
+
+
+def flag_mesh_materials(asset_id, mesh_path, done):
+    mesh = eal.load_asset(mesh_path)
+    for slot in mesh.get_editor_property("static_materials"):
+        material = slot.get_editor_property("material_interface")
+        base = material.get_base_material() if material else None
+        if not base or base.get_path_name() in done:
+            continue
+        done.add(base.get_path_name())
+        if base.get_editor_property("used_with_instanced_static_meshes"):
+            continue
+        if not base.get_path_name().startswith("/Game/"):
+            warn("{}: material {} is outside /Game and isn't flagged for instanced meshes; packaged "
+                 "builds may draw {} with the default material".format(asset_id, base.get_path_name(), asset_id))
+            continue
+        base.set_editor_property("used_with_instanced_static_meshes", True)
+        mel.recompile_material(base)
+        eal.save_loaded_asset(base)
+        log("flagged {} for instanced meshes".format(base.get_path_name()))
+
+
 def write_kit_json(kit_path, imported):
     """Records imported mesh paths in AssetKit.json with minimal textual edits (clean diffs)."""
     with open(kit_path, encoding="utf-8") as handle:
@@ -263,9 +297,16 @@ def make_tables(plugin_data, refresh_all, refresh_names):
             table = asset_tools.create_asset(asset_name, DATA_DIR, unreal.DataTable, factory)
         with open(os.path.join(plugin_data, json_file), encoding="utf-8") as handle:
             text = handle.read()
-        if not unreal.DataTableFunctionLibrary.fill_data_table_from_json_string(table, text, row_struct):
-            warn("could not fill {} from {}".format(path, json_file))
+        expected_rows = len(json.loads(text))
+        clean = unreal.DataTableFunctionLibrary.fill_data_table_from_json_string(table, text, row_struct)
+        # The importer reports every property a row leaves out ("missing an entry"), and the JSON
+        # only lists non-default values, so judge the import by its rows instead of that flag.
+        row_count = len(unreal.DataTableFunctionLibrary.get_data_table_row_names(table))
+        if row_count != expected_rows:
+            warn("could not fill {} from {} ({} of {} rows)".format(path, json_file, row_count, expected_rows))
             continue
+        if not clean:
+            log("{}: the 'missing an entry' warnings above are expected (defaults are left out of the JSON)".format(path))
         eal.save_loaded_asset(table)
         log("{} {} from {}".format("refreshed" if exists else "created", path, json_file))
 
@@ -283,6 +324,7 @@ def main():
     with open(kit_path, encoding="utf-8") as handle:
         kit_rows = json.load(handle)
     imported = import_legacy_models(kit_rows, legacy_root)
+    enable_instancing(imported)
     kit_changed = write_kit_json(kit_path, imported)
 
     make_tables(plugin_data, options["refresh_tables"], {"DT_AssetKit"} if kit_changed else set())

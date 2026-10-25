@@ -49,10 +49,11 @@ public:
 
 	/**
 	 * Sets the planet up. LandingDirection (planet-local unit vector) is where the sun rises
-	 * first and which side is pre-built. Call once, right after spawning.
+	 * first and which side is pre-built. HeightScale must match the one the landing site was
+	 * chosen with (FGOStartScenario::TerrainHeightScale). Call once, right after spawning.
 	 */
 	void InitializePlanet(TSharedPtr<const FGOContentDefs, ESPMode::ThreadSafe> InContent, const FGOPlanet& InPlanet,
-		const FGOStarSystem& InStar, const FVector& LandingDirection, int32 MaxDepth);
+		const FGOStarSystem& InStar, const FVector& LandingDirection, int32 MaxDepth, float HeightScale);
 
 	/** Synchronously builds every chunk needed by a camera at the given world location (load time). */
 	void PrewarmForCamera(const FVector& CameraWorldLocation);

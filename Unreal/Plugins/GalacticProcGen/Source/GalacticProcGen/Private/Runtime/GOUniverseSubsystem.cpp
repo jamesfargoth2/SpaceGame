@@ -112,6 +112,12 @@ void UGOUniverseSubsystem::GenerateScenarioAsync()
 				return;
 			}
 			Self->bAsyncInFlight = false;
+			if (Self->Seed != RequestedSeed)
+			{
+				// The seed changed while this ran: the result is stale, start over for the new seed.
+				Self->GenerateScenarioAsync();
+				return;
+			}
 			Self->Scenario = MoveTemp(Result);
 			Self->ScenarioSeed = RequestedSeed;
 			Self->bHasScenario = true;
@@ -143,10 +149,10 @@ TArray<FGOStarRecord> UGOUniverseSubsystem::GetStarsNear(FVector PositionLY, dou
 	}
 
 	const double ChunkSize = Galaxy->GetConfig().ChunkSizeLY;
-	const int32 MinX = FMath::FloorToInt((PositionLY.X - RadiusLY) / ChunkSize);
-	const int32 MaxX = FMath::FloorToInt((PositionLY.X + RadiusLY) / ChunkSize);
-	const int32 MinY = FMath::FloorToInt((PositionLY.Y - RadiusLY) / ChunkSize);
-	const int32 MaxY = FMath::FloorToInt((PositionLY.Y + RadiusLY) / ChunkSize);
+	const int32 MinX = FMath::FloorToInt32((PositionLY.X - RadiusLY) / ChunkSize);
+	const int32 MaxX = FMath::FloorToInt32((PositionLY.X + RadiusLY) / ChunkSize);
+	const int32 MinY = FMath::FloorToInt32((PositionLY.Y - RadiusLY) / ChunkSize);
+	const int32 MaxY = FMath::FloorToInt32((PositionLY.Y + RadiusLY) / ChunkSize);
 
 	TArray<FGOStarRecord> Result;
 	for (int32 CY = MinY; CY <= MaxY; ++CY)

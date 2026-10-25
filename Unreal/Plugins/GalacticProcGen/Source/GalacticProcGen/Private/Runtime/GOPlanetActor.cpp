@@ -53,7 +53,7 @@ AGOPlanetActor::AGOPlanetActor()
 }
 
 void AGOPlanetActor::InitializePlanet(TSharedPtr<const FGOContentDefs, ESPMode::ThreadSafe> InContent, const FGOPlanet& InPlanet,
-	const FGOStarSystem& InStar, const FVector& LandingDirection, int32 MaxDepth)
+	const FGOStarSystem& InStar, const FVector& LandingDirection, int32 MaxDepth, float HeightScale)
 {
 	using namespace GOPlanetActorPrivate;
 
@@ -61,7 +61,7 @@ void AGOPlanetActor::InitializePlanet(TSharedPtr<const FGOContentDefs, ESPMode::
 	Planet = InPlanet;
 	Star = InStar;
 	MeshSettings.MaxDepth = MaxDepth;
-	Terrain = MakeShared<FGOPlanetTerrain, ESPMode::ThreadSafe>(Planet, *Content);
+	Terrain = MakeShared<FGOPlanetTerrain, ESPMode::ThreadSafe>(Planet, *Content, HeightScale);
 	Quadtree = MakeUnique<FGOTerrainQuadtree>(Terrain->GetRadiusKm(), MaxDepth, SplitThreshold, MergeThreshold);
 
 	SurfaceMaterialInstance = LoadIfExists(SurfaceMaterial);
@@ -120,10 +120,10 @@ void AGOPlanetActor::ConfigureAtmosphere()
 	const float H2O = Atmo.GetFraction(EGOGas::H2O);
 	const float CO2 = Atmo.GetFraction(EGOGas::CO2);
 
-	// Planet-scale sky: the component's transform is the planet centre. The engine UI clamps the
-	// ground radius to 10000 km; larger worlds get a slightly smaller sky shell.
+	// Planet-scale sky: the component's transform is the planet centre and the ground radius is
+	// the real one (the editor's slider limit doesn't apply to values set from code).
 	Atmosphere->TransformMode = ESkyAtmosphereTransformMode::PlanetCenterAtComponentTransform;
-	Atmosphere->BottomRadius = static_cast<float>(FMath::Min(Terrain->GetRadiusKm(), 9999.0));
+	Atmosphere->BottomRadius = static_cast<float>(Terrain->GetRadiusKm());
 	// Scale height ~ T / g: thin, cold or heavy worlds hug the ground.
 	Atmosphere->AtmosphereHeight = FMath::Clamp(60.f * TempRatio / Gravity, 20.f, 200.f);
 	Atmosphere->RayleighExponentialDistribution = FMath::Clamp(8.f * TempRatio / Gravity, 2.f, 30.f);
@@ -430,7 +430,7 @@ void AGOPlanetActor::ApplyChunk(const FGOChunkMeshData& Data)
 			Instances->SetCollisionProfileName(bScatterCollision ? UCollisionProfile::BlockAll_ProfileName : UCollisionProfile::NoCollision_ProfileName);
 			if (Cull > 0.f)
 			{
-				Instances->SetCullDistances(FMath::RoundToInt(Cull * 0.8f), FMath::RoundToInt(Cull));
+				Instances->SetCullDistances(FMath::RoundToInt32(Cull * 0.8f), FMath::RoundToInt32(Cull));
 			}
 			Instances->RegisterComponent();
 			AddInstanceComponent(Instances);

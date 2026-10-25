@@ -605,8 +605,8 @@ namespace GOHubGeneratorPrivate
 		for (int32 RoomIndex = 0; RoomIndex < Layout.Rooms.Num(); ++RoomIndex)
 		{
 			const FGOHubRoom& Room = Layout.Rooms[RoomIndex];
-			const int32 NX = FMath::Max(1, FMath::RoundToInt(Room.SizeCells.X / 3.0));
-			const int32 NY = FMath::Max(1, FMath::RoundToInt(Room.SizeCells.Y / 3.0));
+			const int32 NX = FMath::Max(1, FMath::RoundToInt32(Room.SizeCells.X / 3.0));
+			const int32 NY = FMath::Max(1, FMath::RoundToInt32(Room.SizeCells.Y / 3.0));
 			const double SpanX = Room.SizeCells.X * C;
 			const double SpanY = Room.SizeCells.Y * C;
 			const double MinX = Room.MinCell.X * C - C * 0.5;
@@ -762,7 +762,7 @@ namespace GOHubGeneratorPrivate
 			}
 			else if (RLimit >= 0.0)
 			{
-				const int32 N = FMath::FloorToInt(2.0 * RLimit / PitchR) + 1;
+				const int32 N = FMath::FloorToInt32(2.0 * RLimit / PitchR) + 1;
 				for (int32 K = 0; K < N; ++K)
 				{
 					Columns.Add((K - (N - 1) * 0.5) * PitchR);
