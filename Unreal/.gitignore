@@ -22,3 +22,7 @@ Plugins/*/Intermediate/
 
 # Headless test build output
 Tools/HeadlessTests/build/
+
+# Python
+__pycache__/
+*.pyc
