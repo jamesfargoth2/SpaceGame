@@ -1,0 +1,28 @@
+# Unreal build / cache output
+Binaries/
+Intermediate/
+Saved/
+DerivedDataCache/
+Build/
+Plugins/*/Binaries/
+Plugins/*/Intermediate/
+
+# IDE / generated project files
+.vs/
+.vscode/
+.idea/
+*.sln
+*.suo
+*.opensdf
+*.sdf
+*.VC.db
+*.VC.opendb
+*.xcworkspace
+*.xcodeproj
+
+# Headless test build output
+Tools/HeadlessTests/build/
+
+# Python
+__pycache__/
+*.pyc

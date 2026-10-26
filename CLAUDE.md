@@ -2,6 +2,8 @@
 
 Java/libGDX space game (FPS + 6DOF ship piloting, galaxy-scale). The full design document lives at [docs/DESIGN.md](docs/DESIGN.md) — consult it for system scope, feature definitions, and game design before designing new systems.
 
+An Unreal Engine 5 client lives in [Unreal/](Unreal/) (procedural universe, home world, academy hub). Work under `Unreal/` follows [Unreal/CLAUDE.md](Unreal/CLAUDE.md) instead of the libGDX stack and conventions below.
+
 ## Stack
 
 - **Engine:** libGDX 1.13+ with LWJGL3 backend

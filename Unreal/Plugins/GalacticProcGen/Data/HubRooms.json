@@ -1,0 +1,171 @@
+[
+	{
+		"Name": "GraduationHall", "DisplayName": "Graduation Hall", "Placement": "Atrium",
+		"MinCount": 1, "MaxCount": 1, "Priority": 100,
+		"MinSizeCells": { "X": 7, "Y": 6 }, "MaxSizeCells": { "X": 9, "Y": 8 },
+		"FrontWallAsset": "hub_wall_window",
+		"Tint": { "R": 0.82, "G": 0.84, "B": 0.90, "A": 1 }, "LightColor": { "R": 1.0, "G": 0.95, "B": 0.85, "A": 1 },
+		"Props": [
+			{ "AssetId": "desk_standard", "Pattern": "Stage", "MinCount": 1, "MaxCount": 1, "MarginCm": 200,
+			  "SpawnRole": "Instructor", "SpawnOffsetCm": -80, "bSpawnFacesProp": false },
+			{ "AssetId": "chair_crew", "Pattern": "Stage", "MinCount": 4, "MaxCount": 4, "MarginCm": 40, "SpacingCm": 80,
+			  "SpawnRole": "Instructor", "bSeated": true },
+			{ "AssetId": "chair_crew", "Pattern": "Rows", "MinCount": 24, "MaxCount": 48, "MarginCm": 120, "SpacingCm": 50,
+			  "SpawnRole": "Cadet", "SpawnFraction": 0.8, "bSeated": true },
+			{ "AssetId": "plant_pot", "Pattern": "AlongWalls", "MinCount": 4, "MaxCount": 8, "MarginCm": 20, "SpacingCm": 400 }
+		]
+	},
+	{
+		"Name": "Hangar", "DisplayName": "Launch Hangar", "Placement": "Terminal",
+		"MinCount": 1, "MaxCount": 1, "Priority": 10,
+		"MinSizeCells": { "X": 5, "Y": 5 }, "MaxSizeCells": { "X": 6, "Y": 6 },
+		"FrontWallAsset": "hub_hangar_door",
+		"Tint": { "R": 0.50, "G": 0.52, "B": 0.56, "A": 1 }, "LightColor": { "R": 0.9, "G": 0.95, "B": 1.0, "A": 1 },
+		"Props": [
+			{ "AssetId": "ship_starter", "Pattern": "Center", "SpawnRole": "Ship" },
+			{ "AssetId": "crate_cargo", "Pattern": "AlongWalls", "MinCount": 4, "MaxCount": 10, "MarginCm": 20, "SpacingCm": 40 },
+			{ "AssetId": "console_nav", "Pattern": "Corners", "MinCount": 2, "MaxCount": 2, "MarginCm": 40,
+			  "SpawnRole": "Staff", "SpawnOffsetCm": 70 }
+		]
+	},
+	{
+		"Name": "ObservationDeck", "DisplayName": "Observation Deck", "Placement": "Terminal",
+		"MinCount": 1, "MaxCount": 1, "Priority": 6,
+		"MinSizeCells": { "X": 4, "Y": 3 }, "MaxSizeCells": { "X": 5, "Y": 4 },
+		"ExteriorWallAsset": "hub_wall_window",
+		"Tint": { "R": 0.70, "G": 0.75, "B": 0.85, "A": 1 }, "LightColor": { "R": 0.75, "G": 0.85, "B": 1.0, "A": 1 },
+		"Props": [
+			{ "AssetId": "bench", "Pattern": "Rows", "MinCount": 2, "MaxCount": 6, "MarginCm": 150, "SpacingCm": 120,
+			  "SpawnRole": "Cadet", "SpawnFraction": 0.3, "bSeated": true },
+			{ "AssetId": "plant_pot", "Pattern": "Corners", "MinCount": 2, "MaxCount": 4, "MarginCm": 20 }
+		]
+	},
+	{
+		"Name": "Engineering", "DisplayName": "Engineering", "Placement": "Terminal",
+		"MinCount": 0, "MaxCount": 1, "Weight": 1.0,
+		"MinSizeCells": { "X": 4, "Y": 4 }, "MaxSizeCells": { "X": 5, "Y": 5 },
+		"Tint": { "R": 0.50, "G": 0.45, "B": 0.35, "A": 1 }, "LightColor": { "R": 1.0, "G": 0.85, "B": 0.6, "A": 1 },
+		"Props": [
+			{ "AssetId": "reactor_core", "Pattern": "Center" },
+			{ "AssetId": "console_nav", "Pattern": "AlongWalls", "MinCount": 2, "MaxCount": 4, "MarginCm": 10, "SpacingCm": 100,
+			  "SpawnRole": "Staff", "SpawnFraction": 0.5, "SpawnOffsetCm": 70 }
+		]
+	},
+	{
+		"Name": "Dormitory", "DisplayName": "Cadet Dormitory", "Placement": "Side",
+		"MinCount": 1, "MaxCount": 3, "Weight": 2.0, "Priority": 9,
+		"MinSizeCells": { "X": 3, "Y": 3 }, "MaxSizeCells": { "X": 5, "Y": 4 },
+		"Tint": { "R": 0.72, "G": 0.76, "B": 0.82, "A": 1 },
+		"Props": [
+			{ "AssetId": "bed_bunk", "Pattern": "AlongWalls", "MinCount": 4, "MaxCount": 8, "MarginCm": 5, "SpacingCm": 40,
+			  "SpawnRole": "Cadet", "SpawnFraction": 0.2, "SpawnOffsetCm": 90, "bSpawnFacesProp": false },
+			{ "AssetId": "locker", "Pattern": "AlongWalls", "MinCount": 3, "MaxCount": 8, "MarginCm": 5, "SpacingCm": 5 },
+			{ "AssetId": "table_round", "Pattern": "Center", "Chance": 0.5 }
+		]
+	},
+	{
+		"Name": "Classroom", "DisplayName": "Classroom", "Placement": "Side",
+		"MinCount": 1, "MaxCount": 3, "Weight": 2.0, "Priority": 8,
+		"MinSizeCells": { "X": 3, "Y": 3 }, "MaxSizeCells": { "X": 4, "Y": 4 },
+		"Tint": { "R": 0.80, "G": 0.80, "B": 0.74, "A": 1 },
+		"Props": [
+			{ "AssetId": "console_nav", "Pattern": "Stage", "MarginCm": 80,
+			  "SpawnRole": "Instructor", "SpawnOffsetCm": -70, "bSpawnFacesProp": false },
+			{ "AssetId": "screen_wall", "Pattern": "Stage", "MarginCm": 2 },
+			{ "AssetId": "desk_standard", "Pattern": "Rows", "MinCount": 6, "MaxCount": 12, "MarginCm": 60, "SpacingCm": 60,
+			  "SpawnRole": "Cadet", "SpawnFraction": 0.7, "SpawnOffsetCm": -60, "bSpawnFacesProp": false }
+		]
+	},
+	{
+		"Name": "SimulatorBay", "DisplayName": "Flight Simulator Bay", "Placement": "Side",
+		"MinCount": 1, "MaxCount": 1, "Priority": 7,
+		"MinSizeCells": { "X": 4, "Y": 4 }, "MaxSizeCells": { "X": 5, "Y": 5 },
+		"Tint": { "R": 0.35, "G": 0.40, "B": 0.50, "A": 1 }, "LightColor": { "R": 0.6, "G": 0.75, "B": 1.0, "A": 1 },
+		"Props": [
+			{ "AssetId": "console_nav", "Pattern": "Center", "SpawnRole": "Instructor", "SpawnOffsetCm": 70 },
+			{ "AssetId": "sim_pod", "Pattern": "Ring", "MinCount": 4, "MaxCount": 6, "MarginCm": 60,
+			  "SpawnRole": "Cadet", "SpawnFraction": 0.5, "bSeated": true }
+		]
+	},
+	{
+		"Name": "MessHall", "DisplayName": "Mess Hall", "Placement": "Side",
+		"MinCount": 1, "MaxCount": 1, "Priority": 6,
+		"MinSizeCells": { "X": 4, "Y": 4 }, "MaxSizeCells": { "X": 5, "Y": 5 },
+		"Tint": { "R": 0.85, "G": 0.78, "B": 0.65, "A": 1 }, "LightColor": { "R": 1.0, "G": 0.9, "B": 0.75, "A": 1 },
+		"Props": [
+			{ "AssetId": "table_round", "Pattern": "Scatter", "MinCount": 4, "MaxCount": 8, "MarginCm": 120 },
+			{ "AssetId": "chair_crew", "Pattern": "Scatter", "MinCount": 6, "MaxCount": 14, "MarginCm": 80,
+			  "SpawnRole": "Cadet", "SpawnFraction": 0.4, "bSeated": true },
+			{ "AssetId": "plant_pot", "Pattern": "Corners", "MinCount": 2, "MaxCount": 4, "MarginCm": 20 }
+		]
+	},
+	{
+		"Name": "Medbay", "DisplayName": "Medbay", "Placement": "Side",
+		"MinCount": 1, "MaxCount": 1, "Priority": 5,
+		"MinSizeCells": { "X": 3, "Y": 3 }, "MaxSizeCells": { "X": 4, "Y": 3 },
+		"Tint": { "R": 0.88, "G": 0.92, "B": 0.95, "A": 1 },
+		"Props": [
+			{ "AssetId": "medbed", "Pattern": "AlongWalls", "MinCount": 2, "MaxCount": 4, "MarginCm": 10, "SpacingCm": 80 },
+			{ "AssetId": "console_nav", "Pattern": "Stage", "MarginCm": 40, "SpawnRole": "Staff", "SpawnOffsetCm": 70 }
+		]
+	},
+	{
+		"Name": "CommandantOffice", "DisplayName": "Commandant's Office", "Placement": "Side",
+		"MinCount": 1, "MaxCount": 1, "Priority": 4,
+		"MinSizeCells": { "X": 3, "Y": 3 }, "MaxSizeCells": { "X": 3, "Y": 4 },
+		"Tint": { "R": 0.60, "G": 0.50, "B": 0.45, "A": 1 },
+		"Props": [
+			{ "AssetId": "desk_standard", "Pattern": "Stage", "MarginCm": 120,
+			  "SpawnRole": "Instructor", "SpawnOffsetCm": -70, "bSpawnFacesProp": false },
+			{ "AssetId": "chair_crew", "Pattern": "Stage", "MarginCm": 40 },
+			{ "AssetId": "screen_wall", "Pattern": "AlongWalls", "MinCount": 1, "MaxCount": 2, "MarginCm": 2 },
+			{ "AssetId": "shelf", "Pattern": "AlongWalls", "MinCount": 1, "MaxCount": 3, "MarginCm": 5, "SpacingCm": 20 }
+		]
+	},
+	{
+		"Name": "Library", "DisplayName": "Archives", "Placement": "Side",
+		"MinCount": 0, "MaxCount": 1, "Weight": 1.0,
+		"MinSizeCells": { "X": 3, "Y": 3 }, "MaxSizeCells": { "X": 4, "Y": 4 },
+		"Tint": { "R": 0.62, "G": 0.55, "B": 0.48, "A": 1 },
+		"Props": [
+			{ "AssetId": "shelf", "Pattern": "AlongWalls", "MinCount": 6, "MaxCount": 12, "MarginCm": 5, "SpacingCm": 10 },
+			{ "AssetId": "table_round", "Pattern": "Center" },
+			{ "AssetId": "chair_crew", "Pattern": "Scatter", "MinCount": 2, "MaxCount": 4, "MarginCm": 100,
+			  "SpawnRole": "Cadet", "SpawnFraction": 0.3, "bSeated": true }
+		]
+	},
+	{
+		"Name": "Gym", "DisplayName": "Gymnasium", "Placement": "Side",
+		"MinCount": 0, "MaxCount": 1, "Weight": 1.0,
+		"MinSizeCells": { "X": 4, "Y": 3 }, "MaxSizeCells": { "X": 5, "Y": 4 },
+		"Tint": { "R": 0.55, "G": 0.62, "B": 0.58, "A": 1 },
+		"Props": [
+			{ "AssetId": "gym_rack", "Pattern": "Scatter", "MinCount": 3, "MaxCount": 6, "MarginCm": 80,
+			  "SpawnRole": "Cadet", "SpawnFraction": 0.3, "SpawnOffsetCm": 80 },
+			{ "AssetId": "bench", "Pattern": "AlongWalls", "MinCount": 1, "MaxCount": 3, "MarginCm": 10, "SpacingCm": 100 }
+		]
+	},
+	{
+		"Name": "Lounge", "DisplayName": "Cadet Lounge", "Placement": "Side",
+		"MinCount": 0, "MaxCount": 2, "Weight": 1.5,
+		"MinSizeCells": { "X": 3, "Y": 3 }, "MaxSizeCells": { "X": 4, "Y": 4 },
+		"Tint": { "R": 0.70, "G": 0.62, "B": 0.75, "A": 1 },
+		"Props": [
+			{ "AssetId": "bench", "Pattern": "AlongWalls", "MinCount": 2, "MaxCount": 4, "MarginCm": 10, "SpacingCm": 60,
+			  "SpawnRole": "Cadet", "SpawnFraction": 0.3, "bSeated": true },
+			{ "AssetId": "table_round", "Pattern": "Scatter", "MinCount": 1, "MaxCount": 3, "MarginCm": 100 },
+			{ "AssetId": "plant_pot", "Pattern": "Corners", "MinCount": 2, "MaxCount": 4, "MarginCm": 20 }
+		]
+	},
+	{
+		"Name": "Armory", "DisplayName": "Armory", "Placement": "Side",
+		"MinCount": 0, "MaxCount": 1, "Weight": 0.7,
+		"MinSizeCells": { "X": 3, "Y": 3 }, "MaxSizeCells": { "X": 3, "Y": 4 },
+		"Tint": { "R": 0.45, "G": 0.45, "B": 0.42, "A": 1 },
+		"Props": [
+			{ "AssetId": "locker", "Pattern": "AlongWalls", "MinCount": 4, "MaxCount": 10, "MarginCm": 5, "SpacingCm": 5 },
+			{ "AssetId": "crate_cargo", "Pattern": "Scatter", "MinCount": 2, "MaxCount": 4, "MarginCm": 60 },
+			{ "AssetId": "console_nav", "Pattern": "Stage", "MarginCm": 40, "SpawnRole": "Staff", "SpawnOffsetCm": 70 }
+		]
+	}
+]

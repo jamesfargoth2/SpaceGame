@@ -1,0 +1,12 @@
+[
+	{ "Name": "Molten",   "Type": "Molten",   "RadiusMin": 0.3, "RadiusMax": 0.8,  "DensityMin": 5.0, "DensityMax": 8.0, "MoonMin": 0, "MoonMax": 0, "Zones": ["Inner"], "Weight": 1.0 },
+	{ "Name": "Barren",   "Type": "Barren",   "RadiusMin": 0.4, "RadiusMax": 1.2,  "DensityMin": 3.0, "DensityMax": 5.0, "MoonMin": 0, "MoonMax": 1, "Zones": ["Inner", "Habitable"], "Weight": 1.0 },
+	{ "Name": "Arid",     "Type": "Arid",     "RadiusMin": 0.7, "RadiusMax": 1.5,  "DensityMin": 4.0, "DensityMax": 5.5, "MoonMin": 0, "MoonMax": 2, "Zones": ["Habitable"], "Weight": 1.0 },
+	{ "Name": "Terran",   "Type": "Terran",   "RadiusMin": 0.8, "RadiusMax": 1.8,  "DensityMin": 4.5, "DensityMax": 6.0, "MoonMin": 0, "MoonMax": 3, "Zones": ["Habitable"], "Weight": 1.0 },
+	{ "Name": "Ocean",    "Type": "Ocean",    "RadiusMin": 1.0, "RadiusMax": 2.0,  "DensityMin": 3.5, "DensityMax": 5.5, "MoonMin": 0, "MoonMax": 2, "Zones": ["Habitable"], "Weight": 1.0 },
+	{ "Name": "Toxic",    "Type": "Toxic",    "RadiusMin": 0.8, "RadiusMax": 1.6,  "DensityMin": 4.5, "DensityMax": 6.5, "MoonMin": 0, "MoonMax": 1, "Zones": ["Inner", "Habitable"], "Weight": 1.0 },
+	{ "Name": "GasGiant", "Type": "GasGiant", "RadiusMin": 6.0, "RadiusMax": 15.0, "DensityMin": 0.7, "DensityMax": 1.6, "MoonMin": 2, "MoonMax": 8, "Zones": ["Outer", "Deep"], "Weight": 1.0 },
+	{ "Name": "IceGiant", "Type": "IceGiant", "RadiusMin": 3.0, "RadiusMax": 6.0,  "DensityMin": 1.2, "DensityMax": 2.0, "MoonMin": 1, "MoonMax": 5, "Zones": ["Outer", "Deep"], "Weight": 1.0 },
+	{ "Name": "IceWorld", "Type": "IceWorld", "RadiusMin": 0.3, "RadiusMax": 1.0,  "DensityMin": 1.5, "DensityMax": 3.0, "MoonMin": 0, "MoonMax": 1, "Zones": ["Outer", "Deep"], "Weight": 1.0 },
+	{ "Name": "Dwarf",    "Type": "Dwarf",    "RadiusMin": 0.1, "RadiusMax": 0.4,  "DensityMin": 2.0, "DensityMax": 4.0, "MoonMin": 0, "MoonMax": 0, "Zones": ["Deep"], "Weight": 1.0 }
+]

@@ -1,0 +1,21 @@
+[
+	{ "Name": "IceSheet",        "Biome": "IceSheet",        "Amplitude": 0.10, "RidgeMix": 0.15, "GroundColor": { "R": 0.90, "G": 0.95, "B": 1.00, "A": 1.0 } },
+	{ "Name": "Tundra",          "Biome": "Tundra",          "Amplitude": 0.25, "RidgeMix": 0.20, "GroundColor": { "R": 0.60, "G": 0.65, "B": 0.55, "A": 1.0 } },
+	{ "Name": "PolarDesert",     "Biome": "PolarDesert",     "Amplitude": 0.20, "RidgeMix": 0.15, "GroundColor": { "R": 0.70, "G": 0.70, "B": 0.65, "A": 1.0 } },
+	{ "Name": "IceField",        "Biome": "IceField",        "Amplitude": 0.15, "RidgeMix": 0.20, "GroundColor": { "R": 0.80, "G": 0.85, "B": 0.90, "A": 1.0 } },
+	{ "Name": "BorealForest",    "Biome": "BorealForest",    "Amplitude": 0.35, "RidgeMix": 0.40, "GroundColor": { "R": 0.15, "G": 0.40, "B": 0.20, "A": 1.0 } },
+	{ "Name": "TemperateForest", "Biome": "TemperateForest", "Amplitude": 0.30, "RidgeMix": 0.35, "GroundColor": { "R": 0.20, "G": 0.55, "B": 0.20, "A": 1.0 } },
+	{ "Name": "Steppe",          "Biome": "Steppe",          "Amplitude": 0.20, "RidgeMix": 0.10, "GroundColor": { "R": 0.65, "G": 0.60, "B": 0.35, "A": 1.0 } },
+	{ "Name": "RockyWaste",      "Biome": "RockyWaste",      "Amplitude": 0.50, "RidgeMix": 0.80, "GroundColor": { "R": 0.50, "G": 0.45, "B": 0.40, "A": 1.0 } },
+	{ "Name": "TropicalForest",  "Biome": "TropicalForest",  "Amplitude": 0.30, "RidgeMix": 0.30, "GroundColor": { "R": 0.10, "G": 0.50, "B": 0.15, "A": 1.0 } },
+	{ "Name": "Grassland",       "Biome": "Grassland",       "Amplitude": 0.20, "RidgeMix": 0.10, "GroundColor": { "R": 0.40, "G": 0.70, "B": 0.30, "A": 1.0 } },
+	{ "Name": "AridShrub",       "Biome": "AridShrub",       "Amplitude": 0.20, "RidgeMix": 0.15, "GroundColor": { "R": 0.70, "G": 0.65, "B": 0.40, "A": 1.0 } },
+	{ "Name": "Desert",          "Biome": "Desert",          "Amplitude": 0.15, "RidgeMix": 0.05, "GroundColor": { "R": 0.85, "G": 0.75, "B": 0.45, "A": 1.0 } },
+	{ "Name": "Swamp",           "Biome": "Swamp",           "Amplitude": 0.10, "RidgeMix": 0.05, "GroundColor": { "R": 0.30, "G": 0.50, "B": 0.25, "A": 1.0 } },
+	{ "Name": "Savanna",         "Biome": "Savanna",         "Amplitude": 0.20, "RidgeMix": 0.15, "GroundColor": { "R": 0.75, "G": 0.70, "B": 0.35, "A": 1.0 } },
+	{ "Name": "Badlands",        "Biome": "Badlands",        "Amplitude": 0.45, "RidgeMix": 0.70, "GroundColor": { "R": 0.70, "G": 0.40, "B": 0.25, "A": 1.0 } },
+	{ "Name": "Volcanic",        "Biome": "Volcanic",        "Amplitude": 0.60, "RidgeMix": 0.90, "GroundColor": { "R": 0.30, "G": 0.15, "B": 0.10, "A": 1.0 } },
+	{ "Name": "Ocean",           "Biome": "Ocean",           "Amplitude": 0.05, "RidgeMix": 0.10, "GroundColor": { "R": 0.10, "G": 0.30, "B": 0.70, "A": 1.0 } },
+	{ "Name": "Lake",            "Biome": "Lake",            "Amplitude": 0.05, "RidgeMix": 0.05, "GroundColor": { "R": 0.20, "G": 0.40, "B": 0.80, "A": 1.0 } },
+	{ "Name": "River",           "Biome": "River",           "Amplitude": 0.02, "RidgeMix": 0.00, "GroundColor": { "R": 0.15, "G": 0.35, "B": 0.75, "A": 1.0 } }
+]
